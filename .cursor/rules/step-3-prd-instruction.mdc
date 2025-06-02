@@ -1,0 +1,25 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+markdown
+# PRD Instructions (Product Requirements Document)
+
+## Purpose
+Briefly explain the purpose and expected business/user outcomes.
+
+## Problem Statement
+Describe the problem to be solved or opportunity to address.
+
+## Acceptance Criteria
+- List clear, testable conditions for success.
+
+## Background/Context
+Describe the context, user needs, regulatory requirements, etc.
+
+## Dependencies
+- List blocking issues, dependencies, or other teams.
+
+## Stakeholders
+- List involved parties, reviewers, approvers.

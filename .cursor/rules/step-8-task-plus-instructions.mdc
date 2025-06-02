@@ -1,0 +1,21 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+markdown
+# TASK Plus Instructions
+
+For multi-step or cross-team tasks (features, epics).
+
+## Breakdown of Subtasks
+- List of each atomic subtask, with links or numbers.
+
+## Stakeholders/Owners
+Who owns which part, if split?
+
+## Timeline
+- Critical milestones or sequencing if required.
+
+## Risks/Dependencies
+Known blockers or prerequisites.

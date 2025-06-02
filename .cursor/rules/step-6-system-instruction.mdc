@@ -1,0 +1,21 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+markdown
+# SYSTEM Instructions
+
+Describes subsystems, APIs, and internal boundaries.
+
+## Subsystems List
+- Bullet for each subsystem with a brief summary.
+
+## Interfaces & APIs
+- REST/GraphQL/other endpoint contracts (with examples).
+
+## Data Pipelines & Storage
+- Flows between storage, queues, services.
+
+## Failover & Reliability
+- Plans for errors, downtime, or recovery.

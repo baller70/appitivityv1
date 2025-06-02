@@ -106,6 +106,7 @@ export default function BookmarkGrid() {
       {bookmarks.map((bookmark) => (
         <div 
           key={bookmark.id}
+          data-testid="bookmark-card"
           className="bg-gray-800 rounded-lg border border-gray-700 p-6 hover:border-gray-600 transition-colors"
         >
           {/* Header with Logo and URL */}

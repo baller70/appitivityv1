@@ -13,7 +13,14 @@ module.exports = {
         'saira': ['Saira', 'sans-serif'],
       },
       colors: {
+        border: '#e5e7eb',
+        input: '#d1d5db',
+        ring: '#3b82f6',
+        background: '#ffffff',
+        foreground: '#111827',
         primary: {
+          DEFAULT: '#3b82f6',
+          foreground: '#ffffff',
           50: '#f0f9ff',
           100: '#e0f2fe',
           200: '#bae6fd',
@@ -26,6 +33,8 @@ module.exports = {
           900: '#0c4a6e',
         },
         secondary: {
+          DEFAULT: '#f1f5f9',
+          foreground: '#1f2937',
           50: '#f8fafc',
           100: '#f1f5f9',
           200: '#e2e8f0',
@@ -36,6 +45,26 @@ module.exports = {
           700: '#334155',
           800: '#1e293b',
           900: '#0f172a',
+        },
+        destructive: {
+          DEFAULT: '#ef4444',
+          foreground: '#ffffff',
+        },
+        muted: {
+          DEFAULT: '#f1f5f9',
+          foreground: '#6b7280',
+        },
+        accent: {
+          DEFAULT: '#f1f5f9',
+          foreground: '#1f2937',
+        },
+        popover: {
+          DEFAULT: '#ffffff',
+          foreground: '#111827',
+        },
+        card: {
+          DEFAULT: '#ffffff',
+          foreground: '#111827',
         },
       },
       animation: {

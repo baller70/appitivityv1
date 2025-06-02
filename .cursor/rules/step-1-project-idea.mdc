@@ -1,0 +1,24 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+markdown
+# Project Idea
+
+## Vision
+Describe the end-goal and fundamental value proposition of this project.
+
+## Users & Personas
+- List who will use this and what problems are solved.
+- Note any internal or AI-specific requirements.
+
+## Guiding Principles
+- Short bullet list of project “north stars” (e.g., “Type safety”, “Automatable by AI”, “Internal compliance”).
+
+## Example Use Cases
+1. ...
+2. ...
+
+## Internal AI Requirements
+- Describe how, where, or why AI and automation are essential to this project.

@@ -32,9 +32,11 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   ]
 
   return (
-    <div className={`bg-gray-900 border-r border-gray-800 transition-all duration-300 ${
-      isCollapsed ? 'w-16' : 'w-64'
-    }`}>
+    <div 
+      data-testid="sidebar"
+      className={`bg-gray-900 border-r border-gray-800 transition-all duration-300 ${
+        isCollapsed ? 'w-16' : 'w-64'
+      }`}>
       <div className="flex flex-col h-full">
         {/* Header */}
         <div className="p-4 border-b border-gray-800">
