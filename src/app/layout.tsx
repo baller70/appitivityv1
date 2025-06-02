@@ -1,6 +1,7 @@
+import React, { ReactNode } from 'react'
 import type { Metadata } from 'next'
-import { ReactNode } from 'react'
-import '@/styles/globals.css'
+import '../styles/globals.css'
+import { Toaster } from '../components/ui/toaster'
 
 export const metadata: Metadata = {
   title: 'AppOrganizer Dashboard',
@@ -17,6 +18,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className="bg-secondary-50 dark:bg-secondary-900 text-secondary-900 dark:text-secondary-100 antialiased">
         {children}
+        <Toaster />
       </body>
     </html>
   )
