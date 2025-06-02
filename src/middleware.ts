@@ -1,12 +1,7 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { clerkMiddleware } from '@clerk/nextjs/server'
 
-export function middleware(request: NextRequest) {
-  // For now, just allow all requests through
-  // We'll implement proper Clerk middleware later when the API is stable
-  return NextResponse.next()
-}
+export default clerkMiddleware()
 
 export const config = {
-  matcher: ["/((?!.+\\.[\\w]+$|_next).*)", "/", "/(api|trpc)(.*)"],
+  matcher: ['/((?!.*\\..*|_next).*)', '/', '/(api|trpc)(.*)'],
 } 
