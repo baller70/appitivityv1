@@ -2,7 +2,7 @@ import React, { ReactNode } from 'react'
 import type { Metadata } from 'next'
 import { ClerkProvider } from '@clerk/nextjs'
 import '../styles/globals.css'
-import { Toaster } from '../components/ui/toaster'
+import { Toaster } from 'sonner'
 
 export const metadata: Metadata = {
   title: 'AppOrganizer Dashboard',

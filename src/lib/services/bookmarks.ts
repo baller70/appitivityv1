@@ -66,7 +66,7 @@ export class BookmarkService {
     // Transform the data to include tags properly
     return data?.map(bookmark => ({
       ...bookmark,
-      tags: bookmark.tags?.map((bt: any) => bt.tag).filter(Boolean) || []
+      tags: bookmark.tags?.map((bt: { tag: Tag }) => bt.tag).filter(Boolean) || []
     })) || []
   }
 
@@ -90,7 +90,7 @@ export class BookmarkService {
 
     return {
       ...data,
-      tags: data.tags?.map((bt: any) => bt.tag).filter(Boolean) || []
+      tags: data.tags?.map((bt: { tag: Tag }) => bt.tag).filter(Boolean) || []
     }
   }
 
@@ -200,7 +200,7 @@ export class BookmarkService {
 
     return data?.map(bookmark => ({
       ...bookmark,
-      tags: bookmark.tags?.map((bt: any) => bt.tag).filter(Boolean) || []
+      tags: bookmark.tags?.map((bt: { tag: Tag }) => bt.tag).filter(Boolean) || []
     })) || []
   }
 
