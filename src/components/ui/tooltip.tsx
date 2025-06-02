@@ -44,7 +44,7 @@ const Tooltip: React.FC<TooltipProps> = ({ children }) => {
 const TooltipTrigger = React.forwardRef<HTMLDivElement, TooltipTriggerProps>(
   ({ asChild, children, ...props }, ref) => {
     if (asChild && React.isValidElement(children)) {
-      return React.cloneElement(children, props as any)
+      return React.cloneElement(children, props as React.HTMLAttributes<HTMLElement>)
     }
     
     return (
