@@ -1,11 +1,8 @@
 import React from 'react';
-import { currentUser } from '@clerk/nextjs/server';
 import Link from 'next/link';
 import type { Route } from 'next';
 
-export default async function HomePage() {
-  const user = await currentUser();
-
+export default function HomePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
       <header className="bg-white dark:bg-gray-800 shadow-sm">
@@ -17,29 +14,20 @@ export default async function HomePage() {
               </h1>
             </div>
             <nav className="flex items-center space-x-4">
-              {user ? (
+              <div className="flex space-x-4">
                 <Link
-                  href={"/dashboard" as Route}
+                  href={"/sign-in" as Route}
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 px-3 py-2 rounded-md text-sm font-medium"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  href={"/sign-up" as Route}
                   className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium"
                 >
-                  Go to Dashboard
+                  Get Started
                 </Link>
-              ) : (
-                <div className="flex space-x-4">
-                  <Link
-                    href={"/sign-in" as Route}
-                    className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 px-3 py-2 rounded-md text-sm font-medium"
-                  >
-                    Sign In
-                  </Link>
-                  <Link
-                    href={"/sign-up" as Route}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-                  >
-                    Get Started
-                  </Link>
-                </div>
-              )}
+              </div>
             </nav>
           </div>
         </div>
@@ -56,39 +44,24 @@ export default async function HomePage() {
             Tag, categorize, and search through everything with ease.
           </p>
           
-          {!user && (
-            <div className="mt-5 max-w-md mx-auto sm:flex sm:justify-center md:mt-8">
-              <div className="rounded-md shadow">
-                <Link
-                  href={"/sign-up" as Route}
-                  className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 md:py-4 md:text-lg md:px-10"
-                >
-                  Start Organizing
-                </Link>
-              </div>
-              <div className="mt-3 rounded-md shadow sm:mt-0 sm:ml-3">
-                <Link
-                  href={"/sign-in" as Route}
-                  className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-indigo-600 bg-white hover:bg-gray-50 md:py-4 md:text-lg md:px-10"
-                >
-                  Sign In
-                </Link>
-              </div>
+          <div className="mt-5 max-w-md mx-auto sm:flex sm:justify-center md:mt-8">
+            <div className="rounded-md shadow">
+              <Link
+                href={"/sign-up" as Route}
+                className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 md:py-4 md:text-lg md:px-10"
+              >
+                Start Organizing
+              </Link>
             </div>
-          )}
-
-          {user && (
-            <div className="mt-5 max-w-md mx-auto sm:flex sm:justify-center md:mt-8">
-              <div className="rounded-md shadow">
-                <Link
-                  href={"/dashboard" as Route}
-                  className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 md:py-4 md:text-lg md:px-10"
-                >
-                  Go to Dashboard
-                </Link>
-              </div>
+            <div className="mt-3 rounded-md shadow sm:mt-0 sm:ml-3">
+              <Link
+                href={"/sign-in" as Route}
+                className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-indigo-600 bg-white hover:bg-gray-50 md:py-4 md:text-lg md:px-10"
+              >
+                Sign In
+              </Link>
             </div>
-          )}
+          </div>
         </div>
 
         <div className="mt-16">
