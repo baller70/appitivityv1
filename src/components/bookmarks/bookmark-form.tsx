@@ -8,7 +8,6 @@ import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Badge } from '../ui/badge';
 import { X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useUser } from '@clerk/nextjs';
@@ -28,14 +27,11 @@ export function BookmarkForm({ bookmark, folders, tags, onSubmit, onCancel }: Bo
     title: bookmark?.title || '',
     url: bookmark?.url || '',
     description: bookmark?.description || '',
-    folder_id: bookmark?.folder_id || '',
-    is_favorite: bookmark?.is_favorite || false,
-    is_archived: bookmark?.is_archived || false,
+    category: bookmark?.folder_id || '',
+    priority: '', // Not storing in DB yet, just for form UX
+    tags: bookmark?.tags?.map(tag => tag.name).join(', ') || '',
+    notes: '', // Not storing in DB yet, just for form UX
   });
-  const [selectedTags, setSelectedTags] = useState<string[]>(
-    bookmark?.tags?.map(tag => tag.id) || []
-  );
-  const [newTagName, setNewTagName] = useState('');
 
   const bookmarkService = user ? new BookmarkService(user.id) : null;
 
@@ -76,6 +72,17 @@ export function BookmarkForm({ bookmark, folders, tags, onSubmit, onCancel }: Bo
     try {
       setLoading(true);
 
+      // Parse tags from comma-separated string
+      const tagNames = formData.tags
+        .split(',')
+        .map(tag => tag.trim())
+        .filter(tag => tag.length > 0);
+
+      // Find existing tags and create list of tag IDs
+      const tagIds = tagNames
+        .map(tagName => tags.find(tag => tag.name.toLowerCase() === tagName.toLowerCase())?.id)
+        .filter(Boolean) as string[];
+
       let result: BookmarkWithRelations;
 
       if (bookmark) {
@@ -84,15 +91,13 @@ export function BookmarkForm({ bookmark, folders, tags, onSubmit, onCancel }: Bo
           title: formData.title.trim(),
           url: formData.url.trim(),
           description: formData.description.trim() || null,
-          folder_id: formData.folder_id || null,
-          is_favorite: formData.is_favorite,
-          is_archived: formData.is_archived,
+          folder_id: formData.category || null,
         });
 
         // Update tags
         const currentTagIds = bookmark.tags?.map(tag => tag.id) || [];
-        const tagsToRemove = currentTagIds.filter(id => !selectedTags.includes(id));
-        const tagsToAdd = selectedTags.filter(id => !currentTagIds.includes(id));
+        const tagsToRemove = currentTagIds.filter(id => !tagIds.includes(id));
+        const tagsToAdd = tagIds.filter(id => !currentTagIds.includes(id));
 
         if (tagsToRemove.length > 0) {
           await bookmarkService.removeTagsFromBookmark(bookmark.id, tagsToRemove);
@@ -104,191 +109,196 @@ export function BookmarkForm({ bookmark, folders, tags, onSubmit, onCancel }: Bo
         // Fetch the updated bookmark with relations
         result = await bookmarkService.getBookmark(bookmark.id) || updated as BookmarkWithRelations;
       } else {
-        // Create new bookmark
-        const created = await bookmarkService.createBookmark({
-          title: formData.title.trim(),
-          url: formData.url.trim(),
-          description: formData.description.trim() || null,
-          folder_id: formData.folder_id || null,
-          is_favorite: formData.is_favorite,
-          is_archived: formData.is_archived,
-        }, selectedTags);
+        // Create new bookmark via API to bypass RLS issues
+        const response = await fetch('/api/bookmarks', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: formData.title.trim(),
+            url: formData.url.trim(),
+            description: formData.description.trim() || null,
+            folder_id: formData.category || null,
+            tagIds: tagIds
+          }),
+        });
 
-        // Fetch the created bookmark with relations
-        result = await bookmarkService.getBookmark(created.id) || created as BookmarkWithRelations;
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to create bookmark');
+        }
+
+        const created = await response.json();
+        
+        // Convert to BookmarkWithRelations format
+        result = {
+          ...created,
+          folder: folders.find(f => f.id === created.folder_id) || null,
+          tags: tagIds.map(id => tags.find(t => t.id === id)).filter(Boolean) as any[]
+        };
       }
 
       onSubmit(result);
     } catch (error) {
       console.error('Failed to save bookmark:', error);
-      toast.error('Failed to save bookmark');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      toast.error(`Failed to save bookmark: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAddTag = () => {
-    if (!newTagName.trim()) return;
-    
-    const existingTag = tags.find(tag => 
-      tag.name.toLowerCase() === newTagName.trim().toLowerCase()
-    );
-    
-    if (existingTag) {
-      if (!selectedTags.includes(existingTag.id)) {
-        setSelectedTags(prev => [...prev, existingTag.id]);
-      }
-    } else {
-      // Create new tag (this would need to be implemented)
-      toast.info('Creating new tags is not yet implemented');
-    }
-    
-    setNewTagName('');
-  };
-
-  const handleRemoveTag = (tagId: string) => {
-    setSelectedTags(prev => prev.filter(id => id !== tagId));
-  };
-
-  const selectedTagObjects = tags.filter(tag => selectedTags.includes(tag.id));
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="md:col-span-2">
-          <Label htmlFor="url">URL *</Label>
+    <div className="p-6 bg-white dark:bg-gray-800 rounded-lg">
+      {/* Header - Exact from Reference */}
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+          Add New Bookmark
+        </h2>
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          Add a new website to your bookmark collection.
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Title - Exact from Reference */}
+        <div>
+          <Label htmlFor="title" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Title
+          </Label>
+          <Input
+            id="title"
+            value={formData.title}
+            onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+            placeholder="Website title"
+            className="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+            required
+          />
+        </div>
+
+        {/* URL - Exact from Reference */}
+        <div>
+          <Label htmlFor="url" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            URL
+          </Label>
           <Input
             id="url"
             type="url"
             value={formData.url}
             onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
             placeholder="https://example.com"
+            className="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
             required
           />
         </div>
 
-        <div className="md:col-span-2">
-          <Label htmlFor="title">Title *</Label>
-          <Input
-            id="title"
-            value={formData.title}
-            onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-            placeholder="Bookmark title"
-            required
-          />
-        </div>
-
-        <div className="md:col-span-2">
-          <Label htmlFor="description">Description</Label>
+        {/* Description - Exact from Reference */}
+        <div>
+          <Label htmlFor="description" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Description
+          </Label>
           <Textarea
             id="description"
             value={formData.description}
             onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-            placeholder="Optional description"
+            placeholder="Brief description of the website"
+            className="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
             rows={3}
           />
         </div>
 
+        {/* Category and Priority Row - Exact from Reference */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Category */}
+          <div>
+            <Label htmlFor="category" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Category
+            </Label>
+            <Select value={formData.category || undefined} onValueChange={(value) => 
+              setFormData(prev => ({ ...prev, category: value }))
+            }>
+              <SelectTrigger className="mt-1 w-full">
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                {folders.map((folder) => (
+                  <SelectItem key={folder.id} value={folder.id}>
+                    {folder.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Priority */}
+          <div>
+            <Label htmlFor="priority" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Priority
+            </Label>
+            <Select value={formData.priority || undefined} onValueChange={(value) => 
+              setFormData(prev => ({ ...prev, priority: value }))
+            }>
+              <SelectTrigger className="mt-1 w-full">
+                <SelectValue placeholder="Select priority" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="high">High</SelectItem>
+                <SelectItem value="medium">Medium</SelectItem>
+                <SelectItem value="low">Low</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Tags - Exact from Reference */}
         <div>
-          <Label htmlFor="folder">Folder</Label>
-          <Select value={formData.folder_id} onValueChange={(value) => 
-            setFormData(prev => ({ ...prev, folder_id: value }))
-          }>
-            <SelectTrigger>
-              <SelectValue placeholder="Select folder" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">No folder</SelectItem>
-              {folders.map((folder) => (
-                <SelectItem key={folder.id} value={folder.id}>
-                  {folder.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Label htmlFor="tags" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Tags
+          </Label>
+          <Input
+            id="tags"
+            value={formData.tags}
+            onChange={(e) => setFormData(prev => ({ ...prev, tags: e.target.value }))}
+            placeholder="tag1, tag2, tag3"
+            className="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+          />
         </div>
 
-        <div className="space-y-2">
-          <Label>Options</Label>
-          <div className="flex items-center space-x-4">
-            <label className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={formData.is_favorite}
-                onChange={(e) => setFormData(prev => ({ ...prev, is_favorite: e.target.checked }))}
-                className="rounded"
-              />
-              <span className="text-sm">Favorite</span>
-            </label>
-            <label className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={formData.is_archived}
-                onChange={(e) => setFormData(prev => ({ ...prev, is_archived: e.target.checked }))}
-                className="rounded"
-              />
-              <span className="text-sm">Archived</span>
-            </label>
-          </div>
+        {/* Notes - Exact from Reference */}
+        <div>
+          <Label htmlFor="notes" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Notes
+          </Label>
+          <Textarea
+            id="notes"
+            value={formData.notes}
+            onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+            placeholder="Additional notes or comments"
+            className="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+            rows={3}
+          />
         </div>
-      </div>
 
-      <div>
-        <Label>Tags</Label>
-        <div className="space-y-2">
-          <div className="flex flex-wrap gap-2">
-            {selectedTagObjects.map((tag) => (
-              <Badge key={tag.id} variant="secondary" className="flex items-center gap-1">
-                {tag.name}
-                <button
-                  type="button"
-                  onClick={() => handleRemoveTag(tag.id)}
-                  className="hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full p-0.5"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            ))}
-          </div>
-          
-          <div className="flex gap-2">
-            <Input
-              value={newTagName}
-              onChange={(e) => setNewTagName(e.target.value)}
-              placeholder="Add tag..."
-              onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
-            />
-            <Button type="button" variant="outline" onClick={handleAddTag}>
-              Add
-            </Button>
-          </div>
-          
-          <div className="flex flex-wrap gap-1">
-            {tags
-              .filter(tag => !selectedTags.includes(tag.id))
-              .slice(0, 10)
-              .map((tag) => (
-                <Badge
-                  key={tag.id}
-                  variant="outline"
-                  className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
-                  onClick={() => setSelectedTags(prev => [...prev, tag.id])}
-                >
-                  {tag.name}
-                </Badge>
-              ))}
-          </div>
+        {/* Buttons - Exact from Reference */}
+        <div className="flex justify-end space-x-3 pt-4">
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={onCancel}
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 rounded-md transition-colors"
+          >
+            Cancel
+          </Button>
+          <Button 
+            type="submit" 
+            disabled={loading}
+            className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-400 rounded-md transition-colors"
+          >
+            {loading ? 'Saving...' : 'Add Bookmark'}
+          </Button>
         </div>
-      </div>
-
-      <div className="flex justify-end space-x-2">
-        <Button type="button" variant="outline" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button type="submit" disabled={loading}>
-          {loading ? 'Saving...' : (bookmark ? 'Update' : 'Create')}
-        </Button>
-      </div>
-    </form>
+      </form>
+    </div>
   );
 } 

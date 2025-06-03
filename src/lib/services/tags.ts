@@ -1,4 +1,5 @@
 import { createSupabaseClient } from '../supabase'
+import { normalizeUserId } from '../uuid-compat'
 import type { 
   Tag, 
   TagInsert, 
@@ -15,8 +16,8 @@ export class TagService {
   private userId: string
 
   constructor(userId: string) {
-    this.userId = userId
-    this.supabase = createSupabaseClient(userId)
+    this.userId = normalizeUserId(userId)
+    this.supabase = createSupabaseClient(this.userId)
   }
 
   // Get all tags for the current user

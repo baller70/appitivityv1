@@ -8,9 +8,11 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
-import { Heart, Archive, ExternalLink, MoreHorizontal, Edit, Trash2, Folder as FolderIcon } from 'lucide-react';
+import { Heart, Archive, ExternalLink, MoreHorizontal, Edit, Trash2, Folder as FolderIcon, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { useUser } from '@clerk/nextjs';
+import { useSelection } from '../../contexts/SelectionContext';
+import { cn } from '../../lib/utils';
 
 interface BookmarkListItemProps {
   bookmark: BookmarkWithRelations;
@@ -24,6 +26,13 @@ export function BookmarkListItem({ bookmark, folders, tags, onUpdated, onDeleted
   const { user } = useUser();
   const [showEdit, setShowEdit] = useState(false);
   const [loading, setLoading] = useState(false);
+  
+  const { 
+    isSelectionMode, 
+    isSelected, 
+    toggleItem, 
+    enterSelectionMode 
+  } = useSelection();
 
   const bookmarkService = user ? new BookmarkService(user.id) : null;
 
@@ -81,10 +90,57 @@ export function BookmarkListItem({ bookmark, folders, tags, onUpdated, onDeleted
     setShowEdit(false);
   };
 
+  const handleItemClick = (e: React.MouseEvent) => {
+    if (isSelectionMode) {
+      e.preventDefault();
+      toggleItem(bookmark.id);
+    }
+  };
+
+  const handleLongPress = () => {
+    if (!isSelectionMode) {
+      enterSelectionMode();
+      toggleItem(bookmark.id);
+    }
+  };
+
+  const selected = isSelected(bookmark.id);
+
   return (
     <>
-      <div className="group flex items-center justify-between p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-shadow duration-200">
-        <div className="flex items-center space-x-4 min-w-0 flex-1">
+      <div 
+        className={cn(
+          "group flex items-center justify-between p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-all duration-200 cursor-pointer relative",
+          isSelectionMode && "hover:ring-2 hover:ring-blue-400",
+          selected && "ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-950"
+        )}
+        onClick={handleItemClick}
+        onDoubleClick={handleLongPress}
+      >
+        {/* Selection indicator */}
+        {isSelectionMode && (
+          <div className="absolute top-2 left-2 z-10">
+            <div 
+              className={cn(
+                "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors",
+                selected 
+                  ? "bg-blue-500 border-blue-500" 
+                  : "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
+              )}
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleItem(bookmark.id);
+              }}
+            >
+              {selected && <Check className="w-3 h-3 text-white" />}
+            </div>
+          </div>
+        )}
+
+        <div className={cn(
+          "flex items-center space-x-4 min-w-0 flex-1",
+          isSelectionMode && "ml-6"
+        )}>
           {/* Favicon */}
           <div className="flex-shrink-0">
             {bookmark.favicon_url ? (
@@ -157,19 +213,25 @@ export function BookmarkListItem({ bookmark, folders, tags, onUpdated, onDeleted
         </div>
 
         {/* Actions */}
-        <div className="flex items-center space-x-2">
-          <Button size="sm" variant="ghost" asChild>
-            <a href={bookmark.url} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="h-4 w-4" />
-            </a>
-          </Button>
-          
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
+        {!isSelectionMode && (
+          <div className="flex items-center space-x-2">
+            <Button size="sm" variant="ghost" asChild>
+              <a href={bookmark.url} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="h-4 w-4" />
+              </a>
+            </Button>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => setShowEdit(true)}>
                 <Edit className="h-4 w-4 mr-2" />
@@ -189,7 +251,8 @@ export function BookmarkListItem({ bookmark, folders, tags, onUpdated, onDeleted
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        </div>
+          </div>
+        )}
       </div>
 
       <Dialog open={showEdit} onOpenChange={setShowEdit}>

@@ -4,17 +4,19 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { BookmarkService, type BookmarkWithRelations } from '../../lib/services/bookmarks';
 import { FolderService } from '../../lib/services/folders';
 import { TagService } from '../../lib/services/tags';
+import { apiClient } from '../../lib/api/client';
 import type { Folder, Tag } from '../../types/supabase';
 import { BookmarkList } from '../bookmarks/bookmark-list';
 import { BookmarkForm } from '../bookmarks/bookmark-form';
 import { FolderSidebar } from '../layout/folder-sidebar';
 import { AdvancedSearchBar } from '../common/advanced-search-bar';
-import { MassActions } from '../common/mass-actions';
 import { BulkImportModal } from '../bulk-import-modal';
+import { SelectionProvider } from '../../contexts/SelectionContext';
+import { MassActionsToolbar } from './MassActionsToolbar';
 import type { SearchFilters } from '../../lib/services/search';
 import { Button } from '../ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
-import { Plus, Upload, Grid, List } from 'lucide-react';
+import { Plus, Upload, Grid, List, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface DashboardMainProps {
@@ -26,11 +28,11 @@ export function DashboardMain({ userId }: DashboardMainProps) {
   const [folders, setFolders] = useState<Folder[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({});
-  const [selectedBookmarkIds, setSelectedBookmarkIds] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showAddBookmark, setShowAddBookmark] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
@@ -46,10 +48,15 @@ export function DashboardMain({ userId }: DashboardMainProps) {
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
+      
+      // First, ensure user profile exists
+      await apiClient.ensureUserProfile('user@example.com', 'User');
+      
       const [bookmarksData, foldersData, tagsData] = await Promise.all([
-        bookmarkService.getBookmarks(),
-        folderService.getFolders(),
-        tagService.getTags()
+        apiClient.getBookmarks(),
+        apiClient.getFolders(),
+        apiClient.getTags()
       ]);
 
       setBookmarks(bookmarksData);
@@ -57,11 +64,13 @@ export function DashboardMain({ userId }: DashboardMainProps) {
       setTags(tagsData);
     } catch (error) {
       console.error('Failed to load data:', error);
-      toast.error('Failed to load dashboard data');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      setError(`Failed to load dashboard data: ${errorMessage}`);
+      toast.error(`Failed to load dashboard data: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
-  }, [bookmarkService, folderService, tagService]);
+  }, [userId]);
 
     const loadBookmarks = useCallback(async () => {
     try {
@@ -180,9 +189,38 @@ export function DashboardMain({ userId }: DashboardMainProps) {
     );
   }
 
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            Database Connection Error
+          </h3>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            {error}
+          </p>
+          <Button onClick={loadData} variant="outline">
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex h-full">
-      {/* Sidebar */}
+    <SelectionProvider>
+      <div className="flex h-full">
+        {/* Mass Actions Toolbar - Sticky at top when active */}
+        <MassActionsToolbar
+          bookmarks={bookmarks}
+          folders={folders}
+          tags={tags}
+          userId={userId}
+          onUpdate={loadBookmarks}
+        />
+        
+        {/* Sidebar */}
       <div className="w-80 flex-shrink-0 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
         <FolderSidebar
           folders={folders}
@@ -270,20 +308,7 @@ export function DashboardMain({ userId }: DashboardMainProps) {
           </div>
         </div>
 
-        {/* Mass Actions */}
-        {selectedBookmarkIds.length > 0 && (
-          <div className="px-6 py-3 border-b border-gray-200 dark:border-gray-700">
-            <MassActions
-              userId={userId}
-              bookmarks={bookmarks}
-              selectedIds={selectedBookmarkIds}
-              onSelectionChange={setSelectedBookmarkIds}
-              onBookmarksUpdated={loadBookmarks}
-              folders={folders}
-              tags={tags}
-            />
-          </div>
-        )}
+
 
         {/* Content Area */}
         <div className="flex-1 p-6">
@@ -292,8 +317,6 @@ export function DashboardMain({ userId }: DashboardMainProps) {
             folders={folders}
             tags={tags}
             viewMode={viewMode}
-            selectedIds={selectedBookmarkIds}
-            onSelectionChange={setSelectedBookmarkIds}
             onBookmarkUpdated={handleBookmarkUpdated}
             onBookmarkDeleted={handleBookmarkDeleted}
           />
@@ -308,6 +331,7 @@ export function DashboardMain({ userId }: DashboardMainProps) {
         folders={folders}
         tags={tags}
       />
-    </div>
+      </div>
+    </SelectionProvider>
   );
 } 

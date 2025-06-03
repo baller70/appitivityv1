@@ -1,4 +1,5 @@
 import { createSupabaseClient } from '../supabase'
+import { normalizeUserId } from '../uuid-compat'
 import type { 
   Folder, 
   FolderInsert, 
@@ -16,8 +17,8 @@ export class FolderService {
   private userId: string
 
   constructor(userId: string) {
-    this.userId = userId
-    this.supabase = createSupabaseClient(userId)
+    this.userId = normalizeUserId(userId)
+    this.supabase = createSupabaseClient(this.userId)
   }
 
   // Get all folders for the current user

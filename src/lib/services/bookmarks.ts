@@ -1,4 +1,5 @@
 import { createSupabaseClient } from '../supabase'
+import { normalizeUserId } from '../uuid-compat'
 import type { 
   Bookmark, 
   BookmarkInsert, 
@@ -18,8 +19,8 @@ export class BookmarkService {
   private userId: string
 
   constructor(userId: string) {
-    this.userId = userId
-    this.supabase = createSupabaseClient(userId)
+    this.userId = normalizeUserId(userId)
+    this.supabase = createSupabaseClient(this.userId)
   }
 
   // Get all bookmarks for the current user
@@ -119,19 +120,24 @@ export class BookmarkService {
 
   // Update a bookmark
   async updateBookmark(id: string, updates: BookmarkUpdate): Promise<Bookmark> {
-    const { data, error } = await this.supabase
-      .from('bookmarks')
-      .update(updates)
-      .eq('id', id)
-      .eq('user_id', this.userId)
-      .select()
-      .single()
+    const response = await fetch('/api/bookmarks', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include', // Include cookies for Clerk authentication
+      body: JSON.stringify({
+        id,
+        ...updates
+      }),
+    })
 
-    if (error) {
-      throw new Error(`Failed to update bookmark: ${error.message}`)
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.error || 'Failed to update bookmark')
     }
 
-    return data
+    return response.json()
   }
 
   // Delete a bookmark
@@ -232,14 +238,14 @@ export class BookmarkService {
 
   // Bulk operations
   async bulkUpdate(ids: string[], updates: BookmarkUpdate): Promise<void> {
-    const { error } = await this.supabase
-      .from('bookmarks')
-      .update(updates)
-      .in('id', ids)
-      .eq('user_id', this.userId)
-
-    if (error) {
-      throw new Error(`Failed to bulk update bookmarks: ${error.message}`)
+    // For bulk operations, we'll update each bookmark individually using the API
+    // This ensures consistency with RLS and error handling
+    const updatePromises = ids.map(id => this.updateBookmark(id, updates))
+    
+    try {
+      await Promise.all(updatePromises)
+    } catch (error) {
+      throw new Error(`Failed to bulk update bookmarks: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 

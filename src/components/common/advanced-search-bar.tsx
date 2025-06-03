@@ -50,13 +50,28 @@ export function AdvancedSearchBar({
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
-  // Get search suggestions
+  // Get enhanced search suggestions
   useEffect(() => {
     const getSuggestions = async () => {
       if (value.length >= 2) {
-        const results = await searchService.getSuggestions(value);
-        setSuggestions(results);
-        setShowSuggestions(results.length > 0);
+        try {
+          // Use enhanced suggestions if available
+          const advancedSuggestions = await searchService.getAdvancedSuggestions(value);
+          if (advancedSuggestions.suggestions.length > 0) {
+            setSuggestions(advancedSuggestions.suggestions);
+            setShowSuggestions(true);
+          } else {
+            // Fallback to basic suggestions
+            const results = await searchService.getSuggestions(value);
+            setSuggestions(results);
+            setShowSuggestions(results.length > 0);
+          }
+        } catch (error) {
+          // Fallback to basic suggestions on error
+          const results = await searchService.getSuggestions(value);
+          setSuggestions(results);
+          setShowSuggestions(results.length > 0);
+        }
       } else {
         setSuggestions([]);
         setShowSuggestions(false);
