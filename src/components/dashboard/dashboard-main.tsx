@@ -1,17 +1,19 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { BookmarkService, type BookmarkWithRelations } from '@/lib/services/bookmarks';
-import { FolderService } from '@/lib/services/folders';
-import { TagService } from '@/lib/services/tags';
-import type { Folder, Tag } from '@/types/supabase';
-import { BookmarkList } from '@/components/bookmarks/bookmark-list';
-import { BookmarkForm } from '@/components/bookmarks/bookmark-form';
-import { FolderSidebar } from '@/components/layout/folder-sidebar';
-import { SearchBar } from '@/components/common/search-bar';
-import { BulkImportModal } from '@/components/bulk-import-modal';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { BookmarkService, type BookmarkWithRelations } from '../../lib/services/bookmarks';
+import { FolderService } from '../../lib/services/folders';
+import { TagService } from '../../lib/services/tags';
+import type { Folder, Tag } from '../../types/supabase';
+import { BookmarkList } from '../bookmarks/bookmark-list';
+import { BookmarkForm } from '../bookmarks/bookmark-form';
+import { FolderSidebar } from '../layout/folder-sidebar';
+import { AdvancedSearchBar } from '../common/advanced-search-bar';
+import { MassActions } from '../common/mass-actions';
+import { BulkImportModal } from '../bulk-import-modal';
+import type { SearchFilters } from '../../lib/services/search';
+import { Button } from '../ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { Plus, Upload, Grid, List } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -27,6 +29,8 @@ export function DashboardMain({ userId }: DashboardMainProps) {
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchFilters, setSearchFilters] = useState<SearchFilters>({});
+  const [selectedBookmarkIds, setSelectedBookmarkIds] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showAddBookmark, setShowAddBookmark] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
@@ -59,12 +63,32 @@ export function DashboardMain({ userId }: DashboardMainProps) {
     }
   }, [bookmarkService, folderService, tagService]);
 
-  const loadBookmarks = useCallback(async () => {
+    const loadBookmarks = useCallback(async () => {
     try {
       let bookmarksData: BookmarkWithRelations[];
-
-      if (searchTerm) {
+      
+      if (searchTerm || Object.keys(searchFilters).length > 1) {
+        // Use advanced search if we have search term or filters
         bookmarksData = await bookmarkService.searchBookmarks(searchTerm);
+        
+        // Apply additional filters from searchFilters
+        if (searchFilters.folderId) {
+          bookmarksData = bookmarksData.filter(b => b.folder_id === searchFilters.folderId);
+        }
+        if (searchFilters.tagIds && searchFilters.tagIds.length > 0) {
+          bookmarksData = bookmarksData.filter(b => 
+            b.tags?.some(tag => searchFilters.tagIds!.includes(tag.id))
+          );
+        }
+        if (searchFilters.isFavorite !== undefined) {
+          bookmarksData = bookmarksData.filter(b => b.is_favorite === searchFilters.isFavorite);
+        }
+        if (searchFilters.isArchived !== undefined) {
+          bookmarksData = bookmarksData.filter(b => b.is_archived === searchFilters.isArchived);
+        }
+        if (searchFilters.hasDescription) {
+          bookmarksData = bookmarksData.filter(b => b.description && b.description.trim().length > 0);
+        }
       } else {
         bookmarksData = await bookmarkService.getBookmarks({
           folderId: selectedFolder || undefined,
@@ -73,7 +97,7 @@ export function DashboardMain({ userId }: DashboardMainProps) {
         });
       }
 
-      // Filter by selected tags if any
+      // Filter by selected tags if any (from sidebar)
       if (selectedTags.length > 0) {
         bookmarksData = bookmarksData.filter(bookmark =>
           bookmark.tags?.some(tag => selectedTags.includes(tag.id))
@@ -85,7 +109,7 @@ export function DashboardMain({ userId }: DashboardMainProps) {
       console.error('Failed to load bookmarks:', error);
       toast.error('Failed to load bookmarks');
     }
-  }, [bookmarkService, selectedFolder, selectedTags, searchTerm, filters]);
+  }, [bookmarkService, selectedFolder, selectedTags, searchTerm, searchFilters, filters]);
 
   // Load initial data
   useEffect(() => {
@@ -180,9 +204,13 @@ export function DashboardMain({ userId }: DashboardMainProps) {
         <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex-1 max-w-lg">
-              <SearchBar
+              <AdvancedSearchBar
+                userId={userId}
                 value={searchTerm}
                 onChange={setSearchTerm}
+                onFiltersChange={setSearchFilters}
+                folders={folders}
+                tags={tags}
                 placeholder="Search bookmarks..."
               />
             </div>
@@ -242,6 +270,21 @@ export function DashboardMain({ userId }: DashboardMainProps) {
           </div>
         </div>
 
+        {/* Mass Actions */}
+        {selectedBookmarkIds.length > 0 && (
+          <div className="px-6 py-3 border-b border-gray-200 dark:border-gray-700">
+            <MassActions
+              userId={userId}
+              bookmarks={bookmarks}
+              selectedIds={selectedBookmarkIds}
+              onSelectionChange={setSelectedBookmarkIds}
+              onBookmarksUpdated={loadBookmarks}
+              folders={folders}
+              tags={tags}
+            />
+          </div>
+        )}
+
         {/* Content Area */}
         <div className="flex-1 p-6">
           <BookmarkList
@@ -249,6 +292,8 @@ export function DashboardMain({ userId }: DashboardMainProps) {
             folders={folders}
             tags={tags}
             viewMode={viewMode}
+            selectedIds={selectedBookmarkIds}
+            onSelectionChange={setSelectedBookmarkIds}
             onBookmarkUpdated={handleBookmarkUpdated}
             onBookmarkDeleted={handleBookmarkDeleted}
           />
