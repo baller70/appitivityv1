@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { UserButton } from '@clerk/nextjs';
 import { apiClient } from '../../lib/api/client';
 import type { BookmarkWithRelations } from '../../lib/services/bookmarks';
@@ -71,7 +71,7 @@ export function FavoritesPage({ userId }: FavoritesPageProps) {
     }
   };
 
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     let filtered = [...bookmarks];
 
     // Search filter
@@ -86,7 +86,7 @@ export function FavoritesPage({ userId }: FavoritesPageProps) {
     }
 
     setFilteredBookmarks(filtered);
-  };
+  }, [bookmarks, searchTerm]);
 
   const handleBookmarkUpdated = (updatedBookmark: BookmarkWithRelations) => {
     setBookmarks(prev => prev.map(b => 

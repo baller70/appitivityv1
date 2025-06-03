@@ -1,6 +1,8 @@
 'use client'
 
 import React from 'react'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { 
   HomeIcon, 
   ChartBarIcon, 
@@ -16,11 +18,13 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
+  const pathname = usePathname()
+  
   const navigationItems = [
-    { name: 'Dashboard', icon: HomeIcon, active: true },
-    { name: 'Analytics', icon: ChartBarIcon, active: false },
-    { name: 'Favorites', icon: HeartIcon, count: 3, active: false },
-    { name: 'Settings', icon: CogIcon, active: false },
+    { name: 'Dashboard', icon: HomeIcon, href: '/' as const, count: undefined },
+    { name: 'Analytics', icon: ChartBarIcon, href: '/analytics' as const, count: undefined },
+    { name: 'Favorites', icon: HeartIcon, href: '/favorites' as const, count: 3 },
+    { name: 'Settings', icon: CogIcon, href: '/settings' as const, count: undefined },
   ]
 
   const categories = [
@@ -64,29 +68,32 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
             </h2>
           )}
           <nav className="space-y-1">
-            {navigationItems.map((item) => (
-              <a
-                key={item.name}
-                href="#"
-                className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  item.active
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                }`}
-              >
-                <item.icon className="w-5 h-5 mr-3" />
-                {!isCollapsed && (
-                  <>
-                    <span className="flex-1">{item.name}</span>
-                    {item.count && (
-                      <span className="bg-gray-700 text-gray-300 text-xs px-2 py-1 rounded-full">
-                        {item.count}
-                      </span>
-                    )}
-                  </>
-                )}
-              </a>
-            ))}
+            {navigationItems.map((item) => {
+              const isActive = pathname === item.href || (item.href === '/' && pathname === '/dashboard')
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                  }`}
+                >
+                  <item.icon className="w-5 h-5 mr-3" />
+                  {!isCollapsed && (
+                    <>
+                      <span className="flex-1">{item.name}</span>
+                      {item.count && (
+                        <span className="bg-gray-700 text-gray-300 text-xs px-2 py-1 rounded-full">
+                          {item.count}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </Link>
+              )
+            })}
           </nav>
         </div>
 

@@ -1,495 +1,363 @@
 'use client';
 
-export interface ImportedBookmark {
+import { supabase } from '../supabase';
+
+interface ImportedBookmark {
   title: string;
   url: string;
   description?: string;
-  favicon?: string;
-  tags: string[];
-  folder: string;
-  dateAdded?: Date;
-  isFolder?: boolean;
-  children?: ImportedBookmark[];
+  folder?: string;
+  tags?: string[];
+  is_favorite?: boolean;
 }
 
-export interface ImportResult {
-  bookmarks: ImportedBookmark[];
-  folders: string[];
-  duplicates: ImportedBookmark[];
+interface ImportResult {
+  success: boolean;
+  imported: number;
+  failed: number;
   errors: string[];
-  totalProcessed: number;
-  summary: {
-    bookmarksFound: number;
-    foldersFound: number;
-    duplicatesFound: number;
-    errorsFound: number;
-  };
 }
 
-export interface ImportOptions {
-  skipDuplicates: boolean;
-  mergeFolders: boolean;
-  defaultFolder?: string;
-  includeSubfolders: boolean;
+interface ImportOptions {
+  overwriteExisting?: boolean;
+  createFolders?: boolean;
+  createTags?: boolean;
 }
 
-class BookmarkImportService {
-  /**
-   * Parse HTML bookmark export file (Chrome, Firefox, Safari format)
-   */
-  parseBookmarkHtml(htmlContent: string, options: ImportOptions = {
-    skipDuplicates: true,
-    mergeFolders: true,
-    includeSubfolders: true
-  }): ImportResult {
-    const result: ImportResult = {
-      bookmarks: [],
-      folders: [],
-      duplicates: [],
-      errors: [],
-      totalProcessed: 0,
-      summary: {
-        bookmarksFound: 0,
-        foldersFound: 0,
-        duplicatesFound: 0,
-        errorsFound: 0
-      }
-    };
+export class BookmarkImportService {
+  constructor(private userId: string) {}
 
+  async importFromFile(file: File, options: ImportOptions = {}): Promise<ImportResult> {
     try {
-      // Create a DOM parser to parse the HTML
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(htmlContent, 'text/html');
-      
-      // Find the bookmark structure - typically in a DL (definition list) element
-      const bookmarkRoot = doc.querySelector('dl') || doc.querySelector('body');
-      
-      if (!bookmarkRoot) {
-        result.errors.push('No bookmark structure found in HTML file');
-        return result;
-      }
-
-      // Track processed URLs to detect duplicates
-      const processedUrls = new Set<string>();
-      
-      // Recursively parse the bookmark structure
-      this.parseBookmarkNode(bookmarkRoot, '', result, processedUrls, options);
-      
-      // Update summary
-      result.summary = {
-        bookmarksFound: result.bookmarks.length,
-        foldersFound: result.folders.length,
-        duplicatesFound: result.duplicates.length,
-        errorsFound: result.errors.length
-      };
-      
+      const content = await this.readFileContent(file);
+      const bookmarks = await this.parseFileContent(content, file.type);
+      return await this.importBookmarks(bookmarks, options);
     } catch (error) {
-      result.errors.push(`Failed to parse HTML: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-
-    return result;
-  }
-
-  /**
-   * Parse individual bookmark node recursively
-   */
-  private parseBookmarkNode(
-    node: Element, 
-    currentPath: string, 
-    result: ImportResult, 
-    processedUrls: Set<string>,
-    options: ImportOptions
-  ): void {
-    const children = Array.from(node.children);
-    
-    for (const child of children) {
-      try {
-        result.totalProcessed++;
-        
-        // Handle folder (DT with H3)
-        if (child.tagName === 'DT') {
-          const h3 = child.querySelector('h3');
-          const a = child.querySelector('a');
-          
-          if (h3 && !a) {
-            // This is a folder
-            const folderName = h3.textContent?.trim() || 'Unnamed Folder';
-            const newPath = currentPath ? `${currentPath}/${folderName}` : folderName;
-            
-            if (!result.folders.includes(newPath)) {
-              result.folders.push(newPath);
-            }
-            
-            // Look for nested DL containing bookmarks in this folder
-            const nextSibling = child.nextElementSibling;
-            if (nextSibling && nextSibling.tagName === 'DD') {
-              const nestedDl = nextSibling.querySelector('dl');
-              if (nestedDl && options.includeSubfolders) {
-                this.parseBookmarkNode(nestedDl, newPath, result, processedUrls, options);
-              }
-            }
-          } else if (a) {
-            // This is a bookmark
-            const bookmark = this.parseBookmarkFromAnchor(a, currentPath || options.defaultFolder || 'Imported');
-            
-            if (bookmark) {
-              // Check for duplicates
-              if (processedUrls.has(bookmark.url)) {
-                if (!options.skipDuplicates) {
-                  result.duplicates.push(bookmark);
-                }
-              } else {
-                processedUrls.add(bookmark.url);
-                result.bookmarks.push(bookmark);
-              }
-            }
-          }
-        }
-        // Handle direct DL elements (nested lists)
-        else if (child.tagName === 'DL') {
-          this.parseBookmarkNode(child, currentPath, result, processedUrls, options);
-        }
-        // Handle DD elements that might contain DL
-        else if (child.tagName === 'DD') {
-          const nestedDl = child.querySelector('dl');
-          if (nestedDl) {
-            this.parseBookmarkNode(nestedDl, currentPath, result, processedUrls, options);
-          }
-        }
-      } catch (error) {
-        result.errors.push(`Error processing node: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      }
-    }
-  }
-
-  /**
-   * Parse bookmark from anchor element
-   */
-  private parseBookmarkFromAnchor(anchor: Element, folderPath: string): ImportedBookmark | null {
-    const url = anchor.getAttribute('href');
-    const title = anchor.textContent?.trim();
-    
-    if (!url || !title) {
-      return null;
-    }
-
-    // Extract metadata from attributes
-    const addDate = anchor.getAttribute('add_date');
-    const iconUrl = anchor.getAttribute('icon');
-    const tags = anchor.getAttribute('tags');
-    
-    return {
-      title,
-      url,
-      description: '',
-      favicon: iconUrl || undefined,
-      tags: tags ? tags.split(',').map(tag => tag.trim()).filter(Boolean) : [],
-      folder: folderPath,
-      dateAdded: addDate ? new Date(parseInt(addDate) * 1000) : undefined,
-      isFolder: false
-    };
-  }
-
-  /**
-   * Parse JSON bookmark export (if supported by browser)
-   */
-  parseBookmarkJson(jsonContent: string, options: ImportOptions): ImportResult {
-    const result: ImportResult = {
-      bookmarks: [],
-      folders: [],
-      duplicates: [],
-      errors: [],
-      totalProcessed: 0,
-      summary: {
-        bookmarksFound: 0,
-        foldersFound: 0,
-        duplicatesFound: 0,
-        errorsFound: 0
-      }
-    };
-
-    try {
-      const data = JSON.parse(jsonContent);
-      const processedUrls = new Set<string>();
-      
-      // Handle different JSON structures from different browsers
-      if (data.roots) {
-        // Chrome bookmark format
-        this.parseChromiumBookmarkJson(data.roots, '', result, processedUrls, options);
-      } else if (Array.isArray(data)) {
-        // Simple array format
-        this.parseSimpleJsonArray(data, result, processedUrls, options);
-      } else {
-        result.errors.push('Unsupported JSON bookmark format');
-      }
-      
-      result.summary = {
-        bookmarksFound: result.bookmarks.length,
-        foldersFound: result.folders.length,
-        duplicatesFound: result.duplicates.length,
-        errorsFound: result.errors.length
+      console.error('Import failed:', error);
+      return {
+        success: false,
+        imported: 0,
+        failed: 0,
+        errors: [error instanceof Error ? error.message : 'Unknown error']
       };
-      
-    } catch (error) {
-      result.errors.push(`Failed to parse JSON: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-
-    return result;
-  }
-
-  /**
-   * Parse Chrome/Chromium JSON bookmark format
-   */
-  private parseChromiumBookmarkJson(
-    roots: any,
-    currentPath: string,
-    result: ImportResult,
-    processedUrls: Set<string>,
-    options: ImportOptions
-  ): void {
-    for (const [rootName, rootData] of Object.entries(roots)) {
-      if (rootData && typeof rootData === 'object' && 'children' in rootData) {
-        const folderName = rootName === 'bookmark_bar' ? 'Bookmarks Bar' : 
-                          rootName === 'other' ? 'Other Bookmarks' : rootName;
-        this.parseChromiumNode(rootData, folderName, result, processedUrls, options);
-      }
     }
   }
 
-  /**
-   * Parse individual Chrome/Chromium node
-   */
-  private parseChromiumNode(
-    node: any,
-    currentPath: string,
-    result: ImportResult,
-    processedUrls: Set<string>,
-    options: ImportOptions
-  ): void {
-    if (!node || typeof node !== 'object') return;
-
-    result.totalProcessed++;
-
-    if (node.type === 'folder') {
-      const folderName = node.name || 'Unnamed Folder';
-      const newPath = currentPath ? `${currentPath}/${folderName}` : folderName;
-      
-      if (!result.folders.includes(newPath)) {
-        result.folders.push(newPath);
-      }
-
-      if (node.children && Array.isArray(node.children) && options.includeSubfolders) {
-        for (const child of node.children) {
-          this.parseChromiumNode(child, newPath, result, processedUrls, options);
-        }
-      }
-    } else if (node.type === 'url') {
-      const bookmark: ImportedBookmark = {
-        title: node.name || 'Untitled',
-        url: node.url,
-        description: '',
-        favicon: undefined,
-        tags: [],
-        folder: currentPath || options.defaultFolder || 'Imported',
-        dateAdded: node.date_added ? new Date(parseInt(node.date_added) / 1000) : undefined,
-        isFolder: false
-      };
-
-      // Check for duplicates
-      if (processedUrls.has(bookmark.url)) {
-        if (!options.skipDuplicates) {
-          result.duplicates.push(bookmark);
-        }
-      } else {
-        processedUrls.add(bookmark.url);
-        result.bookmarks.push(bookmark);
-      }
-    }
-  }
-
-  /**
-   * Parse simple JSON array format
-   */
-  private parseSimpleJsonArray(
-    data: any[],
-    result: ImportResult,
-    processedUrls: Set<string>,
-    options: ImportOptions
-  ): void {
-    for (const item of data) {
-      result.totalProcessed++;
-      
-      if (item.url && item.title) {
-        const bookmark: ImportedBookmark = {
-          title: item.title,
-          url: item.url,
-          description: item.description || '',
-          favicon: item.favicon || item.icon,
-          tags: item.tags ? (Array.isArray(item.tags) ? item.tags : item.tags.split(',')) : [],
-          folder: item.folder || options.defaultFolder || 'Imported',
-          dateAdded: item.dateAdded ? new Date(item.dateAdded) : undefined,
-          isFolder: false
-        };
-
-        if (processedUrls.has(bookmark.url)) {
-          if (!options.skipDuplicates) {
-            result.duplicates.push(bookmark);
-          }
+  private async readFileContent(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result;
+        if (typeof result === 'string') {
+          resolve(result);
         } else {
-          processedUrls.add(bookmark.url);
-          result.bookmarks.push(bookmark);
+          reject(new Error('Failed to read file content'));
         }
-      }
+      };
+      reader.onerror = () => reject(new Error('File reading failed'));
+      reader.readAsText(file);
+    });
+  }
+
+  private async parseFileContent(content: string, fileType: string): Promise<ImportedBookmark[]> {
+    switch (fileType) {
+      case 'application/json':
+        return this.parseJSON(content);
+      case 'text/html':
+        return this.parseHTML(content);
+      case 'text/csv':
+        return this.parseCSV(content);
+      default:
+        throw new Error(`Unsupported file type: ${fileType}`);
     }
   }
 
-  /**
-   * Detect file format from content
-   */
-  detectFileFormat(content: string): 'html' | 'json' | 'unknown' {
-    const trimmed = content.trim();
-    
-    if (trimmed.startsWith('<') && (trimmed.includes('<DL>') || trimmed.includes('<dl>'))) {
-      return 'html';
-    }
-    
-    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-      try {
-        JSON.parse(trimmed);
-        return 'json';
-      } catch {
-        return 'unknown';
+  private parseJSON(content: string): ImportedBookmark[] {
+    try {
+      const data: unknown = JSON.parse(content);
+      
+      // Handle different JSON structures
+      if (Array.isArray(data)) {
+        return data.map(this.normalizeBookmarkData);
+      } else if (typeof data === 'object' && data !== null && 'bookmarks' in data) {
+        const bookmarksData = (data as { bookmarks: unknown }).bookmarks;
+        if (Array.isArray(bookmarksData)) {
+          return bookmarksData.map(this.normalizeBookmarkData);
+        }
       }
+      
+      throw new Error('Invalid JSON structure');
+    } catch (error) {
+      throw new Error(`Failed to parse JSON: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-    
-    return 'unknown';
   }
 
-  /**
-   * Get import preview without processing
-   */
-  getImportPreview(content: string): { format: string; estimatedBookmarks: number; estimatedFolders: number } {
-    const format = this.detectFileFormat(content);
-    let estimatedBookmarks = 0;
-    let estimatedFolders = 0;
-
-    if (format === 'html') {
-      // Quick estimation by counting anchor tags and h3 tags
-      const anchorMatches = content.match(/<a[^>]+href=/gi) || [];
-      const folderMatches = content.match(/<h3[^>]*>/gi) || [];
-      estimatedBookmarks = anchorMatches.length;
-      estimatedFolders = folderMatches.length;
-    } else if (format === 'json') {
-      try {
-        const data = JSON.parse(content);
-        if (data.roots) {
-          // Chrome format - rough estimation
-          const jsonStr = JSON.stringify(data);
-          const urlMatches = jsonStr.match(/"type":"url"/g) || [];
-          const folderMatches = jsonStr.match(/"type":"folder"/g) || [];
-          estimatedBookmarks = urlMatches.length;
-          estimatedFolders = folderMatches.length;
-        } else if (Array.isArray(data)) {
-          estimatedBookmarks = data.filter(item => item.url).length;
-          estimatedFolders = 0;
-        }
-      } catch {
-        // Invalid JSON
-      }
+  private parseHTML(content: string): ImportedBookmark[] {
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(content, 'text/html');
+      const links = doc.querySelectorAll('a[href]');
+      
+      return Array.from(links).map(link => ({
+        title: link.textContent?.trim() || link.getAttribute('href') || 'Untitled',
+        url: link.getAttribute('href') || '',
+        description: link.getAttribute('title') || undefined
+      }));
+    } catch (error) {
+      throw new Error(`Failed to parse HTML: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+  }
 
+  private parseCSV(content: string): ImportedBookmark[] {
+    try {
+      const lines = content.split('\n').filter(line => line.trim());
+      if (lines.length === 0) throw new Error('Empty CSV file');
+      
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+      const bookmarks: ImportedBookmark[] = [];
+      
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(',').map(v => v.trim());
+        const bookmark: ImportedBookmark = {
+          title: '',
+          url: ''
+        };
+        
+        headers.forEach((header, index) => {
+          const value = values[index] || '';
+          switch (header) {
+            case 'title':
+            case 'name':
+              bookmark.title = value;
+              break;
+            case 'url':
+            case 'link':
+              bookmark.url = value;
+              break;
+            case 'description':
+            case 'notes':
+              bookmark.description = value || undefined;
+              break;
+            case 'folder':
+            case 'category':
+              bookmark.folder = value || undefined;
+              break;
+            case 'tags':
+              bookmark.tags = value ? value.split(';').map(t => t.trim()) : undefined;
+              break;
+            case 'favorite':
+            case 'is_favorite':
+              bookmark.is_favorite = value.toLowerCase() === 'true';
+              break;
+          }
+        });
+        
+        if (bookmark.title && bookmark.url) {
+          bookmarks.push(bookmark);
+        }
+      }
+      
+      return bookmarks;
+    } catch (error) {
+      throw new Error(`Failed to parse CSV: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  private normalizeBookmarkData(data: unknown): ImportedBookmark {
+    if (typeof data !== 'object' || data === null) {
+      throw new Error('Invalid bookmark data');
+    }
+    
+    const bookmarkData = data as Record<string, unknown>;
+    
     return {
-      format: format === 'unknown' ? 'Unknown format' : format.toUpperCase(),
-      estimatedBookmarks,
-      estimatedFolders
+      title: String(bookmarkData.title || bookmarkData.name || 'Untitled'),
+      url: String(bookmarkData.url || bookmarkData.link || ''),
+      description: bookmarkData.description ? String(bookmarkData.description) : undefined,
+      folder: bookmarkData.folder ? String(bookmarkData.folder) : undefined,
+      tags: Array.isArray(bookmarkData.tags) 
+        ? bookmarkData.tags.map(t => String(t))
+        : bookmarkData.tags 
+          ? String(bookmarkData.tags).split(',').map(t => t.trim())
+          : undefined,
+      is_favorite: Boolean(bookmarkData.is_favorite || bookmarkData.favorite)
     };
   }
 
-  /**
-   * Validate bookmark data before import
-   */
-  validateBookmark(bookmark: ImportedBookmark): { isValid: boolean; errors: string[] } {
-    const errors: string[] = [];
-    
-    if (!bookmark.title || bookmark.title.trim() === '') {
-      errors.push('Title is required');
-    }
-    
-    if (!bookmark.url || bookmark.url.trim() === '') {
-      errors.push('URL is required');
-    } else {
-      try {
-        new URL(bookmark.url);
-      } catch {
-        errors.push('Invalid URL format');
-      }
-    }
-    
-    return {
-      isValid: errors.length === 0,
-      errors
+  private async importBookmarks(bookmarks: ImportedBookmark[], options: ImportOptions): Promise<ImportResult> {
+    const result: ImportResult = {
+      success: true,
+      imported: 0,
+      failed: 0,
+      errors: []
     };
-  }
 
-  /**
-   * Generate import summary report
-   */
-  generateImportReport(result: ImportResult): string {
-    const { summary } = result;
-    
-    let report = `# Bookmark Import Report\n\n`;
-    report += `## Summary\n`;
-    report += `- **Bookmarks found**: ${summary.bookmarksFound}\n`;
-    report += `- **Folders found**: ${summary.foldersFound}\n`;
-    report += `- **Duplicates found**: ${summary.duplicatesFound}\n`;
-    report += `- **Errors encountered**: ${summary.errorsFound}\n`;
-    report += `- **Total processed**: ${result.totalProcessed}\n\n`;
-    
-    if (result.folders.length > 0) {
-      report += `## Folders\n`;
-      result.folders.forEach(folder => {
-        report += `- ${folder}\n`;
-      });
-      report += '\n';
-    }
-    
-    if (result.errors.length > 0) {
-      report += `## Errors\n`;
-      result.errors.forEach(error => {
-        report += `- ${error}\n`;
-      });
-      report += '\n';
-    }
-    
-    if (result.duplicates.length > 0) {
-      report += `## Duplicates (Skipped)\n`;
-      result.duplicates.slice(0, 10).forEach(duplicate => {
-        report += `- ${duplicate.title} (${duplicate.url})\n`;
-      });
-      if (result.duplicates.length > 10) {
-        report += `- ... and ${result.duplicates.length - 10} more\n`;
+    const folderMap = new Map<string, string>();
+    const tagMap = new Map<string, string>();
+
+    // Create folders if needed
+    if (options.createFolders) {
+      const uniqueFolders = [...new Set(bookmarks.map(b => b.folder).filter(Boolean))];
+      for (const folderName of uniqueFolders) {
+        try {
+          const folderId = await this.createFolder(folderName as string);
+          folderMap.set(folderName as string, folderId);
+        } catch (error) {
+          result.errors.push(`Failed to create folder "${folderName}": ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
       }
     }
-    
-    return report;
+
+    // Create tags if needed
+    if (options.createTags) {
+      const uniqueTags = [...new Set(bookmarks.flatMap(b => b.tags || []))];
+      for (const tagName of uniqueTags) {
+        try {
+          const tagId = await this.createTag(tagName);
+          tagMap.set(tagName, tagId);
+        } catch (error) {
+          result.errors.push(`Failed to create tag "${tagName}": ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      }
+    }
+
+    // Import bookmarks
+    for (const bookmark of bookmarks) {
+      try {
+        await this.createBookmark(bookmark, folderMap, tagMap, options);
+        result.imported++;
+      } catch (error) {
+        result.failed++;
+        result.errors.push(`Failed to import "${bookmark.title}": ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }
+
+    result.success = result.failed === 0;
+    return result;
   }
 
-  /**
-   * Convert imported bookmarks to app format
-   */
-  convertToAppFormat(importedBookmarks: ImportedBookmark[], userId: string): any[] {
-    return importedBookmarks.map(bookmark => ({
+  private async createFolder(name: string): Promise<string> {
+    const { data, error } = await supabase
+      .from('folders')
+      .insert({
+        name,
+        user_id: this.userId
+      })
+      .select('id')
+      .single();
+
+    if (error) throw error;
+    return data.id;
+  }
+
+  private async createTag(name: string): Promise<string> {
+    const { data, error } = await supabase
+      .from('tags')
+      .insert({
+        name,
+        user_id: this.userId
+      })
+      .select('id')
+      .single();
+
+    if (error) throw error;
+    return data.id;
+  }
+
+  private async createBookmark(
+    bookmark: ImportedBookmark, 
+    folderMap: Map<string, string>, 
+    tagMap: Map<string, string>,
+    options: ImportOptions
+  ): Promise<void> {
+    // Check if bookmark already exists
+    if (!options.overwriteExisting) {
+      const { data: existing } = await supabase
+        .from('bookmarks')
+        .select('id')
+        .eq('url', bookmark.url)
+        .eq('user_id', this.userId)
+        .single();
+
+      if (existing) {
+        throw new Error('Bookmark already exists');
+      }
+    }
+
+    // Create the bookmark
+    const bookmarkData = {
       title: bookmark.title,
       url: bookmark.url,
-      description: bookmark.description || '',
-      notes: '',
-      tags: bookmark.tags,
-      folder_path: bookmark.folder,
-      is_favorite: false,
-      created_at: bookmark.dateAdded || new Date(),
-      updated_at: new Date(),
-      user_id: userId
-    }));
+      description: bookmark.description,
+      folder_id: bookmark.folder ? folderMap.get(bookmark.folder) : null,
+      is_favorite: bookmark.is_favorite || false,
+      user_id: this.userId
+    };
+
+    const { data: createdBookmark, error } = await supabase
+      .from('bookmarks')
+      .insert(bookmarkData)
+      .select('id')
+      .single();
+
+    if (error) throw error;
+
+    // Create tag associations
+    if (bookmark.tags && bookmark.tags.length > 0) {
+      const tagAssociations = bookmark.tags
+        .map(tagName => tagMap.get(tagName))
+        .filter(Boolean)
+        .map(tagId => ({
+          bookmark_id: createdBookmark.id,
+          tag_id: tagId
+        }));
+
+      if (tagAssociations.length > 0) {
+        const { error: tagError } = await supabase
+          .from('bookmark_tags')
+          .insert(tagAssociations);
+
+        if (tagError) {
+          console.warn('Failed to create tag associations:', tagError);
+        }
+      }
+    }
+  }
+
+  async exportToJSON(bookmarkIds?: string[]): Promise<string> {
+    try {
+      let query = supabase
+        .from('bookmarks')
+        .select(`
+          title,
+          url,
+          description,
+          is_favorite,
+          folder:folders(name),
+          tags:bookmark_tags(tag:tags(name))
+        `)
+        .eq('user_id', this.userId);
+
+      if (bookmarkIds && bookmarkIds.length > 0) {
+        query = query.in('id', bookmarkIds);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      const exportData = data?.map(bookmark => ({
+        title: bookmark.title,
+        url: bookmark.url,
+        description: bookmark.description,
+        is_favorite: bookmark.is_favorite,
+        folder: bookmark.folder?.name,
+        tags: bookmark.tags?.map((t: { tag: { name: string } }) => t.tag.name)
+      }));
+
+      return JSON.stringify(exportData, null, 2);
+    } catch (error) {
+      throw new Error(`Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 }
 

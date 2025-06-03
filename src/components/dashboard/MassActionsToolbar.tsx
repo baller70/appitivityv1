@@ -20,22 +20,21 @@ import {
 } from '../ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { 
-  Check, 
-  X, 
   Archive, 
+  MoreHorizontal, 
   Trash2, 
   Heart, 
-  Tag as TagIcon, 
-  Folder,
-  MoreHorizontal,
-  CheckSquare,
+  Download, 
+  X,
   Square,
-  Download,
+  CheckSquare,
+  Folder,
+  Tag as TagIcon,
   Copy
 } from 'lucide-react';
 import { useSelection } from '../../contexts/SelectionContext';
 import { BookmarkService, type BookmarkWithRelations } from '../../lib/services/bookmarks';
-import bookmarkExportService from '../../lib/services/export';
+import { ExportService } from '../../lib/services/export';
 import type { Folder as FolderType, Tag } from '../../types/supabase';
 
 interface MassActionsToolbarProps {
@@ -187,7 +186,7 @@ export function MassActionsToolbar({
         url: bookmark.url,
         description: bookmark.description || '',
         folder: bookmark.folder?.name || 'Uncategorized',
-        tags: bookmark.tags?.map((tag: any) => tag.name).filter(Boolean).join(', ') || '',
+        tags: bookmark.tags?.map((tag: { name: string }) => tag.name).filter(Boolean).join(', ') || '',
         is_favorite: bookmark.is_favorite,
         is_archived: bookmark.is_archived,
         created_at: bookmark.created_at,
@@ -209,12 +208,14 @@ export function MassActionsToolbar({
         mimeType: 'application/json'
       };
 
+      const exportService = new ExportService();
+      
       if (action === 'download') {
-        bookmarkExportService.downloadFile(result);
+        exportService.downloadFile(result.data, result.filename, result.mimeType);
         // Simple success notification
         alert(`Downloaded ${result.filename}`);
       } else if (action === 'copy') {
-        await bookmarkExportService.copyToClipboard(result);
+        await exportService.copyToClipboard(result.data);
         alert('Copied to clipboard');
       }
 

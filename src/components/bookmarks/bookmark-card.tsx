@@ -18,9 +18,10 @@ import {
   ImageIcon 
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useUser } from '@clerk/nextjs';
+import { useUser, useAuth } from '@clerk/nextjs';
 import { useSelection } from '../../contexts/SelectionContext';
 import { cn } from '../../lib/utils';
+import Image from 'next/image';
 
 interface BookmarkCardProps {
   bookmark: BookmarkWithRelations;
@@ -33,6 +34,7 @@ interface BookmarkCardProps {
 
 export function BookmarkCard({ bookmark, folders, tags, onUpdated, onDeleted, onOpenDetail }: BookmarkCardProps) {
   const { user } = useUser();
+  const { isSignedIn, getToken } = useAuth();
   const [showEdit, setShowEdit] = useState(false);
   const [loading, setLoading] = useState(false);
   
@@ -46,15 +48,42 @@ export function BookmarkCard({ bookmark, folders, tags, onUpdated, onDeleted, on
   const bookmarkService = user ? new BookmarkService(user.id) : null;
 
   const handleToggleFavorite = async () => {
+    console.log('Auth state check:', { 
+      isSignedIn, 
+      hasUser: !!user, 
+      userId: user?.id,
+      hasBookmarkService: !!bookmarkService 
+    });
+    
+    if (!isSignedIn) {
+      toast.error('Please sign in to favorite bookmarks');
+      return;
+    }
+    
     if (!bookmarkService) {
       toast.error('User not authenticated');
+      return;
+    }
+    
+    if (!user) {
+      toast.error('User not found');
       return;
     }
     
     try {
       setLoading(true);
       console.log('Toggling favorite for bookmark:', bookmark.id);
-      const updated = await bookmarkService.toggleFavorite(bookmark.id);
+      console.log('User info:', { id: user.id, emailAddresses: user.emailAddresses.length });
+      
+      // Get session token for debugging
+      const token = await getToken();
+      console.log('Session token available:', !!token);
+      
+      // Try calling updateBookmark directly instead of toggleFavorite
+      const updated = await bookmarkService.updateBookmark(bookmark.id, {
+        is_favorite: !bookmark.is_favorite
+      });
+      
       console.log('Favorite toggled successfully:', updated);
       onUpdated({ ...bookmark, ...updated });
       toast.success(updated.is_favorite ? 'Added to favorites' : 'Removed from favorites');
@@ -108,16 +137,6 @@ export function BookmarkCard({ bookmark, folders, tags, onUpdated, onDeleted, on
 
   const selected = isSelected(bookmark.id);
 
-  // Get priority color - exact from reference
-  const getPriorityColor = (priority?: string) => {
-    switch (priority?.toLowerCase()) {
-      case 'high': return 'text-red-600 bg-red-50 border-red-200';
-      case 'medium': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-      case 'low': return 'text-green-600 bg-green-50 border-green-200';
-      default: return 'text-yellow-600 bg-yellow-50 border-yellow-200'; // default to medium
-    }
-  };
-
   // Get letter icon from title - exact from reference
   const getLetterIcon = (title: string) => {
     return title.charAt(0).toUpperCase();
@@ -157,7 +176,10 @@ export function BookmarkCard({ bookmark, folders, tags, onUpdated, onDeleted, on
             <Button
               variant="ghost"
               size="sm"
-              className="p-1 h-auto w-auto hover:bg-white/80"
+              className={cn(
+                "p-1 h-auto w-auto hover:bg-white/80",
+                bookmark.is_favorite && "hover:bg-red-50"
+              )}
               onClick={(e) => {
                 e.stopPropagation();
                 handleToggleFavorite();
@@ -165,8 +187,8 @@ export function BookmarkCard({ bookmark, folders, tags, onUpdated, onDeleted, on
               disabled={loading}
             >
               <Heart className={cn(
-                "h-4 w-4",
-                bookmark.is_favorite ? "fill-red-500 text-red-500" : "text-gray-400"
+                "h-4 w-4 transition-colors",
+                bookmark.is_favorite ? "fill-red-500 text-red-500" : "text-gray-400 hover:text-gray-600"
               )} />
             </Button>
 
@@ -229,9 +251,11 @@ export function BookmarkCard({ bookmark, folders, tags, onUpdated, onDeleted, on
           {/* Letter Icon or Image - Exact from Reference */}
           <div className="relative">
             {bookmark.favicon_url ? (
-              <img
+              <Image
                 src={bookmark.favicon_url}
                 alt=""
+                width={400}
+                height={128}
                 className="w-full h-32 object-cover rounded-t-lg"
                 onError={(e) => { 
                   e.currentTarget.style.display = 'none';
@@ -300,17 +324,8 @@ export function BookmarkCard({ bookmark, folders, tags, onUpdated, onDeleted, on
               </div>
             )}
 
-            {/* Priority and Category Row - Exact from Reference */}
+            {/* Category Row - Exact from Reference */}
             <div className="flex items-center justify-between mb-3">
-              <Badge 
-                className={cn(
-                  "text-xs px-2 py-1 border",
-                  getPriorityColor((bookmark as any).priority || 'medium')
-                )}
-              >
-                {(bookmark as any).priority || 'medium'}
-              </Badge>
-
               <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
                 <span>{bookmark.folder?.name || 'Uncategorized'}</span>
               </div>
@@ -321,13 +336,6 @@ export function BookmarkCard({ bookmark, folders, tags, onUpdated, onDeleted, on
               <Eye className="h-4 w-4 mr-1" />
               <span>{bookmark.visit_count || 0} visits</span>
             </div>
-
-                         {/* Additional Description - Exact from Reference */}
-             {(bookmark as any).additional_description && (
-               <p className="text-sm text-gray-600 dark:text-gray-400 italic">
-                 {(bookmark as any).additional_description}
-               </p>
-             )}
           </div>
         </CardContent>
       </Card>

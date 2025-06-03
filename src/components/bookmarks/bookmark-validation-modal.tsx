@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -31,6 +31,7 @@ import {
 } from 'lucide-react'
 import bookmarkValidationService from '../../lib/services/bookmark-validation'
 import type { BookmarkWithRelations } from '../../lib/services/bookmarks'
+import { useAuth } from '../../hooks/useAuth'
 
 interface ValidationResult {
   id: string
@@ -52,33 +53,31 @@ export function BookmarkValidationModal({ bookmarks, trigger }: BookmarkValidati
   const [results, setResults] = useState<ValidationResult[]>([])
   const [progress, setProgress] = useState(0)
   const [currentBatch, setCurrentBatch] = useState(0)
+  const { user } = useAuth()
 
   const handleValidateAll = async () => {
+    if (!user) return
+    
     setIsValidating(true)
     setProgress(0)
     setResults([])
     setCurrentBatch(0)
 
     try {
-      const bookmarkData = bookmarks.map(b => ({ id: b.id, url: b.url }))
+      const service = new bookmarkValidationService.BookmarkService(user.id)
       const batchSize = 10
-      const totalBatches = Math.ceil(bookmarkData.length / batchSize)
-
-      // Process in batches with progress updates
-      const allResults: ValidationResult[] = []
       
-      for (let i = 0; i < bookmarkData.length; i += batchSize) {
-        const batch = bookmarkData.slice(i, i + batchSize)
+      for (let i = 0; i < bookmarks.length; i += batchSize) {
+        const batch = bookmarks.slice(i, i + batchSize)
         setCurrentBatch(Math.floor(i / batchSize) + 1)
         
-        const batchResults = await bookmarkValidationService.validateBookmarks(batch, {
+        const batchResults = await service.validateBookmarks(batch, {
           batchSize: batchSize,
           timeout: 8000
         })
         
-        allResults.push(...batchResults)
-        setResults([...allResults])
-        setProgress(((i + batch.length) / bookmarkData.length) * 100)
+        setResults([...results, ...batchResults])
+        setProgress(((i + batch.length) / bookmarks.length) * 100)
       }
     } catch (error) {
       console.error('Validation failed:', error)

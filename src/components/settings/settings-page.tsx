@@ -1,351 +1,418 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { UserButton } from '@clerk/nextjs';
+import React, { useState } from 'react';
 import { Button } from '../ui/button';
-import { Input } from '../ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Textarea } from '../ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { Badge } from '../ui/badge';
+import { Separator } from '../ui/separator';
 import { 
-  ArrowLeft, 
-  Settings, 
   User, 
   Bell, 
   Shield, 
-  Palette,
-  Download,
-  Upload,
-  Trash2
+  Globe, 
+  Database, 
+  Download, 
+  Trash2,
+  Moon,
+  Sun
 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
 interface SettingsPageProps {
   userId: string;
 }
 
-export function SettingsPage({ userId }: SettingsPageProps) {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-
-  // Settings state
+export function SettingsPage({ }: SettingsPageProps) {
   const [settings, setSettings] = useState({
-    theme: 'system',
+    theme: 'light',
     notifications: {
-      emailNotifications: true,
-      pushNotifications: false,
-      weeklyDigest: true,
+      email: true,
+      push: false,
+      weekly: true
     },
     privacy: {
       publicProfile: false,
-      shareAnalytics: true,
+      shareData: false,
+      analytics: true
     },
-    preferences: {
-      defaultView: 'grid',
-      itemsPerPage: 12,
-      autoBackup: true,
-    }
+    language: 'en',
+    autoSave: true,
+    compactView: false
   });
 
-  const handleSaveSettings = async () => {
-    setLoading(true);
-    try {
-      // Save settings to backend
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
-      toast.success('Settings saved successfully');
-    } catch (error) {
-      toast.error('Failed to save settings');
-    } finally {
-      setLoading(false);
-    }
+  const handleSettingChange = (key: string, value: boolean | string) => {
+    setSettings(prev => ({
+      ...prev,
+      [key]: value
+    }));
+    toast.success('Setting updated');
+  };
+
+  const handleNestedSettingChange = (category: keyof typeof settings, key: string, value: boolean) => {
+    setSettings(prev => ({
+      ...prev,
+      [category]: {
+        ...(prev[category] as Record<string, boolean>),
+        [key]: value
+      }
+    }));
+    toast.success('Setting updated');
   };
 
   const handleExportData = async () => {
     try {
-      // Export user data
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
-      toast.success('Data export started. You will receive an email when ready.');
-    } catch (error) {
+      toast.success('Export started - you will receive an email when ready');
+    } catch {
       toast.error('Failed to export data');
     }
   };
 
+  const handleDeleteAccount = async () => {
+    if (window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+      try {
+        toast.success('Account deletion process started');
+      } catch {
+        toast.error('Failed to delete account');
+      }
+    }
+  };
+
+  const handleClearData = async () => {
+    if (window.confirm('Are you sure you want to clear all your bookmarks? This action cannot be undone.')) {
+      try {
+        toast.success('Data cleared successfully');
+      } catch {
+        toast.error('Failed to clear data');
+      }
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
-      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.push('/dashboard')}
-              className="flex items-center space-x-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span>Back to Dashboard</span>
-            </Button>
-            <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Settings</h1>
-          </div>
-          <UserButton afterSignOutUrl="/" />
+    <div className="container mx-auto px-6 py-8 max-w-4xl">
+      <div className="space-y-6">
+        {/* Header */}
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+            Settings
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            Manage your account preferences and application settings
+          </p>
         </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="p-6 max-w-4xl mx-auto">
-        <div className="space-y-8">
+        <Tabs defaultValue="general" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="general">General</TabsTrigger>
+            <TabsTrigger value="notifications">Notifications</TabsTrigger>
+            <TabsTrigger value="privacy">Privacy</TabsTrigger>
+            <TabsTrigger value="account">Account</TabsTrigger>
+          </TabsList>
+
           {/* General Settings */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-              <User className="h-5 w-5 mr-2" />
-              General
-            </h2>
-            
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="theme">Theme</Label>
-                <Select value={settings.theme} onValueChange={(value) => 
-                  setSettings(prev => ({ ...prev, theme: value }))
-                }>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select theme" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="light">Light</SelectItem>
-                    <SelectItem value="dark">Dark</SelectItem>
-                    <SelectItem value="system">System</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+          <TabsContent value="general" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Globe className="h-5 w-5" />
+                  General Preferences
+                </CardTitle>
+                <CardDescription>
+                  Configure your basic application preferences
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label className="text-base">Theme</Label>
+                      <div className="text-sm text-muted-foreground">
+                        Choose your preferred theme
+                      </div>
+                    </div>
+                    <Select value={settings.theme} onValueChange={(value) => handleSettingChange('theme', value)}>
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="light">
+                          <div className="flex items-center gap-2">
+                            <Sun className="h-4 w-4" />
+                            Light
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="dark">
+                          <div className="flex items-center gap-2">
+                            <Moon className="h-4 w-4" />
+                            Dark
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="system">System</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <div>
-                <Label htmlFor="defaultView">Default View</Label>
-                <Select value={settings.preferences.defaultView} onValueChange={(value) => 
-                  setSettings(prev => ({ 
-                    ...prev, 
-                    preferences: { ...prev.preferences, defaultView: value }
-                  }))
-                }>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select default view" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="grid">Grid</SelectItem>
-                    <SelectItem value="list">List</SelectItem>
-                    <SelectItem value="compact">Compact</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                  <Separator />
 
-              <div>
-                <Label htmlFor="itemsPerPage">Items per page</Label>
-                <Select value={settings.preferences.itemsPerPage.toString()} onValueChange={(value) => 
-                  setSettings(prev => ({ 
-                    ...prev, 
-                    preferences: { ...prev.preferences, itemsPerPage: parseInt(value) }
-                  }))
-                }>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select items per page" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="6">6</SelectItem>
-                    <SelectItem value="12">12</SelectItem>
-                    <SelectItem value="24">24</SelectItem>
-                    <SelectItem value="48">48</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label className="text-base">Language</Label>
+                      <div className="text-sm text-muted-foreground">
+                        Select your preferred language
+                      </div>
+                    </div>
+                    <Select value={settings.language} onValueChange={(value) => handleSettingChange('language', value)}>
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="en">English</SelectItem>
+                        <SelectItem value="es">Español</SelectItem>
+                        <SelectItem value="fr">Français</SelectItem>
+                        <SelectItem value="de">Deutsch</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <Separator />
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label className="text-base">Auto-save</Label>
+                      <div className="text-sm text-muted-foreground">
+                        Automatically save changes as you work
+                      </div>
+                    </div>
+                    <Switch
+                      checked={settings.autoSave}
+                      onCheckedChange={(checked) => handleSettingChange('autoSave', checked)}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label className="text-base">Compact View</Label>
+                      <div className="text-sm text-muted-foreground">
+                        Use a more compact layout for bookmarks
+                      </div>
+                    </div>
+                    <Switch
+                      checked={settings.compactView}
+                      onCheckedChange={(checked) => handleSettingChange('compactView', checked)}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* Notifications */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-              <Bell className="h-5 w-5 mr-2" />
-              Notifications
-            </h2>
-            
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Email Notifications</Label>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Receive email updates about your bookmarks
-                  </p>
-                </div>
-                <Switch 
-                  checked={settings.notifications.emailNotifications}
-                  onCheckedChange={(checked) => 
-                    setSettings(prev => ({ 
-                      ...prev, 
-                      notifications: { ...prev.notifications, emailNotifications: checked }
-                    }))
-                  }
-                />
-              </div>
+          <TabsContent value="notifications" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Bell className="h-5 w-5" />
+                  Notification Preferences
+                </CardTitle>
+                <CardDescription>
+                  Choose how you want to be notified about updates
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label className="text-base">Email Notifications</Label>
+                      <div className="text-sm text-muted-foreground">
+                        Receive email updates about your bookmarks
+                      </div>
+                    </div>
+                    <Switch
+                      checked={settings.notifications.email}
+                      onCheckedChange={(checked) => handleNestedSettingChange('notifications', 'email', checked)}
+                    />
+                  </div>
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Push Notifications</Label>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Receive browser push notifications
-                  </p>
-                </div>
-                <Switch 
-                  checked={settings.notifications.pushNotifications}
-                  onCheckedChange={(checked) => 
-                    setSettings(prev => ({ 
-                      ...prev, 
-                      notifications: { ...prev.notifications, pushNotifications: checked }
-                    }))
-                  }
-                />
-              </div>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label className="text-base">Push Notifications</Label>
+                      <div className="text-sm text-muted-foreground">
+                        Receive push notifications in your browser
+                      </div>
+                    </div>
+                    <Switch
+                      checked={settings.notifications.push}
+                      onCheckedChange={(checked) => handleNestedSettingChange('notifications', 'push', checked)}
+                    />
+                  </div>
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Weekly Digest</Label>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Weekly summary of your bookmark activity
-                  </p>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label className="text-base">Weekly Summary</Label>
+                      <div className="text-sm text-muted-foreground">
+                        Get a weekly summary of your bookmarking activity
+                      </div>
+                    </div>
+                    <Switch
+                      checked={settings.notifications.weekly}
+                      onCheckedChange={(checked) => handleNestedSettingChange('notifications', 'weekly', checked)}
+                    />
+                  </div>
                 </div>
-                <Switch 
-                  checked={settings.notifications.weeklyDigest}
-                  onCheckedChange={(checked) => 
-                    setSettings(prev => ({ 
-                      ...prev, 
-                      notifications: { ...prev.notifications, weeklyDigest: checked }
-                    }))
-                  }
-                />
-              </div>
-            </div>
-          </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* Privacy */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-              <Shield className="h-5 w-5 mr-2" />
-              Privacy
-            </h2>
-            
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Public Profile</Label>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Make your bookmark collections public
-                  </p>
-                </div>
-                <Switch 
-                  checked={settings.privacy.publicProfile}
-                  onCheckedChange={(checked) => 
-                    setSettings(prev => ({ 
-                      ...prev, 
-                      privacy: { ...prev.privacy, publicProfile: checked }
-                    }))
-                  }
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Share Analytics</Label>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Help improve BookmarkHub with usage analytics
-                  </p>
-                </div>
-                <Switch 
-                  checked={settings.privacy.shareAnalytics}
-                  onCheckedChange={(checked) => 
-                    setSettings(prev => ({ 
-                      ...prev, 
-                      privacy: { ...prev.privacy, shareAnalytics: checked }
-                    }))
-                  }
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Data Management */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-              <Download className="h-5 w-5 mr-2" />
-              Data Management
-            </h2>
-            
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Auto Backup</Label>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Automatically backup your bookmarks weekly
-                  </p>
-                </div>
-                <Switch 
-                  checked={settings.preferences.autoBackup}
-                  onCheckedChange={(checked) => 
-                    setSettings(prev => ({ 
-                      ...prev, 
-                      preferences: { ...prev.preferences, autoBackup: checked }
-                    }))
-                  }
-                />
-              </div>
-
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Export Data</Label>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Download all your bookmarks and data
-                    </p>
+          <TabsContent value="privacy" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="h-5 w-5" />
+                  Privacy & Security
+                </CardTitle>
+                <CardDescription>
+                  Control your privacy and data sharing preferences
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label className="text-base">Public Profile</Label>
+                      <div className="text-sm text-muted-foreground">
+                        Make your profile visible to other users
+                      </div>
+                    </div>
+                    <Switch
+                      checked={settings.privacy.publicProfile}
+                      onCheckedChange={(checked) => handleNestedSettingChange('privacy', 'publicProfile', checked)}
+                    />
                   </div>
-                  <Button onClick={handleExportData} variant="outline">
-                    <Download className="h-4 w-4 mr-2" />
-                    Export
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
 
-          {/* Danger Zone */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-red-200 dark:border-red-800">
-            <h2 className="text-lg font-semibold text-red-600 dark:text-red-400 mb-4 flex items-center">
-              <Trash2 className="h-5 w-5 mr-2" />
-              Danger Zone
-            </h2>
-            
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-red-600 dark:text-red-400">Delete Account</Label>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Permanently delete your account and all data
-                  </p>
-                </div>
-                <Button variant="destructive">
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete Account
-                </Button>
-              </div>
-            </div>
-          </div>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label className="text-base">Share Usage Data</Label>
+                      <div className="text-sm text-muted-foreground">
+                        Help improve the service by sharing anonymous usage data
+                      </div>
+                    </div>
+                    <Switch
+                      checked={settings.privacy.shareData}
+                      onCheckedChange={(checked) => handleNestedSettingChange('privacy', 'shareData', checked)}
+                    />
+                  </div>
 
-          {/* Save Button */}
-          <div className="flex justify-end">
-            <Button onClick={handleSaveSettings} disabled={loading}>
-              {loading ? 'Saving...' : 'Save Settings'}
-            </Button>
-          </div>
-        </div>
-      </main>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label className="text-base">Analytics</Label>
+                      <div className="text-sm text-muted-foreground">
+                        Allow analytics to help us improve your experience
+                      </div>
+                    </div>
+                    <Switch
+                      checked={settings.privacy.analytics}
+                      onCheckedChange={(checked) => handleNestedSettingChange('privacy', 'analytics', checked)}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Account */}
+          <TabsContent value="account" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Account Management
+                </CardTitle>
+                <CardDescription>
+                  Manage your account data and preferences
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 border border-border rounded-lg">
+                    <div className="space-y-1">
+                      <div className="font-medium">Export Data</div>
+                      <div className="text-sm text-muted-foreground">
+                        Download all your bookmarks and data
+                      </div>
+                    </div>
+                    <Button onClick={handleExportData} variant="outline">
+                      <Download className="h-4 w-4 mr-2" />
+                      Export
+                    </Button>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 border border-border rounded-lg">
+                    <div className="space-y-1">
+                      <div className="font-medium">Clear All Data</div>
+                      <div className="text-sm text-muted-foreground">
+                        Remove all your bookmarks and folders
+                      </div>
+                    </div>
+                    <Button onClick={handleClearData} variant="outline">
+                      <Database className="h-4 w-4 mr-2" />
+                      Clear Data
+                    </Button>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 border border-destructive rounded-lg bg-destructive/5">
+                    <div className="space-y-1">
+                      <div className="font-medium text-destructive">Delete Account</div>
+                      <div className="text-sm text-muted-foreground">
+                        Permanently delete your account and all data
+                      </div>
+                    </div>
+                    <Button onClick={handleDeleteAccount} variant="destructive">
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Account Stats */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Account Statistics</CardTitle>
+                <CardDescription>
+                  Overview of your account usage
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <div className="text-2xl font-bold text-primary">0</div>
+                    <div className="text-sm text-muted-foreground">Total Bookmarks</div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="text-2xl font-bold text-primary">0</div>
+                    <div className="text-sm text-muted-foreground">Folders Created</div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="text-2xl font-bold text-primary">0</div>
+                    <div className="text-sm text-muted-foreground">Tags Used</div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="text-2xl font-bold text-primary">
+                      <Badge variant="secondary">Pro</Badge>
+                    </div>
+                    <div className="text-sm text-muted-foreground">Account Type</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 } 

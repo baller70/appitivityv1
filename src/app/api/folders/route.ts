@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { FolderService } from '../../../lib/services/folders'
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const { userId } = await auth()
     

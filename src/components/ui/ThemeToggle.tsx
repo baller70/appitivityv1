@@ -12,7 +12,7 @@ import {
 import { Sun, Moon, Monitor } from 'lucide-react'
 
 export function ThemeToggle() {
-  const { theme, updateTheme, isDark } = useThemeContext()
+  const { theme, updateTheme } = useThemeContext()
 
   const themeOptions = [
     {

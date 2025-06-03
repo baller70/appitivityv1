@@ -66,11 +66,9 @@ export function AdvancedSearchBar({
             setSuggestions(results);
             setShowSuggestions(results.length > 0);
           }
-        } catch (error) {
-          // Fallback to basic suggestions on error
-          const results = await searchService.getSuggestions(value);
-          setSuggestions(results);
-          setShowSuggestions(results.length > 0);
+        } catch (searchError) {
+          console.error('Search failed:', searchError);
+          setShowSuggestions(false);
         }
       } else {
         setSuggestions([]);

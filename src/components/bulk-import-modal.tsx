@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { X, Upload, Tag, Folder } from 'lucide-react'
 import type { Folder as FolderType, Tag as TagType } from '@/types/supabase'
+import Image from 'next/image'
 
 interface BulkImportModalProps {
   isOpen: boolean
@@ -339,13 +340,12 @@ export function BulkImportModal({
                       {bookmark.isValid ? (
                         <>
                           {bookmark.favicon && (
-                            <img 
-                              src={bookmark.favicon} 
-                              alt="" 
-                              className="w-4 h-4 mt-1"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none'
-                              }}
+                            <Image
+                              src={bookmark.favicon}
+                              alt=""
+                              width={16}
+                              height={16}
+                              className="w-4 h-4"
                             />
                           )}
                           <div className="flex-1 min-w-0">

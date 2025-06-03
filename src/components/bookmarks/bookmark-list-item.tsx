@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { useUser } from '@clerk/nextjs';
 import { useSelection } from '../../contexts/SelectionContext';
 import { cn } from '../../lib/utils';
+import Image from 'next/image';
 
 interface BookmarkListItemProps {
   bookmark: BookmarkWithRelations;
@@ -144,14 +145,22 @@ export function BookmarkListItem({ bookmark, folders, tags, onUpdated, onDeleted
           {/* Favicon */}
           <div className="flex-shrink-0">
             {bookmark.favicon_url ? (
-              <img
+              <Image
                 src={bookmark.favicon_url}
                 alt=""
-                className="w-6 h-6"
-                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                width={40}
+                height={40}
+                className="w-10 h-10 rounded-lg border border-gray-200 dark:border-gray-600"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
               />
             ) : (
-              <div className="w-6 h-6 bg-gray-200 dark:bg-gray-600 rounded"></div>
+              <div className="w-10 h-10 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg flex items-center justify-center">
+                <span className="text-lg font-bold text-gray-600 dark:text-gray-400">
+                  {bookmark.title.charAt(0).toUpperCase()}
+                </span>
+              </div>
             )}
           </div>
 

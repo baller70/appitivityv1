@@ -42,7 +42,7 @@ class BookmarkValidationService {
         statusCode: response.status,
         lastChecked: new Date().toISOString()
       }
-    } catch (error) {
+    } catch {
       // If HEAD fails, try GET with a smaller timeout
       try {
         const controller = new AbortController()
@@ -64,14 +64,8 @@ class BookmarkValidationService {
           statusCode: response.status,
           lastChecked: new Date().toISOString()
         }
-      } catch (secondError) {
-        return {
-          id: '',
-          url,
-          isValid: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
-          lastChecked: new Date().toISOString()
-        }
+      } catch {
+        return { isValid: false, error: 'Unexpected validation error' };
       }
     }
   }

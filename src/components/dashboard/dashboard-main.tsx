@@ -1,337 +1,228 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { BookmarkService, type BookmarkWithRelations } from '../../lib/services/bookmarks';
-import { FolderService } from '../../lib/services/folders';
-import { TagService } from '../../lib/services/tags';
-import { apiClient } from '../../lib/api/client';
-import type { Folder, Tag } from '../../types/supabase';
-import { BookmarkList } from '../bookmarks/bookmark-list';
-import { BookmarkForm } from '../bookmarks/bookmark-form';
-import { FolderSidebar } from '../layout/folder-sidebar';
-import { AdvancedSearchBar } from '../common/advanced-search-bar';
-import { BulkImportModal } from '../bulk-import-modal';
-import { SelectionProvider } from '../../contexts/SelectionContext';
-import { MassActionsToolbar } from './MassActionsToolbar';
-import type { SearchFilters } from '../../lib/services/search';
+import { UserButton } from '@clerk/nextjs';
 import { Button } from '../ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
-import { Plus, Upload, Grid, List, AlertCircle } from 'lucide-react';
-import { toast } from 'sonner';
+import { apiClient } from '../../lib/api/client';
+import { BookmarkHubDashboard } from './bookmark-hub-dashboard';
+import { AnalyticsDashboard } from '../analytics/analytics-dashboard';
+import { FavoritesPage } from '../favorites/favorites-page';
+import { SettingsPage } from '../settings/settings-page';
+import { EnhancedSearchDashboard } from '../search/enhanced-search-dashboard';
+import { 
+  BarChart3, 
+  Heart, 
+  Settings, 
+  Search, 
+  User, 
+  AlertCircle,
+  Loader2
+} from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 
 interface DashboardMainProps {
   userId: string;
+  userData: {
+    id: string;
+    firstName: string | null;
+    email: string | undefined;
+  };
 }
 
-export function DashboardMain({ userId }: DashboardMainProps) {
-  const [bookmarks, setBookmarks] = useState<BookmarkWithRelations[]>([]);
-  const [folders, setFolders] = useState<Folder[]>([]);
-  const [tags, setTags] = useState<Tag[]>([]);
-  const [loading, setLoading] = useState(true);
+export function DashboardMain({ userId, userData }: DashboardMainProps) {
+  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'favorites' | 'settings' | 'search'>('overview');
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [searchFilters, setSearchFilters] = useState<SearchFilters>({});
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [showAddBookmark, setShowAddBookmark] = useState(false);
-  const [showBulkImport, setShowBulkImport] = useState(false);
-  const [filters, setFilters] = useState({
-    isArchived: false,
-    isFavorite: false
+  const [dashboardData, setDashboardData] = useState({
+    bookmarks: [],
+    folders: [],
+    tags: [],
+    stats: {
+      totalBookmarks: 0,
+      thisMonth: 0,
+      favorites: 0,
+      totalVisits: 0
+    }
   });
 
-  const bookmarkService = new BookmarkService(userId);
-  const folderService = new FolderService(userId);
-  const tagService = new TagService(userId);
-
-  const loadData = useCallback(async () => {
+  const loadDashboardData = useCallback(async () => {
     try {
-      setLoading(true);
+      setIsLoading(true);
       setError(null);
       
-      // First, ensure user profile exists
-      await apiClient.ensureUserProfile('user@example.com', 'User');
+      // Ensure user profile exists
+      await apiClient.ensureUserProfile(userData.email || 'user@example.com', userData.firstName || 'User');
       
-      const [bookmarksData, foldersData, tagsData] = await Promise.all([
+      // Load all dashboard data
+      const [bookmarks, folders, tags] = await Promise.all([
         apiClient.getBookmarks(),
         apiClient.getFolders(),
         apiClient.getTags()
       ]);
 
-      setBookmarks(bookmarksData);
-      setFolders(foldersData);
-      setTags(tagsData);
+      // Calculate stats
+      const stats = {
+        totalBookmarks: bookmarks.length,
+        thisMonth: bookmarks.filter(b => {
+          if (!b.created_at) return false;
+          const bookmarkDate = new Date(b.created_at);
+          const thisMonth = new Date();
+          return bookmarkDate.getMonth() === thisMonth.getMonth() && 
+                 bookmarkDate.getFullYear() === thisMonth.getFullYear();
+        }).length,
+        favorites: bookmarks.filter(b => b.is_favorite).length,
+        totalVisits: bookmarks.reduce((sum, b) => sum + (b.visit_count || 0), 0)
+      };
+
+      setDashboardData({
+        bookmarks,
+        folders,
+        tags,
+        stats
+      });
+
     } catch (error) {
-      console.error('Failed to load data:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      setError(`Failed to load dashboard data: ${errorMessage}`);
-      toast.error(`Failed to load dashboard data: ${errorMessage}`);
+      console.error('Failed to load dashboard data:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      setError(`Failed to load dashboard: ${errorMessage}`);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
-  }, [userId]);
+  }, [userData.email, userData.firstName]);
 
-    const loadBookmarks = useCallback(async () => {
-    try {
-      let bookmarksData: BookmarkWithRelations[];
-      
-      if (searchTerm || Object.keys(searchFilters).length > 1) {
-        // Use advanced search if we have search term or filters
-        bookmarksData = await bookmarkService.searchBookmarks(searchTerm);
-        
-        // Apply additional filters from searchFilters
-        if (searchFilters.folderId) {
-          bookmarksData = bookmarksData.filter(b => b.folder_id === searchFilters.folderId);
-        }
-        if (searchFilters.tagIds && searchFilters.tagIds.length > 0) {
-          bookmarksData = bookmarksData.filter(b => 
-            b.tags?.some(tag => searchFilters.tagIds!.includes(tag.id))
-          );
-        }
-        if (searchFilters.isFavorite !== undefined) {
-          bookmarksData = bookmarksData.filter(b => b.is_favorite === searchFilters.isFavorite);
-        }
-        if (searchFilters.isArchived !== undefined) {
-          bookmarksData = bookmarksData.filter(b => b.is_archived === searchFilters.isArchived);
-        }
-        if (searchFilters.hasDescription) {
-          bookmarksData = bookmarksData.filter(b => b.description && b.description.trim().length > 0);
-        }
-      } else {
-        bookmarksData = await bookmarkService.getBookmarks({
-          folderId: selectedFolder || undefined,
-          isArchived: filters.isArchived,
-          isFavorite: filters.isFavorite
-        });
-      }
-
-      // Filter by selected tags if any (from sidebar)
-      if (selectedTags.length > 0) {
-        bookmarksData = bookmarksData.filter(bookmark =>
-          bookmark.tags?.some(tag => selectedTags.includes(tag.id))
-        );
-      }
-
-      setBookmarks(bookmarksData);
-    } catch (error) {
-      console.error('Failed to load bookmarks:', error);
-      toast.error('Failed to load bookmarks');
-    }
-  }, [bookmarkService, selectedFolder, selectedTags, searchTerm, searchFilters, filters]);
-
-  // Load initial data
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    loadDashboardData();
+  }, [loadDashboardData]);
 
-  // Reload bookmarks when filters change
-  useEffect(() => {
-    if (!loading) {
-      loadBookmarks();
-    }
-  }, [loading, loadBookmarks]);
+  const navItems = [
+    { id: 'overview', label: 'Overview', icon: BarChart3 },
+    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+    { id: 'favorites', label: 'Favorites', icon: Heart },
+    { id: 'search', label: 'Search', icon: Search },
+    { id: 'settings', label: 'Settings', icon: Settings },
+  ];
 
-  const handleBookmarkCreated = (newBookmark: BookmarkWithRelations) => {
-    setBookmarks(prev => [newBookmark, ...prev]);
-    setShowAddBookmark(false);
-    toast.success('Bookmark created successfully');
-  };
-
-  const handleBookmarkUpdated = (updatedBookmark: BookmarkWithRelations) => {
-    setBookmarks(prev => prev.map(b => 
-      b.id === updatedBookmark.id ? updatedBookmark : b
-    ));
-    toast.success('Bookmark updated successfully');
-  };
-
-  const handleBookmarkDeleted = (bookmarkId: string) => {
-    setBookmarks(prev => prev.filter(b => b.id !== bookmarkId));
-    toast.success('Bookmark deleted successfully');
-  };
-
-  const handleBulkImport = async (bookmarks: { url: string; title?: string; description?: string; folderId?: string; tagIds?: string[]; favicon?: string; }[]) => {
-    // Here we would normally use the BookmarkService to create the bookmarks
-    // For now, let's just simulate the import
-    try {
-      for (const bookmark of bookmarks) {
-        await bookmarkService.createBookmark({
-          url: bookmark.url,
-          title: bookmark.title || bookmark.url,
-          description: bookmark.description || '',
-          folder_id: bookmark.folderId || null,
-          favicon_url: bookmark.favicon || null
-        }, bookmark.tagIds || []);
-      }
-      await loadBookmarks();
-      setShowBulkImport(false);
-      toast.success(`Successfully imported ${bookmarks.length} bookmarks`);
-    } catch (error) {
-      console.error('Bulk import failed:', error);
-      toast.error('Failed to import bookmarks');
-      throw error;
-    }
-  };
-
-  const handleFolderCreated = (newFolder: Folder) => {
-    setFolders(prev => [...prev, newFolder]);
-  };
-
-  const handleTagCreated = (newTag: Tag) => {
-    setTags(prev => [...prev, newTag]);
-  };
-
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600 dark:text-gray-400">Loading your dashboard...</p>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-center">
-          <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-            Database Connection Error
-          </h3>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">
-            {error}
-          </p>
-          <Button onClick={loadData} variant="outline">
-            Try Again
-          </Button>
-        </div>
+      <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+            <CardTitle className="text-red-600">Dashboard Error</CardTitle>
+            <CardDescription>{error}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={loadDashboardData} className="w-full">
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
+  const renderActiveComponent = () => {
+    switch (activeTab) {
+      case 'overview':
+        return (
+          <BookmarkHubDashboard 
+            userId={userId} 
+            userData={userData}
+          />
+        );
+      case 'analytics':
+        return <AnalyticsDashboard userId={userId} />;
+      case 'favorites':
+        return <FavoritesPage userId={userId} />;
+      case 'search':
+        return <EnhancedSearchDashboard userId={userId} />;
+      case 'settings':
+        return <SettingsPage userId={userId} />;
+      default:
+        return (
+          <BookmarkHubDashboard 
+            userId={userId} 
+            userData={userData}
+          />
+        );
+    }
+  };
+
   return (
-    <SelectionProvider>
-      <div className="flex h-full">
-        {/* Mass Actions Toolbar - Sticky at top when active */}
-        <MassActionsToolbar
-          bookmarks={bookmarks}
-          folders={folders}
-          tags={tags}
-          userId={userId}
-          onUpdate={loadBookmarks}
-        />
-        
-        {/* Sidebar */}
-      <div className="w-80 flex-shrink-0 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
-        <FolderSidebar
-          folders={folders}
-          tags={tags}
-          selectedFolder={selectedFolder}
-          selectedTags={selectedTags}
-          onFolderSelect={setSelectedFolder}
-          onTagSelect={setSelectedTags}
-          onFolderCreated={handleFolderCreated}
-          onTagCreated={handleTagCreated}
-          filters={filters}
-          onFiltersChange={setFilters}
-        />
-      </div>
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Sidebar Navigation */}
+      <nav className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
+        {/* Header */}
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+            Apptivity
+          </h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Your productivity hub
+          </p>
+        </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        {/* Action Bar */}
-        <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex-1 max-w-lg">
-              <AdvancedSearchBar
-                userId={userId}
-                value={searchTerm}
-                onChange={setSearchTerm}
-                onFiltersChange={setSearchFilters}
-                folders={folders}
-                tags={tags}
-                placeholder="Search bookmarks..."
-              />
+        {/* Navigation Items */}
+        <div className="flex-1 p-4">
+          <ul className="space-y-2">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <li key={item.id}>
+                  <button
+                    onClick={() => setActiveTab(item.id as typeof activeTab)}
+                    className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                      activeTab === item.id
+                        ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300'
+                        : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    <Icon className="mr-3 h-4 w-4" />
+                    {item.label}
+                    {item.id === 'favorites' && (
+                      <span className="ml-auto bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 text-xs rounded-full px-2 py-0.5">
+                        {dashboardData.stats.favorites}
+                      </span>
+                    )}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+
+        {/* User Profile */}
+        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex items-center">
+            <User className="h-8 w-8 text-gray-400 mr-3" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                {userData.firstName || userData.email}
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                {userData.email}
+              </p>
             </div>
-            
-            <div className="flex items-center space-x-3 ml-4">
-              {/* View Mode Toggle */}
-              <div className="flex rounded-lg border border-gray-300 dark:border-gray-600">
-                <Button
-                  variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('grid')}
-                  className="rounded-r-none"
-                >
-                  <Grid className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant={viewMode === 'list' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('list')}
-                  className="rounded-l-none"
-                >
-                  <List className="h-4 w-4" />
-                </Button>
-              </div>
-
-              {/* Action Buttons */}
-              <Button
-                onClick={() => setShowBulkImport(true)}
-                variant="outline"
-                size="sm"
-                className="flex items-center space-x-2"
-              >
-                <Upload className="h-4 w-4" />
-                <span>Import</span>
-              </Button>
-
-              <Dialog open={showAddBookmark} onOpenChange={setShowAddBookmark}>
-                <DialogTrigger asChild>
-                  <Button size="sm" className="flex items-center space-x-2">
-                    <Plus className="h-4 w-4" />
-                    <span>Add Bookmark</span>
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>Add New Bookmark</DialogTitle>
-                  </DialogHeader>
-                  <BookmarkForm
-                    folders={folders}
-                    tags={tags}
-                    onSubmit={handleBookmarkCreated}
-                    onCancel={() => setShowAddBookmark(false)}
-                  />
-                </DialogContent>
-              </Dialog>
-            </div>
+            <UserButton afterSignOutUrl="/" />
           </div>
         </div>
+      </nav>
 
-
-
-        {/* Content Area */}
-        <div className="flex-1 p-6">
-          <BookmarkList
-            bookmarks={bookmarks}
-            folders={folders}
-            tags={tags}
-            viewMode={viewMode}
-            onBookmarkUpdated={handleBookmarkUpdated}
-            onBookmarkDeleted={handleBookmarkDeleted}
-          />
-        </div>
-      </div>
-
-      {/* Bulk Import Modal */}
-      <BulkImportModal
-        isOpen={showBulkImport}
-        onClose={() => setShowBulkImport(false)}
-        onImport={handleBulkImport}
-        folders={folders}
-        tags={tags}
-      />
-      </div>
-    </SelectionProvider>
+      {/* Main Content */}
+      <main className="flex-1 overflow-auto">
+        {renderActiveComponent()}
+      </main>
+    </div>
   );
 } 

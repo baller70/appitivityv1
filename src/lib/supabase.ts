@@ -27,7 +27,7 @@ export const supabaseAdmin = supabaseServiceKey
   : supabase // Fallback to regular client if no service key
 
 // Helper function to create client with user context for RLS
-export function createSupabaseClient(userId: string) {
+export function createSupabaseClient() {
   // Use service role client to bypass RLS for development
   // This avoids the "row violates row-level security policy" error
   if (supabaseServiceKey) {
@@ -70,4 +70,18 @@ export function getClerkUserId(): string | null {
   // This will be implemented when we add Clerk hooks
   // For now, return null to prevent errors
   return null
+}
+
+export async function getProfile() {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .single();
+
+  if (error) {
+    console.error('Error fetching profile:', error);
+    return null;
+  }
+
+  return data;
 } 

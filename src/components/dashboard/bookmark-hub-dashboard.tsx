@@ -2,46 +2,39 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { UserButton } from '@clerk/nextjs';
-// Removed User import since we're now using plain object
 import { BookmarkService, type BookmarkWithRelations } from '../../lib/services/bookmarks';
-import { FolderService } from '../../lib/services/folders';
-import { TagService } from '../../lib/services/tags';
+import { Button } from '../ui/button';
+import { BookmarkCard } from '../bookmarks/bookmark-card';
+import { BookmarkForm } from '../bookmarks/bookmark-form';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { apiClient } from '../../lib/api/client';
 import type { Folder, Tag } from '../../types/supabase';
-import { BookmarkCard } from '../bookmarks/bookmark-card';
-import { BookmarkDetailModal } from '../bookmarks/bookmark-detail-modal';
-import { BookmarkForm } from '../bookmarks/bookmark-form';
-import { BulkImportModal } from '../bulk-import-modal';
-import { SimpleExportModal } from '../bookmarks/simple-export-modal';
-import { BookmarkValidationModal } from '../bookmarks/bookmark-validation-modal';
-import { BookmarkImportModal } from '../bookmarks/bookmark-import-modal';
-import { bookmarkImportService, type ImportedBookmark } from '../../lib/services/bookmark-import';
-import { SelectionProvider } from '../../contexts/SelectionContext';
-import { MassActionsToolbar } from './MassActionsToolbar';
-import { Button } from '../ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { 
   Plus, 
-  Upload, 
-  Download,
-  BarChart3, 
-  Star, 
-  Settings, 
-  Menu,
-  Search,
-  AlertCircle,
-  Heart,
-  Bookmark,
+  Search, 
+  Grid3X3, 
+  List, 
+  Bookmark, 
+  Star,
   TrendingUp,
-  Grid3X3,
-  List,
-  Columns,
   Calendar,
+  BarChart3,
+  Menu,
+  Settings,
+  Heart,
+  AlertCircle,
+  Upload,
+  Shield,
   Rows3,
-  Shield
+  Columns
 } from 'lucide-react';
+import { BookmarkValidationModal } from '../bookmarks/bookmark-validation-modal';
+import { SelectionProvider } from '../../contexts/SelectionContext';
+import { MassActionsToolbar } from './MassActionsToolbar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { toast } from 'sonner';
+import { BookmarkDetailModal } from '../bookmarks/bookmark-detail-modal';
+import { BulkImportModal } from '../bulk-import-modal';
 
 interface BookmarkHubDashboardProps {
   userId: string;
@@ -62,16 +55,13 @@ export function BookmarkHubDashboard({ userId, userData }: BookmarkHubDashboardP
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddBookmark, setShowAddBookmark] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
-  const [showImportModal, setShowImportModal] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'compact' | 'kanban' | 'timeline'>('grid');
-  const [sortBy, setSortBy] = useState('recent');
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'title' | 'url'>('newest');
   const [selectedBookmark, setSelectedBookmark] = useState<BookmarkWithRelations | null>(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showBookmarkDetail, setShowBookmarkDetail] = useState(false);
 
   const bookmarkService = new BookmarkService(userId);
-  // const folderService = new FolderService(userId);
-  // const tagService = new TagService(userId);
 
   const loadData = useCallback(async () => {
     try {
@@ -120,7 +110,7 @@ export function BookmarkHubDashboard({ userId, userData }: BookmarkHubDashboardP
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -141,14 +131,14 @@ export function BookmarkHubDashboard({ userId, userData }: BookmarkHubDashboardP
 
   const handleBookmarkDeleted = (bookmarkId: string) => {
     setBookmarks(prev => prev.filter(b => b.id !== bookmarkId));
-    setShowDetailModal(false);
+    setShowBookmarkDetail(false);
     setSelectedBookmark(null);
     toast.success('Bookmark deleted successfully');
   };
 
   const handleOpenDetail = (bookmark: BookmarkWithRelations) => {
     setSelectedBookmark(bookmark);
-    setShowDetailModal(true);
+    setShowBookmarkDetail(true);
   };
 
   const handleBulkImport = async (bookmarks: { url: string; title?: string; description?: string; folderId?: string; tagIds?: string[]; favicon?: string; }[]) => {
@@ -172,53 +162,7 @@ export function BookmarkHubDashboard({ userId, userData }: BookmarkHubDashboardP
     }
   };
 
-  const handleBrowserImport = async (importedBookmarks: ImportedBookmark[]) => {
-    try {
-      for (const bookmark of importedBookmarks) {
-        // Find or create folder
-        let folderId: string | null = null;
-        if (bookmark.folder && bookmark.folder !== 'Imported') {
-          const existingFolder = folders.find(f => f.name === bookmark.folder);
-          if (existingFolder) {
-            folderId = existingFolder.id;
-          } else {
-            // Create new folder
-            try {
-              const newFolder = await apiClient.createFolder({
-                name: bookmark.folder,
-                description: `Imported from browser`,
-                color: '#6b7280',
-                parent_id: null
-              });
-              folderId = newFolder.id;
-              setFolders(prev => [...prev, newFolder]);
-            } catch (error) {
-              console.warn(`Failed to create folder ${bookmark.folder}:`, error);
-            }
-          }
-        }
-
-        // Create bookmark
-        await bookmarkService.createBookmark({
-          url: bookmark.url,
-          title: bookmark.title,
-          description: bookmark.description || '',
-          folder_id: folderId,
-          favicon_url: bookmark.favicon || null
-        }, bookmark.tags || []);
-      }
-      
-      await loadData();
-      setShowImportModal(false);
-      toast.success(`Successfully imported ${importedBookmarks.length} bookmarks from browser`);
-    } catch (error) {
-      console.error('Browser import failed:', error);
-      toast.error('Failed to import bookmarks from browser');
-      throw error;
-    }
-  };
-
-  // Filter and sort bookmarks - Exact logic from reference
+  // Filter and sort bookmarks
   const filteredAndSortedBookmarks = bookmarks
     .filter(bookmark => {
       const matchesSearch = searchTerm === '' || 
@@ -244,11 +188,9 @@ export function BookmarkHubDashboard({ userId, userData }: BookmarkHubDashboardP
           return a.title.localeCompare(b.title);
         case 'url':
           return a.url.localeCompare(b.url);
-        case 'visits':
-          return (b.visit_count || 0) - (a.visit_count || 0);
-        case 'favorites':
-          return (b.is_favorite ? 1 : 0) - (a.is_favorite ? 1 : 0);
-        case 'recent':
+        case 'oldest':
+          return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
+        case 'newest':
         default:
           return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
       }
@@ -265,13 +207,6 @@ export function BookmarkHubDashboard({ userId, userData }: BookmarkHubDashboardP
   }).length;
   const favoriteBookmarks = bookmarks.filter(b => b.is_favorite).length;
   const totalVisits = bookmarks.reduce((sum, b) => sum + (b.visit_count || 0), 0);
-
-  // Group bookmarks by category for sidebar
-  const categoryStats = folders.reduce((acc, folder) => {
-    const count = bookmarks.filter(b => b.folder_id === folder.id).length;
-    acc[folder.name] = count;
-    return acc;
-  }, {} as Record<string, number>);
 
   if (loading) {
     return (
@@ -372,7 +307,7 @@ export function BookmarkHubDashboard({ userId, userData }: BookmarkHubDashboardP
             </div>
           )}
 
-          {/* Categories - Exact from Reference */}
+          {/* Categories */}
           {!sidebarCollapsed && (
             <div className="p-4 border-b border-gray-200 dark:border-gray-700">
               <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
@@ -562,7 +497,7 @@ export function BookmarkHubDashboard({ userId, userData }: BookmarkHubDashboardP
 
           {/* Content Area */}
           <main className="flex-1 p-6 overflow-auto">
-            {/* Search and Actions Bar - Exact from Screenshot */}
+            {/* Search and Actions Bar */}
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center space-x-3 flex-1">
                 <Button
@@ -613,7 +548,7 @@ export function BookmarkHubDashboard({ userId, userData }: BookmarkHubDashboardP
                 </Select>
 
                 {/* Last Visited Dropdown */}
-                <Select value={sortBy} onValueChange={setSortBy}>
+                <Select value={sortBy} onValueChange={(value) => setSortBy(value as 'newest' | 'oldest' | 'title' | 'url')}>
                   <SelectTrigger className="w-[120px]">
                     <SelectValue placeholder="Last Visited" />
                   </SelectTrigger>
@@ -628,7 +563,7 @@ export function BookmarkHubDashboard({ userId, userData }: BookmarkHubDashboardP
               </div>
 
               <div className="flex items-center space-x-2">
-                {/* 5 View Mode Buttons - Exact Functionality from Reference */}
+                {/* 5 View Mode Buttons */}
                 <div className="flex items-center border border-gray-300 dark:border-gray-600 rounded-lg">
                   {/* Grid View */}
                   <Button
@@ -700,7 +635,6 @@ export function BookmarkHubDashboard({ userId, userData }: BookmarkHubDashboardP
                     <BookmarkForm
                       onSubmit={handleBookmarkCreated}
                       folders={folders}
-                      tags={tags}
                       onCancel={() => setShowAddBookmark(false)}
                     />
                   </DialogContent>
@@ -727,16 +661,6 @@ export function BookmarkHubDashboard({ userId, userData }: BookmarkHubDashboardP
                   </DialogContent>
                 </Dialog>
 
-                <Button 
-                  variant="outline"
-                  onClick={() => setShowImportModal(true)}
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Import Browser
-                </Button>
-
-                <SimpleExportModal />
-
                 <BookmarkValidationModal
                   bookmarks={filteredAndSortedBookmarks}
                   trigger={
@@ -757,7 +681,7 @@ export function BookmarkHubDashboard({ userId, userData }: BookmarkHubDashboardP
               tags={tags}
             />
 
-            {/* Bookmarks Display - All 5 View Modes */}
+            {/* Main Content Display */}
             {filteredAndSortedBookmarks.length === 0 ? (
               <div className="text-center py-12">
                 <Bookmark className="h-16 w-16 text-gray-400 mx-auto mb-4" />
@@ -781,7 +705,6 @@ export function BookmarkHubDashboard({ userId, userData }: BookmarkHubDashboardP
                     <BookmarkForm
                       onSubmit={handleBookmarkCreated}
                       folders={folders}
-                      tags={tags}
                       onCancel={() => setShowAddBookmark(false)}
                     />
                   </DialogContent>
@@ -798,7 +721,7 @@ export function BookmarkHubDashboard({ userId, userData }: BookmarkHubDashboardP
               }>
                 {viewMode === 'timeline' ? (
                   // Timeline View - Chronological with dates
-                  filteredAndSortedBookmarks.map((bookmark, index) => (
+                  filteredAndSortedBookmarks.map((bookmark) => (
                     <div key={bookmark.id} className="flex">
                       <div className="flex-shrink-0 w-24 text-right pr-4">
                         <div className="text-sm text-gray-500 dark:text-gray-400">
@@ -830,8 +753,8 @@ export function BookmarkHubDashboard({ userId, userData }: BookmarkHubDashboardP
                         </h3>
                         <div className="space-y-3">
                           {filteredAndSortedBookmarks
-                            .filter(bookmark => (bookmark as any).priority === priority.toLowerCase() || 
-                              (priority === 'Medium' && !(bookmark as any).priority))
+                            .filter(bookmark => (bookmark as BookmarkWithRelations & { priority?: string }).priority === priority.toLowerCase() || 
+                              (priority === 'Medium' && !(bookmark as BookmarkWithRelations & { priority?: string }).priority))
                             .map((bookmark) => (
                               <BookmarkCard
                                 key={bookmark.id}
@@ -872,20 +795,12 @@ export function BookmarkHubDashboard({ userId, userData }: BookmarkHubDashboardP
         bookmark={selectedBookmark}
         folders={folders}
         tags={tags}
-        isOpen={showDetailModal}
+        isOpen={showBookmarkDetail}
         onClose={() => {
-          setShowDetailModal(false);
+          setShowBookmarkDetail(false);
           setSelectedBookmark(null);
         }}
         onUpdated={handleBookmarkUpdated}
-        onDeleted={() => handleBookmarkDeleted(selectedBookmark?.id || '')}
-      />
-
-      {/* Browser Import Modal */}
-      <BookmarkImportModal
-        isOpen={showImportModal}
-        onClose={() => setShowImportModal(false)}
-        onImport={handleBrowserImport}
       />
     </SelectionProvider>
   );

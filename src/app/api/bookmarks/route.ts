@@ -4,7 +4,7 @@ import { BookmarkService } from '../../../lib/services/bookmarks'
 import { supabaseAdmin } from '../../../lib/supabase'
 import { normalizeUserId } from '../../../lib/uuid-compat'
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const { userId } = await auth()
     

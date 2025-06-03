@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { TagService } from '../../../lib/services/tags'
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const { userId } = await auth()
     

@@ -38,8 +38,8 @@ export class SearchService {
     // Prepare enhanced search data with extracted notes content
     const enhancedBookmarks = bookmarks.map(bookmark => ({
       ...bookmark,
-      notesText: this.extractNotesText((bookmark as any).notes),
-      todosText: this.extractTodosText((bookmark as any).notes),
+      notesText: this.extractNotesText(bookmark.description),
+      todosText: this.extractTodosText(bookmark.description),
       domainName: this.extractDomain(bookmark.url),
       searchableContent: this.createSearchableContent(bookmark)
     }));
@@ -89,7 +89,7 @@ export class SearchService {
       includeMatches: true,
       minMatchCharLength: 2,
       ignoreLocation: true, // Search in entire string, not just beginning
-      sortFn: (a: any, b: any) => a.score - b.score // Sort by relevance score
+      sortFn: (a: { score: number }, b: { score: number }) => a.score - b.score // Sort by relevance score
     };
 
     this.fuse = new Fuse(enhancedBookmarks, fuseOptions);
@@ -374,7 +374,7 @@ export class SearchService {
       const parsed = JSON.parse(notes);
       if (parsed.textContent !== undefined) {
         // Combine text content and TODO items for search
-        const todoTexts = (parsed.todos || []).map((todo: any) => todo.text).join(' ');
+        const todoTexts = (parsed.todos || []).map((todo: { text: string }) => todo.text).join(' ');
         return `${parsed.textContent} ${todoTexts}`.trim();
       }
     } catch {
@@ -395,7 +395,7 @@ export class SearchService {
       // Try to parse as structured JSON
       const parsed = JSON.parse(notes);
       if (parsed.todos && Array.isArray(parsed.todos)) {
-        return parsed.todos.map((todo: any) => todo.text).join(' ');
+        return parsed.todos.map((todo: { text: string }) => todo.text).join(' ');
       }
     } catch {
       // Extract markdown-style checkboxes from plain text
@@ -430,7 +430,7 @@ export class SearchService {
     const parts = [
       bookmark.title,
       bookmark.description,
-      this.extractNotesText((bookmark as any).notes),
+      this.extractNotesText(bookmark.description),
       bookmark.tags?.map(tag => tag.name).join(' '),
       bookmark.folder?.name,
       this.extractDomain(bookmark.url)
