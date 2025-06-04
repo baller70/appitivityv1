@@ -310,7 +310,7 @@ export function KanbanView({ bookmarks, onBookmarkClick, onFavorite, loading }: 
                   <Search className="h-10 w-10 text-white" />
                 </div>
               </div>
-              <h3 className="text-2xl font-bold text-gray-700 dark:text-gray-300 mb-2">No bookmarks found</h3>
+              <h3 className="text-2xl font-bold text-gray-700 dark:text-gray-300 mb-2">NO BOOKMARKS FOUND</h3>
               <p className="text-lg text-gray-500 dark:text-gray-400">Try adjusting your search terms</p>
             </CardContent>
           </Card>
@@ -327,7 +327,7 @@ export function KanbanView({ bookmarks, onBookmarkClick, onFavorite, loading }: 
                           <Folder className="h-5 w-5 text-white" />
                         </div>
                         <div>
-                          <h3 className="font-semibold text-white text-lg">{column.name}</h3>
+                          <h3 className="font-semibold text-white text-lg">{column.name.toUpperCase()}</h3>
                           <p className="text-white/80 text-sm">{column.count} items</p>
                         </div>
                       </div>

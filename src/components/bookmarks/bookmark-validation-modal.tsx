@@ -31,7 +31,7 @@ import {
 } from 'lucide-react'
 import bookmarkValidationService from '../../lib/services/bookmark-validation'
 import type { BookmarkWithRelations } from '../../lib/services/bookmarks'
-import { useAuth, useUser } from '@clerk/nextjs'
+import { useUser } from '@clerk/nextjs'
 
 interface ValidationResult {
   id: string
@@ -53,7 +53,6 @@ export function BookmarkValidationModal({ bookmarks, trigger }: BookmarkValidati
   const [results, setResults] = useState<ValidationResult[]>([])
   const [progress, setProgress] = useState(0)
   const [currentBatch, setCurrentBatch] = useState(0)
-  const { isLoaded, isSignedIn } = useAuth()
   const { user } = useUser()
 
   const handleValidateAll = async () => {

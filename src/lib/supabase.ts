@@ -5,9 +5,6 @@ import type { Database } from '../types/supabase'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-// Service role key is available in server environments
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
 // Client for public operations (uses RLS with Clerk user ID)
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
@@ -17,9 +14,20 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   }
 })
 
+// Server-side check for service role key (only runs on server)
+const isServer = typeof window === 'undefined'
+let supabaseServiceKey: string | undefined
+
+if (isServer) {
+  supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!supabaseServiceKey) {
+    console.warn('WARNING: SUPABASE_SERVICE_ROLE_KEY not found on server. Some operations may fail.')
+  }
+}
+
 // Admin client for server-side operations (bypasses RLS)
-// Always create the admin client - it will only be used on the server
-export const supabaseAdmin = supabaseServiceKey 
+// Only create if we're on the server and have the service key
+export const supabaseAdmin = isServer && supabaseServiceKey 
   ? createClient<Database>(supabaseUrl, supabaseServiceKey, {
       auth: {
         persistSession: false,
@@ -27,13 +35,7 @@ export const supabaseAdmin = supabaseServiceKey
         detectSessionInUrl: false
       }
     })
-  : createClient<Database>(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-        detectSessionInUrl: false
-      }
-    })
+  : null
 
 // Helper function to create client with user context for RLS
 export function createSupabaseClient(userId: string) {
@@ -66,4 +68,7 @@ export function getClerkUserId(): string | null {
   // This will be implemented when we add Clerk hooks
   // For now, return null to prevent errors
   return null
-} 
+}
+
+// Supabase project ID for MCP operations
+export const SUPABASE_PROJECT_ID = 'bpmixidxyljfvenukcun' 

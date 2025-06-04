@@ -167,7 +167,7 @@ export function CompactView({
                 {bookmark.folder && (
                   <div className="flex items-center">
                     <Badge variant="outline" className="text-xs px-1 py-0">
-                      {bookmark.folder.name}
+                                                    {bookmark.folder.name.toUpperCase()}
                     </Badge>
                   </div>
                 )}

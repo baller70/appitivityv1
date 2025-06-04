@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { BookmarkService, type BookmarkWithRelations } from '../../lib/services/bookmarks';
-import { type Folder, type Tag } from '../../types/supabase';
+import { type Folder } from '../../types/supabase';
 import { BookmarkForm } from './bookmark-form';
 import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
@@ -26,15 +26,14 @@ import Image from 'next/image';
 interface BookmarkCardProps {
   bookmark: BookmarkWithRelations;
   folders: Folder[];
-  tags: Tag[];
   onUpdated: (bookmark: BookmarkWithRelations) => void;
   onDeleted: () => void;
   onOpenDetail?: () => void;
 }
 
-export function BookmarkCard({ bookmark, folders, tags, onUpdated, onDeleted, onOpenDetail }: BookmarkCardProps) {
+export function BookmarkCard({ bookmark, folders, onUpdated, onDeleted, onOpenDetail }: BookmarkCardProps) {
   const { user } = useUser();
-  const { isSignedIn, getToken } = useAuth();
+  const { isSignedIn } = useAuth();
   const [showEdit, setShowEdit] = useState(false);
   const [loading, setLoading] = useState(false);
   
@@ -193,6 +192,11 @@ export function BookmarkCard({ bookmark, folders, tags, onUpdated, onDeleted, on
     }
   };
 
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData('application/json', JSON.stringify(bookmark));
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
   const selected = isSelected(bookmark.id);
 
   // Get letter icon from title - exact from reference
@@ -223,6 +227,8 @@ export function BookmarkCard({ bookmark, folders, tags, onUpdated, onDeleted, on
         )}
         onClick={handleCardClick}
         onDoubleClick={handleLongPress}
+        draggable={true}
+        onDragStart={handleDragStart}
       >
         {/* Top Row - Checkbox and Action Icons */}
         <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-10">
@@ -437,7 +443,7 @@ export function BookmarkCard({ bookmark, folders, tags, onUpdated, onDeleted, on
             {/* Category Row - Exact from Reference */}
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
-                <span>{bookmark.folder?.name || 'Uncategorized'}</span>
+                <span>{bookmark.folder?.name.toUpperCase() || 'UNCATEGORIZED'}</span>
               </div>
             </div>
 

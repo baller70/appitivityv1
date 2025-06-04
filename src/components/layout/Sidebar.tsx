@@ -43,7 +43,7 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
           <div className="flex items-center justify-between">
             {!isCollapsed && (
               <div>
-                <h1 className="text-xl font-bold text-white">BookmarkHub</h1>
+                <h1 className="text-xl font-bold text-white">BOOKMARKHUB</h1>
                 <p className="text-sm text-gray-400">Your digital workspace</p>
               </div>
             )}
@@ -59,9 +59,9 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
         {/* Navigation */}
         <div className="p-4">
           {!isCollapsed && (
-            <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-              Navigation
-            </h2>
+                    <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+          NAVIGATION
+        </h2>
           )}
           <nav className="space-y-1">
             {navigationItems.map((item) => (

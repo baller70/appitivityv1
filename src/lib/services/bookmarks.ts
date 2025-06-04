@@ -5,8 +5,7 @@ import type {
   BookmarkInsert, 
   BookmarkUpdate,
   Folder,
-  Tag,
-  Database 
+  Tag
 } from '../../types/supabase'
 
 // Bookmark with related data
@@ -82,7 +81,7 @@ export class BookmarkService {
     // Transform the data to include tags properly
     return data?.map(bookmark => ({
       ...bookmark,
-      tags: bookmark.tags?.map((bt: any) => bt.tag).filter(Boolean) || []
+      tags: bookmark.tags?.map((bt: unknown) => (bt as { tag: Tag }).tag).filter(Boolean) || []
     })) || []
   }
 
@@ -113,7 +112,7 @@ export class BookmarkService {
     console.log('Successfully fetched bookmark:', id)
     return {
       ...data,
-      tags: data.tags?.map((bt: any) => bt.tag).filter(Boolean) || []
+      tags: data.tags?.map((bt: unknown) => (bt as { tag: Tag }).tag).filter(Boolean) || []
     }
   }
 

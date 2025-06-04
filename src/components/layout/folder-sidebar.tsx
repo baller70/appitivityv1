@@ -109,7 +109,7 @@ export function FolderSidebar({
     <div className="h-full flex flex-col">
       {/* Header */}
       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-        <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Navigation</h2>
+        <h2 className="font-semibold text-gray-900 dark:text-white mb-4">NAVIGATION</h2>
         
         {/* Quick Filters */}
         <div className="space-y-2">
@@ -155,7 +155,7 @@ export function FolderSidebar({
         {/* Folders Section */}
         <div className="p-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-medium text-gray-900 dark:text-white">Folders</h3>
+            <h3 className="font-medium text-gray-900 dark:text-white">FOLDERS</h3>
             <Dialog open={showCreateFolder} onOpenChange={setShowCreateFolder}>
               <DialogTrigger asChild>
                 <Button size="sm" variant="ghost">
@@ -197,7 +197,7 @@ export function FolderSidebar({
                 onClick={() => onFolderSelect(folder.id)}
               >
                 <FolderIcon className="h-4 w-4 mr-2" />
-                <span className="truncate">{folder.name}</span>
+                <span className="truncate">{folder.name.toUpperCase()}</span>
               </Button>
             ))}
             
@@ -214,7 +214,7 @@ export function FolderSidebar({
         {/* Tags Section */}
         <div className="p-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-medium text-gray-900 dark:text-white">Tags</h3>
+            <h3 className="font-medium text-gray-900 dark:text-white">TAGS</h3>
             <Dialog open={showCreateTag} onOpenChange={setShowCreateTag}>
               <DialogTrigger asChild>
                 <Button size="sm" variant="ghost">

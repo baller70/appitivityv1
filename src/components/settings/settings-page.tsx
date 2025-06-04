@@ -111,7 +111,7 @@ export function SettingsPage({ }: SettingsPageProps) {
             </Button>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Settings
+            SETTINGS
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
             Manage your account preferences and application settings

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { 
@@ -16,9 +16,7 @@ import {
   TrendingUp,
   Settings,
   Edit2,
-  MoreHorizontal,
   X,
-  Calendar,
   Flag,
   Tag,
   FileText,
@@ -585,7 +583,7 @@ export function TimerTaskComponent() {
         console.log('Loading lists from localStorage:', parsedLists.length, 'lists');
         setTaskLists(parsedLists.map((list: Partial<TaskList>) => ({
           ...list,
-          createdAt: new Date(list.createdAt),
+          createdAt: list.createdAt ? new Date(list.createdAt) : new Date(),
           completedAt: list.completedAt ? new Date(list.completedAt) : undefined
         })));
       } else {
@@ -1589,7 +1587,7 @@ export function TimerTaskComponent() {
         {activeTab === 'tasks' && (
           <div className="max-w-4xl mx-auto">
             <div className="flex items-center justify-between mb-8">
-              <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Task Management</h2>
+              <h2 className="text-3xl font-bold text-gray-900 dark:text-white">TASK MANAGEMENT</h2>
               <div className="text-right">
                 <div className="text-sm text-gray-600 dark:text-gray-400">
                   {activeTasks} active • {completedTasks} completed

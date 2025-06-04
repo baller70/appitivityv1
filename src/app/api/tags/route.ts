@@ -6,11 +6,14 @@ export async function GET() {
   try {
     const { userId } = await auth()
     
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // Handle both authenticated users and demo mode
+    const effectiveUserId = userId || 'demo-user'
+    
+    if (!effectiveUserId) {
+      return NextResponse.json({ error: 'No user session' }, { status: 401 })
     }
 
-    const tagService = new TagService(userId)
+    const tagService = new TagService(effectiveUserId)
     const tags = await tagService.getTags()
     
     return NextResponse.json(tags)
@@ -27,12 +30,15 @@ export async function POST(request: NextRequest) {
   try {
     const { userId } = await auth()
     
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // Handle both authenticated users and demo mode
+    const effectiveUserId = userId || 'demo-user'
+    
+    if (!effectiveUserId) {
+      return NextResponse.json({ error: 'No user session' }, { status: 401 })
     }
 
     const data = await request.json()
-    const tagService = new TagService(userId)
+    const tagService = new TagService(effectiveUserId)
     const tag = await tagService.createTag(data)
     
     return NextResponse.json(tag)

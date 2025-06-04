@@ -195,7 +195,7 @@ export function BookmarkListItem({ bookmark, folders, tags, onUpdated, onDeleted
               {bookmark.folder && (
                 <div className="flex items-center">
                   <FolderIcon className="h-3 w-3 mr-1" />
-                  {bookmark.folder.name}
+                                            {bookmark.folder.name.toUpperCase()}
                 </div>
               )}
               

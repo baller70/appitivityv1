@@ -254,7 +254,7 @@ export function DocumentEditor({
             
             <TabsContent value="formatting" className="space-y-4">
               <div>
-                <h3 className="text-sm font-medium mb-2">Text Formatting</h3>
+                <h3 className="text-sm font-medium mb-2">TEXT FORMATTING</h3>
                 <div className="grid grid-cols-2 gap-2">
                   <Button variant="outline" size="sm" onClick={() => applyFormatting('bold')}>
                     <Bold className="h-4 w-4 mr-1" />
@@ -276,7 +276,7 @@ export function DocumentEditor({
               </div>
 
               <div>
-                <h3 className="text-sm font-medium mb-2">Headings</h3>
+                <h3 className="text-sm font-medium mb-2">HEADINGS</h3>
                 <div className="space-y-2">
                   <Button variant="outline" size="sm" className="w-full justify-start" onClick={() => applyFormatting('heading1')}>
                     <Heading1 className="h-4 w-4 mr-2" />
@@ -294,7 +294,7 @@ export function DocumentEditor({
               </div>
 
               <div>
-                <h3 className="text-sm font-medium mb-2">Alignment</h3>
+                <h3 className="text-sm font-medium mb-2">ALIGNMENT</h3>
                 <div className="grid grid-cols-3 gap-2">
                   <Button 
                     variant={editorState.textAlign === 'left' ? 'default' : 'outline'} 

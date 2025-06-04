@@ -6,11 +6,14 @@ export async function GET() {
   try {
     const { userId } = await auth()
     
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // Handle both authenticated users and demo mode
+    const effectiveUserId = userId || 'demo-user'
+    
+    if (!effectiveUserId) {
+      return NextResponse.json({ error: 'No user session' }, { status: 401 })
     }
 
-    const folderService = new FolderService(userId)
+    const folderService = new FolderService(effectiveUserId)
     const folders = await folderService.getFolders()
     
     return NextResponse.json(folders)
@@ -27,12 +30,15 @@ export async function POST(request: NextRequest) {
   try {
     const { userId } = await auth()
     
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // Handle both authenticated users and demo mode
+    const effectiveUserId = userId || 'demo-user'
+    
+    if (!effectiveUserId) {
+      return NextResponse.json({ error: 'No user session' }, { status: 401 })
     }
 
     const data = await request.json()
-    const folderService = new FolderService(userId)
+    const folderService = new FolderService(effectiveUserId)
     const folder = await folderService.createFolder(data)
     
     return NextResponse.json(folder)

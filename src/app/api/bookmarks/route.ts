@@ -8,11 +8,14 @@ export async function GET() {
   try {
     const { userId } = await auth()
     
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // Handle both authenticated users and demo mode
+    const effectiveUserId = userId || 'demo-user'
+    
+    if (!effectiveUserId) {
+      return NextResponse.json({ error: 'No user session' }, { status: 401 })
     }
 
-    const bookmarkService = new BookmarkService(userId)
+    const bookmarkService = new BookmarkService(effectiveUserId)
     const bookmarks = await bookmarkService.getBookmarks()
     
     return NextResponse.json(bookmarks)
@@ -29,15 +32,25 @@ export async function POST(request: NextRequest) {
   try {
     const { userId } = await auth()
     
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // Handle both authenticated users and demo mode
+    const effectiveUserId = userId || 'demo-user'
+    
+    if (!effectiveUserId) {
+      return NextResponse.json({ error: 'No user session' }, { status: 401 })
     }
 
     const data = await request.json()
-    const normalizedUserId = normalizeUserId(userId)
+    const normalizedUserId = normalizeUserId(effectiveUserId)
     
     // Extract tagIds from data since it's not a bookmarks table column
     const { tagIds, ...bookmarkData } = data
+    
+    if (!supabaseAdmin) {
+      return NextResponse.json(
+        { error: 'Database connection not available' }, 
+        { status: 500 }
+      )
+    }
     
     // Use direct database insert with admin client to bypass RLS
     const { data: bookmark, error } = await supabaseAdmin
@@ -88,8 +101,11 @@ export async function PUT(request: NextRequest) {
   try {
     const { userId } = await auth()
     
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // Handle both authenticated users and demo mode
+    const effectiveUserId = userId || 'demo-user'
+    
+    if (!effectiveUserId) {
+      return NextResponse.json({ error: 'No user session' }, { status: 401 })
     }
 
     const data = await request.json()
@@ -99,7 +115,14 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Bookmark ID is required' }, { status: 400 })
     }
 
-    const normalizedUserId = normalizeUserId(userId)
+    const normalizedUserId = normalizeUserId(effectiveUserId)
+    
+    if (!supabaseAdmin) {
+      return NextResponse.json(
+        { error: 'Database connection not available' }, 
+        { status: 500 }
+      )
+    }
     
     // Update bookmark using admin client to bypass RLS
     const { data: bookmark, error } = await supabaseAdmin
@@ -136,8 +159,11 @@ export async function DELETE(request: NextRequest) {
   try {
     const { userId } = await auth()
     
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // Handle both authenticated users and demo mode
+    const effectiveUserId = userId || 'demo-user'
+    
+    if (!effectiveUserId) {
+      return NextResponse.json({ error: 'No user session' }, { status: 401 })
     }
 
     const url = new URL(request.url)
@@ -148,7 +174,14 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Bookmark ID or IDs are required' }, { status: 400 })
     }
 
-    const normalizedUserId = normalizeUserId(userId)
+    const normalizedUserId = normalizeUserId(effectiveUserId)
+    
+    if (!supabaseAdmin) {
+      return NextResponse.json(
+        { error: 'Database connection not available' }, 
+        { status: 500 }
+      )
+    }
     
     if (ids) {
       // Bulk delete
@@ -186,12 +219,12 @@ export async function DELETE(request: NextRequest) {
         .delete()
         .eq('bookmark_id', id!)
       
-              // Delete bookmark
-        const { error } = await supabaseAdmin
-          .from('bookmarks')
-          .delete()
-          .eq('id', id!)
-          .eq('user_id', normalizedUserId)
+      // Delete bookmark
+      const { error } = await supabaseAdmin
+        .from('bookmarks')
+        .delete()
+        .eq('id', id!)
+        .eq('user_id', normalizedUserId)
 
       if (error) {
         console.error('Database error:', error)

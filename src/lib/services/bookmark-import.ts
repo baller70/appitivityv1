@@ -2,7 +2,7 @@
 
 import { supabase } from '../supabase';
 
-interface ImportedBookmark {
+export interface ImportedBookmark {
   title: string;
   url: string;
   description?: string;
@@ -11,21 +11,54 @@ interface ImportedBookmark {
   is_favorite?: boolean;
 }
 
-interface ImportResult {
+export interface ImportResult {
   success: boolean;
   imported: number;
   failed: number;
   errors: string[];
+  bookmarks: ImportedBookmark[];
+  summary: {
+    bookmarksFound: number;
+    foldersCreated: number;
+    duplicatesSkipped: number;
+  };
 }
 
-interface ImportOptions {
+export interface ImportOptions {
   overwriteExisting?: boolean;
   createFolders?: boolean;
   createTags?: boolean;
+  skipDuplicates?: boolean;
+  mergeFolders?: boolean;
+  includeSubfolders?: boolean;
+  defaultFolder?: string;
 }
 
 export class BookmarkImportService {
   constructor(private userId: string) {}
+
+  detectFileFormat(file: File): string {
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    switch (extension) {
+      case 'json':
+        return 'json';
+      case 'html':
+      case 'htm':
+        return 'html';
+      case 'csv':
+        return 'csv';
+      default:
+        return file.type || 'unknown';
+    }
+  }
+
+  async parseBookmarkHtml(content: string): Promise<ImportedBookmark[]> {
+    return this.parseHTML(content);
+  }
+
+  async parseBookmarkJson(content: string): Promise<ImportedBookmark[]> {
+    return this.parseJSON(content);
+  }
 
   async importFromFile(file: File, options: ImportOptions = {}): Promise<ImportResult> {
     try {
@@ -38,7 +71,13 @@ export class BookmarkImportService {
         success: false,
         imported: 0,
         failed: 0,
-        errors: [error instanceof Error ? error.message : 'Unknown error']
+        errors: [error instanceof Error ? error.message : 'Unknown error'],
+        bookmarks: [],
+        summary: {
+          bookmarksFound: 0,
+          foldersCreated: 0,
+          duplicatesSkipped: 0
+        }
       };
     }
   }
@@ -189,7 +228,13 @@ export class BookmarkImportService {
       success: true,
       imported: 0,
       failed: 0,
-      errors: []
+      errors: [],
+      bookmarks: bookmarks,
+      summary: {
+        bookmarksFound: bookmarks.length,
+        foldersCreated: 0,
+        duplicatesSkipped: 0
+      }
     };
 
     const folderMap = new Map<string, string>();
@@ -306,7 +351,7 @@ export class BookmarkImportService {
     if (bookmark.tags && bookmark.tags.length > 0) {
       const tagAssociations = bookmark.tags
         .map(tagName => tagMap.get(tagName))
-        .filter(Boolean)
+        .filter((tagId): tagId is string => Boolean(tagId))
         .map(tagId => ({
           bookmark_id: createdBookmark.id,
           tag_id: tagId
@@ -361,5 +406,5 @@ export class BookmarkImportService {
   }
 }
 
-// Export singleton instance
-export const bookmarkImportService = new BookmarkImportService(); 
+// Export singleton instance factory
+export const createBookmarkImportService = (userId: string) => new BookmarkImportService(userId); 

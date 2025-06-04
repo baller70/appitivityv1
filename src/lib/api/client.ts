@@ -40,6 +40,20 @@ class ApiClient {
     })
   }
 
+  async updateFolder(id: string, updates: Partial<Omit<Folder, 'id' | 'user_id' | 'created_at' | 'updated_at'>>): Promise<Folder> {
+    return this.request<Folder>('/folders', {
+      method: 'PUT',
+      body: JSON.stringify({ id, ...updates }),
+    })
+  }
+
+  async deleteFolder(id: string): Promise<{ success: boolean }> {
+    return this.request<{ success: boolean }>('/folders', {
+      method: 'DELETE',
+      body: JSON.stringify({ id }),
+    })
+  }
+
   // Tags API
   async getTags(): Promise<Tag[]> {
     return this.request<Tag[]>('/tags')

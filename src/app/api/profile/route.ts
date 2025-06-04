@@ -6,12 +6,15 @@ export async function POST(request: NextRequest) {
   try {
     const { userId } = await auth()
     
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // Handle both authenticated users and demo mode
+    const effectiveUserId = userId || 'demo-user'
+    
+    if (!effectiveUserId) {
+      return NextResponse.json({ error: 'No user session' }, { status: 401 })
     }
 
     const { email, fullName } = await request.json()
-    const success = await ensureUserProfile(userId, email, fullName)
+    const success = await ensureUserProfile(effectiveUserId, email, fullName)
     
     if (!success) {
       return NextResponse.json(

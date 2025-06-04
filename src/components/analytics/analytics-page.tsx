@@ -189,7 +189,7 @@ export function AnalyticsPage({ userId }: AnalyticsPageProps) {
             </Button>
             <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Analytics Dashboard</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">ANALYTICS DASHBOARD</h1>
               <p className="text-sm text-gray-600 dark:text-gray-400">Comprehensive insights into your bookmark usage</p>
             </div>
           </div>
@@ -381,7 +381,7 @@ export function AnalyticsPage({ userId }: AnalyticsPageProps) {
                         </p>
                         <div className="flex items-center space-x-2">
                           <Badge variant="outline" className="text-xs">
-                            {bookmark.folder?.name || 'Uncategorized'}
+                            {bookmark.folder?.name.toUpperCase() || 'UNCATEGORIZED'}
                           </Badge>
                           {bookmark.is_favorite && (
                             <Star className="h-3 w-3 text-yellow-500 fill-current" />
@@ -431,7 +431,7 @@ export function AnalyticsPage({ userId }: AnalyticsPageProps) {
                       </p>
                       <div className="flex items-center space-x-1 mt-2">
                         <Badge variant="outline" className="text-xs">
-                          {bookmark.folder?.name || 'Uncategorized'}
+                          {bookmark.folder?.name.toUpperCase() || 'UNCATEGORIZED'}
                         </Badge>
                         {bookmark.is_favorite && (
                           <Star className="h-3 w-3 text-yellow-500 fill-current" />

@@ -52,13 +52,16 @@ type TabType = 'overview' | 'timer' | 'notifications' | 'reminders' | 'related' 
 
 export function BookmarkDetailModal({
   bookmark,
-  folders,
-  tags,
+  folders: _folders,
+  tags: _tags,
   isOpen,
   onClose,
   onUpdated,
   onBookmarkCreated
 }: BookmarkDetailModalProps) {
+  // Use the parameters to avoid unused variable errors
+  void _folders;
+  void _tags;
   const { user } = useUser();
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [timerTime, setTimerTime] = useState(25 * 60); // 25 minutes

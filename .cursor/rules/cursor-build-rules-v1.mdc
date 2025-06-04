@@ -1,0 +1,36 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+STRICT CHANGE RULES FOR CURSOR AI (WITH MANDATORY PRE-CHANGE TESTING)
+
+1. BEFORE ADDING ANY NEW FEATURE:
+   a. Run all relevant tests (unit, integration, E2E, lint, type-check).
+   b. If any test, type, or lint error exists, STOP. Do not add or modify anything. Report the error(s) for review.
+   c. If all tests pass, proceed to add ONLY the new feature as described. Do not delete, remove, or change existing code, files, or features unless explicitly instructed.
+
+2. DEPENDENCY & CONTEXT CHECK:
+   Ensure you have identified all dependencies, context, and relevant code sections necessary for adding the new feature.
+   Do NOT change or refactor existing logic or imports unless given explicit, direct instruction.
+
+3. AFTER ADDING THE NEW FEATURE:
+   a. Re-run all tests (unit, integration, E2E, lint, type-check) to verify the new feature does not break any existing functionality.
+   b. If new errors occur, revert ONLY what was added or changed for this feature—do NOT alter, delete, or ‘fix’ unrelated code.
+   c. Report the error(s) and possible causes without making further changes.
+
+4. SUMMARY & REVIEW:
+   a. Specify exactly what files, lines, or components will be created or changed BEFORE making them.
+   b. Summarize every change after it is made, with plain-English file/function/line breakdown and bullet points.
+   c. If you are uncertain about any dependency or impact, halt and ask for clarification.
+
+5. NO DELETIONS OR UNPROMPTED MODIFICATIONS:
+   a. Never delete, comment out, or change existing features, components, styles, or logic except as specifically described in my request.
+   b. If a required change seems unavoidable, stop and request my approval before proceeding.
+
+6. NO AUTOMATIC REFACTORING:
+   Do not optimize, reorganize, deduplicate, or otherwise touch unrelated code or workflow, even if you identify legacy, conflicting, or sub-optimal patterns.
+
+7. GENERAL:
+   These rules override all other behaviors.
+   If you cannot complete the task without violating a rule, STOP and explain why.

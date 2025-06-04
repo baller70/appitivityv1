@@ -230,7 +230,7 @@ export function ListView({ bookmarks, onBookmarkClick, onFavorite, loading }: Li
                     <Search className="h-10 w-10 text-white" />
                   </div>
                 </div>
-                <h3 className="text-2xl font-bold text-gray-700 dark:text-gray-300 mb-2">No bookmarks found</h3>
+                <h3 className="text-2xl font-bold text-gray-700 dark:text-gray-300 mb-2">NO BOOKMARKS FOUND</h3>
                 <p className="text-lg text-gray-500 dark:text-gray-400">Try adjusting your search or filters</p>
               </CardContent>
             </Card>
@@ -294,7 +294,7 @@ export function ListView({ bookmarks, onBookmarkClick, onFavorite, loading }: Li
                             {bookmark.folder && (
                               <Badge className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-2 py-1 rounded-lg text-xs">
                                 <Folder className="h-3 w-3 mr-1" />
-                                {bookmark.folder.name}
+                                {bookmark.folder.name.toUpperCase()}
                               </Badge>
                             )}
                             {bookmark.tags?.slice(0, 3).map(tag => (

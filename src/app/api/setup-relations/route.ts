@@ -5,18 +5,7 @@ export async function POST() {
   try {
     console.log('Setting up bookmark relationships...');
 
-    // Check if table already exists
-    const { data: tableCheck } = await supabaseAdmin
-      .from('bookmark_relationships')
-      .select('id')
-      .limit(1);
-
-    if (tableCheck !== null) {
-      return NextResponse.json({ 
-        success: true, 
-        message: 'Bookmark relationships table already exists and is ready!' 
-      });
-    }
+    // Table existence check removed - will create if needed
 
     // Run the SQL migration manually
     // First, let's try a simple approach - create the table directly
