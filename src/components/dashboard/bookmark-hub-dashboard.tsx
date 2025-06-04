@@ -52,162 +52,7 @@ interface BookmarkHubDashboardProps {
   };
 }
 
-// ListView Component - moved outside to access SelectionProvider context
-const ListView = ({ bookmarks, onOpenDetail, onBookmarkDeleted }: { 
-  bookmarks: BookmarkWithRelations[];
-  onOpenDetail: (bookmark: BookmarkWithRelations) => void;
-  onBookmarkDeleted: (bookmarkId: string) => void;
-}) => {
-  const { isSelectionMode, isSelected, toggleItem } = useSelection();
-  
-  return (
-    <div className="space-y-3">
-      {bookmarks.map((bookmark) => (
-        <div
-          key={bookmark.id}
-          className={cn(
-            "group relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg transition-all duration-200 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600",
-            isSelected(bookmark.id) ? "ring-2 ring-blue-500 border-blue-500" : ""
-          )}
-        >
-          <div className="p-4">
-            <div className="flex items-start gap-4">
-              {/* Selection Checkbox */}
-              {isSelectionMode && (
-                <div className="flex-shrink-0 pt-1">
-                  <button
-                    onClick={() => toggleItem(bookmark.id)}
-                    className={cn(
-                      "w-5 h-5 rounded border-2 flex items-center justify-center transition-all",
-                      isSelected(bookmark.id)
-                        ? "bg-blue-500 border-blue-500 text-white"
-                        : "border-gray-300 dark:border-gray-600 hover:border-blue-500"
-                    )}
-                  >
-                    {isSelected(bookmark.id) && <Check className="w-3 h-3" />}
-                  </button>
-                </div>
-              )}
 
-              {/* Favicon */}
-              <div className="flex-shrink-0">
-                {bookmark.favicon_url ? (
-                  <Image
-                    src={bookmark.favicon_url}
-                    alt=""
-                    width={20}
-                    height={20}
-                    className="rounded"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
-                  />
-                ) : (
-                  <div className="w-5 h-5 rounded bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                    <Bookmark className="w-3 h-3 text-gray-500" />
-                  </div>
-                )}
-              </div>
-
-              {/* Main Content */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    {/* Title and URL */}
-                    <div className="space-y-1">
-                      <h3 className="font-medium text-gray-900 dark:text-white truncate">
-                        {bookmark.title}
-                      </h3>
-                      <p className="text-sm text-blue-600 dark:text-blue-400 truncate">
-                        {bookmark.url}
-                      </p>
-                    </div>
-
-                    {/* Description */}
-                    {bookmark.description && (
-                      <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
-                        {bookmark.description}
-                      </p>
-                    )}
-
-                    {/* Tags and Metadata */}
-                    <div className="mt-3 flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
-                      {bookmark.folder && (
-                        <span className="flex items-center gap-1">
-                          <div 
-                            className="w-2 h-2 rounded-full" 
-                            style={{ backgroundColor: bookmark.folder.color || '#6b7280' }}
-                          />
-                          {bookmark.folder.name}
-                        </span>
-                      )}
-                      {bookmark.tags && bookmark.tags.length > 0 && (
-                        <div className="flex gap-1">
-                          {bookmark.tags.slice(0, 3).map((tag) => (
-                            <Badge key={tag.id} variant="secondary" className="text-xs">
-                              {tag.name}
-                            </Badge>
-                          ))}
-                          {bookmark.tags.length > 3 && (
-                            <span className="text-gray-400">+{bookmark.tags.length - 3}</span>
-                          )}
-                        </div>
-                      )}
-                      <span>{new Date(bookmark.created_at || Date.now()).toLocaleDateString()}</span>
-                      {bookmark.visit_count && bookmark.visit_count > 0 && (
-                        <span>{bookmark.visit_count} visits</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {/* Favorite Button */}
-                    <button
-                      className="p-1.5 text-gray-400 hover:text-yellow-500 rounded transition-colors"
-                      title={bookmark.is_favorite ? 'Remove from favorites' : 'Add to favorites'}
-                    >
-                      <Star className={cn("w-4 h-4", bookmark.is_favorite && "fill-yellow-500 text-yellow-500")} />
-                    </button>
-
-                    {/* External Link */}
-                    <a
-                      href={bookmark.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-1.5 text-gray-400 hover:text-blue-500 rounded transition-colors"
-                      title="Open in new tab"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                    </a>
-
-                    {/* Edit Button */}
-                    <button
-                      onClick={() => onOpenDetail(bookmark)}
-                      className="p-1.5 text-gray-400 hover:text-green-500 rounded transition-colors"
-                      title="Edit bookmark"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-
-                    {/* Delete Button */}
-                    <button
-                      onClick={() => onBookmarkDeleted(bookmark.id)}
-                      className="p-1.5 text-gray-400 hover:text-red-500 rounded transition-colors"
-                      title="Delete bookmark"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-};
 
 export function BookmarkHubDashboard({ userId, userData }: BookmarkHubDashboardProps) {
   const [bookmarks, setBookmarks] = useState<BookmarkWithRelations[]>([]);
@@ -226,6 +71,163 @@ export function BookmarkHubDashboard({ userId, userData }: BookmarkHubDashboardP
   const [showBookmarkDetail, setShowBookmarkDetail] = useState(false);
 
   const bookmarkService = new BookmarkService(userId);
+
+  // ListView Component - defined inside component to access SelectionProvider context
+  const ListView = ({ bookmarks, onOpenDetail, onBookmarkDeleted }: { 
+    bookmarks: BookmarkWithRelations[];
+    onOpenDetail: (bookmark: BookmarkWithRelations) => void;
+    onBookmarkDeleted: (bookmarkId: string) => void;
+  }) => {
+    const { isSelectionMode, isSelected, toggleItem } = useSelection();
+    
+    return (
+      <div className="space-y-3">
+        {bookmarks.map((bookmark) => (
+          <div
+            key={bookmark.id}
+            className={cn(
+              "group relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg transition-all duration-200 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600",
+              isSelected(bookmark.id) ? "ring-2 ring-blue-500 border-blue-500" : ""
+            )}
+          >
+            <div className="p-4">
+              <div className="flex items-start gap-4">
+                {/* Selection Checkbox */}
+                {isSelectionMode && (
+                  <div className="flex-shrink-0 pt-1">
+                    <button
+                      onClick={() => toggleItem(bookmark.id)}
+                      className={cn(
+                        "w-5 h-5 rounded border-2 flex items-center justify-center transition-all",
+                        isSelected(bookmark.id)
+                          ? "bg-blue-500 border-blue-500 text-white"
+                          : "border-gray-300 dark:border-gray-600 hover:border-blue-500"
+                      )}
+                    >
+                      {isSelected(bookmark.id) && <Check className="w-3 h-3" />}
+                    </button>
+                  </div>
+                )}
+
+                {/* Favicon */}
+                <div className="flex-shrink-0">
+                  {bookmark.favicon_url ? (
+                    <Image
+                      src={bookmark.favicon_url}
+                      alt=""
+                      width={20}
+                      height={20}
+                      className="rounded"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <div className="w-5 h-5 rounded bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                      <Bookmark className="w-3 h-3 text-gray-500" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Main Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      {/* Title and URL */}
+                      <div className="space-y-1">
+                        <h3 className="font-medium text-gray-900 dark:text-white truncate">
+                          {bookmark.title}
+                        </h3>
+                        <p className="text-sm text-blue-600 dark:text-blue-400 truncate">
+                          {bookmark.url}
+                        </p>
+                      </div>
+
+                      {/* Description */}
+                      {bookmark.description && (
+                        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+                          {bookmark.description}
+                        </p>
+                      )}
+
+                      {/* Tags and Metadata */}
+                      <div className="mt-3 flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+                        {bookmark.folder && (
+                          <span className="flex items-center gap-1">
+                            <div 
+                              className="w-2 h-2 rounded-full" 
+                              style={{ backgroundColor: bookmark.folder.color || '#6b7280' }}
+                            />
+                            {bookmark.folder.name}
+                          </span>
+                        )}
+                        {bookmark.tags && bookmark.tags.length > 0 && (
+                          <div className="flex gap-1">
+                            {bookmark.tags.slice(0, 3).map((tag) => (
+                              <Badge key={tag.id} variant="secondary" className="text-xs">
+                                {tag.name}
+                              </Badge>
+                            ))}
+                            {bookmark.tags.length > 3 && (
+                              <span className="text-gray-400">+{bookmark.tags.length - 3}</span>
+                            )}
+                          </div>
+                        )}
+                        <span>{new Date(bookmark.created_at || Date.now()).toLocaleDateString()}</span>
+                        {bookmark.visit_count && bookmark.visit_count > 0 && (
+                          <span>{bookmark.visit_count} visits</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {/* Favorite Button */}
+                      <button
+                        className="p-1.5 text-gray-400 hover:text-yellow-500 rounded transition-colors"
+                        title={bookmark.is_favorite ? 'Remove from favorites' : 'Add to favorites'}
+                      >
+                        <Star className={cn("w-4 h-4", bookmark.is_favorite && "fill-yellow-500 text-yellow-500")} />
+                      </button>
+
+                      {/* External Link */}
+                      <a
+                        href={bookmark.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-1.5 text-gray-400 hover:text-blue-500 rounded transition-colors"
+                        title="Open in new tab"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
+
+                      {/* Edit Button */}
+                      <button
+                        onClick={() => onOpenDetail(bookmark)}
+                        className="p-1.5 text-gray-400 hover:text-green-500 rounded transition-colors"
+                        title="Edit bookmark"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+
+                      {/* Delete Button */}
+                      <button
+                        onClick={() => onBookmarkDeleted(bookmark.id)}
+                        className="p-1.5 text-gray-400 hover:text-red-500 rounded transition-colors"
+                        title="Delete bookmark"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
 
 
