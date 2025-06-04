@@ -9,55 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      bookmark_relationships: {
-        Row: {
-          bookmark_id: string
-          created_at: string | null
-          created_by: string | null
-          id: string
-          related_bookmark_id: string
-          relationship_type: string | null
-        }
-        Insert: {
-          bookmark_id: string
-          created_at?: string | null
-          created_by?: string | null
-          id?: string
-          related_bookmark_id: string
-          relationship_type?: string | null
-        }
-        Update: {
-          bookmark_id?: string
-          created_at?: string | null
-          created_by?: string | null
-          id?: string
-          related_bookmark_id?: string
-          relationship_type?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "bookmark_relationships_bookmark_id_fkey"
-            columns: ["bookmark_id"]
-            isOneToOne: false
-            referencedRelation: "bookmarks"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bookmark_relationships_related_bookmark_id_fkey"
-            columns: ["related_bookmark_id"]
-            isOneToOne: false
-            referencedRelation: "bookmarks"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bookmark_relationships_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       bookmark_tags: {
         Row: {
           bookmark_id: string
@@ -267,42 +218,12 @@ export type Database = {
           },
         ]
       }
-      user_preferences: {
-        Row: {
-          created_at: string | null
-          id: string
-          theme: string | null
-          updated_at: string | null
-          user_id: string
-          view_mode: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          theme?: string | null
-          updated_at?: string | null
-          user_id: string
-          view_mode?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          theme?: string | null
-          updated_at?: string | null
-          user_id?: string
-          view_mode?: string | null
-        }
-        Relationships: []
-      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      get_current_user_id: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never
@@ -440,10 +361,6 @@ export type TagUpdate = TablesUpdate<'tags'>
 export type Profile = Tables<'profiles'>
 export type ProfileInsert = TablesInsert<'profiles'>
 export type ProfileUpdate = TablesUpdate<'profiles'>
-
-export type BookmarkRelationship = Tables<'bookmark_relationships'>
-export type BookmarkRelationshipInsert = TablesInsert<'bookmark_relationships'>
-export type BookmarkRelationshipUpdate = TablesUpdate<'bookmark_relationships'>
 
 export type BookmarkTag = Tables<'bookmark_tags'>
 export type BookmarkTagInsert = TablesInsert<'bookmark_tags'>

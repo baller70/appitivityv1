@@ -48,74 +48,132 @@ export function BookmarkCard({ bookmark, folders, tags, onUpdated, onDeleted, on
   const bookmarkService = user ? new BookmarkService(user.id) : null;
 
   const handleToggleFavorite = async () => {
-    console.log('Auth state check:', { 
-      isSignedIn, 
-      hasUser: !!user, 
-      userId: user?.id,
-      hasBookmarkService: !!bookmarkService 
-    });
-    
-    if (!isSignedIn) {
+    if (!isSignedIn || !user) {
       toast.error('Please sign in to favorite bookmarks');
       return;
     }
     
     if (!bookmarkService) {
-      toast.error('User not authenticated');
-      return;
-    }
-    
-    if (!user) {
-      toast.error('User not found');
+      console.error('BookmarkService not available. User:', user?.id, 'isSignedIn:', isSignedIn);
+      toast.error('Authentication required - please refresh the page');
       return;
     }
     
     try {
       setLoading(true);
-      console.log('Toggling favorite for bookmark:', bookmark.id);
-      console.log('User info:', { id: user.id, emailAddresses: user.emailAddresses.length });
+      console.log('Toggling favorite for bookmark:', bookmark.id, 'Current favorite status:', bookmark.is_favorite);
       
-      // Get session token for debugging
-      const token = await getToken();
-      console.log('Session token available:', !!token);
-      
-      // Try calling updateBookmark directly instead of toggleFavorite
+      // Update the bookmark in the database
       const updated = await bookmarkService.updateBookmark(bookmark.id, {
         is_favorite: !bookmark.is_favorite
       });
       
-      console.log('Favorite toggled successfully:', updated);
+      console.log('Updated bookmark result:', updated);
+      
+      // Update the local state with the response from server
       onUpdated({ ...bookmark, ...updated });
-      toast.success(updated.is_favorite ? 'Added to favorites' : 'Removed from favorites');
+      toast.success(updated.is_favorite ? '❤️ Added to favorites' : '💔 Removed from favorites');
     } catch (error) {
       console.error('Failed to toggle favorite:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      toast.error(`Failed to update bookmark: ${errorMessage}`);
+      
+      // Check if it's a network/auth error
+      if (errorMessage.includes('JWT') || errorMessage.includes('unauthorized') || errorMessage.includes('authentication')) {
+        toast.error('Authentication expired - please refresh the page');
+      } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+        toast.error('Network error - please check your connection');
+      } else {
+        toast.error(`Failed to update bookmark: ${errorMessage}`);
+      }
+      
+      // Update UI optimistically if it's likely just a network issue
+      if (!errorMessage.includes('authentication') && !errorMessage.includes('unauthorized')) {
+        onUpdated({ ...bookmark, is_favorite: !bookmark.is_favorite });
+        toast.info('Update may have succeeded - page will refresh with latest data');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!bookmarkService) return;
-    
     if (!confirm('Are you sure you want to delete this bookmark?')) return;
     
     try {
       setLoading(true);
-      await bookmarkService.deleteBookmark(bookmark.id);
+      
+      // Use the API route to ensure proper persistence
+      const response = await fetch(`/api/bookmarks?id=${bookmark.id}`, {
+        method: 'DELETE'
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete bookmark');
+      }
+      
       onDeleted();
+      toast.success('Bookmark deleted successfully');
     } catch (error) {
       console.error('Failed to delete bookmark:', error);
-      toast.error('Failed to delete bookmark');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      
+      if (errorMessage.includes('JWT') || errorMessage.includes('unauthorized') || errorMessage.includes('authentication')) {
+        toast.error('Authentication expired - please refresh the page');
+      } else {
+        toast.error(`Failed to delete bookmark: ${errorMessage}`);
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleEdit = (updatedBookmark: BookmarkWithRelations) => {
-    onUpdated(updatedBookmark);
-    setShowEdit(false);
+  const handleEdit = async (updatedBookmark: BookmarkWithRelations) => {
+    try {
+      setLoading(true);
+      
+      // Use the API route to ensure proper persistence
+      const response = await fetch('/api/bookmarks', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: bookmark.id,
+          title: updatedBookmark.title,
+          url: updatedBookmark.url,
+          description: updatedBookmark.description,
+          folder_id: updatedBookmark.folder_id,
+          is_favorite: updatedBookmark.is_favorite,
+          is_archived: updatedBookmark.is_archived
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update bookmark');
+      }
+      
+      const updated = await response.json();
+      onUpdated({ ...bookmark, ...updated });
+      toast.success('Bookmark updated successfully');
+      setShowEdit(false);
+    } catch (error) {
+      console.error('Failed to update bookmark:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      
+      if (errorMessage.includes('JWT') || errorMessage.includes('unauthorized') || errorMessage.includes('authentication')) {
+        toast.error('Authentication expired - please refresh the page');
+      } else {
+        toast.error(`Failed to update bookmark: ${errorMessage}`);
+        // Still close the edit form and update locally for better UX
+        onUpdated(updatedBookmark);
+        setShowEdit(false);
+        toast.info('Changes saved locally - please refresh to sync');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCardClick = (e: React.MouseEvent) => {
@@ -140,6 +198,20 @@ export function BookmarkCard({ bookmark, folders, tags, onUpdated, onDeleted, on
   // Get letter icon from title - exact from reference
   const getLetterIcon = (title: string) => {
     return title.charAt(0).toUpperCase();
+  };
+
+  // Get favicon URL from bookmark URL
+  const getFaviconUrl = (url: string) => {
+    try {
+      const domain = new URL(url).hostname;
+      // Skip favicon for localhost domains since they won't work
+      if (domain === 'localhost' || domain.includes('127.0.0.1') || domain.includes('192.168.')) {
+        return null;
+      }
+      return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
+    } catch {
+      return null;
+    }
   };
 
   return (
@@ -185,10 +257,11 @@ export function BookmarkCard({ bookmark, folders, tags, onUpdated, onDeleted, on
                 handleToggleFavorite();
               }}
               disabled={loading}
+              title={bookmark.is_favorite ? "Remove from favorites" : "Add to favorites"}
             >
               <Heart className={cn(
                 "h-4 w-4 transition-colors",
-                bookmark.is_favorite ? "fill-red-500 text-red-500" : "text-gray-400 hover:text-gray-600"
+                bookmark.is_favorite ? "fill-red-500 text-red-500" : "text-gray-400 hover:text-red-500"
               )} />
             </Button>
 
@@ -199,10 +272,17 @@ export function BookmarkCard({ bookmark, folders, tags, onUpdated, onDeleted, on
               className="p-1 h-auto w-auto hover:bg-white/80"
               onClick={(e) => {
                 e.stopPropagation();
-                window.open(bookmark.url, '_blank');
+                try {
+                  window.open(bookmark.url, '_blank');
+                  toast.success('Opening bookmark in new tab');
+                } catch (error) {
+                  console.error('Failed to open bookmark:', error);
+                  toast.error('Failed to open bookmark');
+                }
               }}
+              title="View bookmark"
             >
-              <Eye className="h-4 w-4 text-gray-400" />
+              <Eye className="h-4 w-4 text-gray-400 hover:text-blue-500" />
             </Button>
 
             {/* Edit */}
@@ -213,9 +293,11 @@ export function BookmarkCard({ bookmark, folders, tags, onUpdated, onDeleted, on
               onClick={(e) => {
                 e.stopPropagation();
                 setShowEdit(true);
+                toast.info('Opening edit form');
               }}
+              title="Edit bookmark"
             >
-              <Edit className="h-4 w-4 text-gray-400" />
+              <Edit className="h-4 w-4 text-gray-400 hover:text-green-500" />
             </Button>
 
             {/* External Link */}
@@ -225,35 +307,44 @@ export function BookmarkCard({ bookmark, folders, tags, onUpdated, onDeleted, on
               className="p-1 h-auto w-auto hover:bg-white/80"
               onClick={(e) => {
                 e.stopPropagation();
-                window.open(bookmark.url, '_blank');
+                try {
+                  window.open(bookmark.url, '_blank');
+                  toast.success('Opening in new tab');
+                } catch (error) {
+                  console.error('Failed to open bookmark:', error);
+                  toast.error('Failed to open bookmark');
+                }
               }}
+              title="Open in new tab"
             >
-              <ExternalLink className="h-4 w-4 text-gray-400" />
+              <ExternalLink className="h-4 w-4 text-gray-400 hover:text-blue-500" />
             </Button>
 
             {/* Delete */}
             <Button
               variant="ghost"
               size="sm"
-              className="p-1 h-auto w-auto hover:bg-white/80"
+              className="p-1 h-auto w-auto hover:bg-white/80 hover:bg-red-50"
               onClick={(e) => {
                 e.stopPropagation();
                 handleDelete();
               }}
               disabled={loading}
+              title="Delete bookmark"
             >
-              <Trash2 className="h-4 w-4 text-gray-400" />
+              <Trash2 className="h-4 w-4 text-gray-400 hover:text-red-500" />
             </Button>
           </div>
         </div>
 
         <CardContent className="p-0">
-          {/* Letter Icon or Image - Exact from Reference */}
+          {/* Preview Image, Letter Icon or Favicon - Exact from Reference */}
           <div className="relative">
-            {bookmark.favicon_url ? (
+            {/* Priority: Preview Image > Favicon > Letter Icon */}
+            {bookmark.preview_image ? (
               <Image
-                src={bookmark.favicon_url}
-                alt=""
+                src={bookmark.preview_image}
+                alt={`Preview for ${bookmark.title}`}
                 width={400}
                 height={128}
                 className="w-full h-32 object-cover rounded-t-lg"
@@ -262,12 +353,31 @@ export function BookmarkCard({ bookmark, folders, tags, onUpdated, onDeleted, on
                   e.currentTarget.nextElementSibling?.classList.remove('hidden');
                 }}
               />
+            ) : getFaviconUrl(bookmark.url) ? (
+              <div className="w-full h-32 bg-gray-100 dark:bg-gray-800 rounded-t-lg flex items-center justify-center">
+                <Image
+                  src={getFaviconUrl(bookmark.url) || ''}
+                  alt={`Favicon for ${bookmark.title}`}
+                  width={64}
+                  height={64}
+                  className="w-16 h-16 object-contain"
+                  onError={(e) => { 
+                    e.currentTarget.style.display = 'none';
+                    e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                  }}
+                />
+                <div className="hidden w-12 h-12 bg-gray-600 dark:bg-gray-500 rounded-full flex items-center justify-center">
+                  <span className="text-xl font-bold text-white">
+                    {getLetterIcon(bookmark.title)}
+                  </span>
+                </div>
+              </div>
             ) : null}
             
             {/* Fallback Letter Icon */}
             <div className={cn(
               "w-full h-32 bg-gray-200 dark:bg-gray-700 rounded-t-lg flex items-center justify-center",
-              bookmark.favicon_url && "hidden"
+              (bookmark.preview_image || getFaviconUrl(bookmark.url)) && "hidden"
             )}>
               <div className="w-12 h-12 bg-gray-600 dark:bg-gray-500 rounded-full flex items-center justify-center">
                 <span className="text-xl font-bold text-white">
@@ -277,7 +387,7 @@ export function BookmarkCard({ bookmark, folders, tags, onUpdated, onDeleted, on
             </div>
 
             {/* Image Placeholder Icon - Exact from Screenshot */}
-            {!bookmark.favicon_url && (
+            {!bookmark.preview_image && !bookmark.favicon_url && (
               <div className="absolute inset-0 flex items-center justify-center">
                 <ImageIcon className="h-8 w-8 text-gray-400" />
               </div>
@@ -348,7 +458,6 @@ export function BookmarkCard({ bookmark, folders, tags, onUpdated, onDeleted, on
           <BookmarkForm
             bookmark={bookmark}
             folders={folders}
-            tags={tags}
             onSubmit={handleEdit}
             onCancel={() => setShowEdit(false)}
           />

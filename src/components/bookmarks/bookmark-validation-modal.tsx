@@ -53,6 +53,7 @@ export function BookmarkValidationModal({ bookmarks, trigger }: BookmarkValidati
   const [results, setResults] = useState<ValidationResult[]>([])
   const [progress, setProgress] = useState(0)
   const [currentBatch, setCurrentBatch] = useState(0)
+  const { isLoaded, isSignedIn } = useAuth()
   const { user } = useUser()
 
   const handleValidateAll = async () => {
@@ -64,19 +65,18 @@ export function BookmarkValidationModal({ bookmarks, trigger }: BookmarkValidati
     setCurrentBatch(0)
 
     try {
-      const service = bookmarkValidationService
       const batchSize = 10
       
       for (let i = 0; i < bookmarks.length; i += batchSize) {
         const batch = bookmarks.slice(i, i + batchSize)
         setCurrentBatch(Math.floor(i / batchSize) + 1)
         
-        const batchResults = await service.validateBookmarks(batch, {
+        const batchResults = await bookmarkValidationService.validateBookmarks(batch, {
           batchSize: batchSize,
           timeout: 8000
         })
         
-        setResults([...results, ...batchResults])
+        setResults(prev => [...prev, ...batchResults])
         setProgress(((i + batch.length) / bookmarks.length) * 100)
       }
     } catch (error) {

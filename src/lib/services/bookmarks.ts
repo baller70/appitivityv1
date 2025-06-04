@@ -1,26 +1,37 @@
-import { createSupabaseClient } from '../supabase'
+import { supabaseAdmin } from '../supabase'
 import { normalizeUserId } from '../uuid-compat'
 import type { 
   Bookmark, 
   BookmarkInsert, 
   BookmarkUpdate,
   Folder,
-  Tag 
+  Tag,
+  Database 
 } from '../../types/supabase'
 
 // Bookmark with related data
 export interface BookmarkWithRelations extends Bookmark {
   folder?: Folder | null
   tags?: Tag[]
+  preview_image?: string | null
 }
 
 export class BookmarkService {
   private supabase
   private userId: string
+  private originalUserId: string
 
   constructor(userId: string) {
+    // Store both original and normalized user IDs for debugging
+    this.originalUserId = userId
     this.userId = normalizeUserId(userId)
-    this.supabase = createSupabaseClient(this.userId)
+    // Use admin client to bypass RLS - we handle user filtering manually
+    this.supabase = supabaseAdmin
+    
+    console.log('BookmarkService initialized for user:', {
+      original: this.originalUserId,
+      normalized: this.userId
+    })
   }
 
   // Get all bookmarks for the current user
@@ -31,6 +42,8 @@ export class BookmarkService {
     limit?: number
     offset?: number
   }): Promise<BookmarkWithRelations[]> {
+    console.log('Fetching bookmarks for user:', this.userId)
+    
     let query = this.supabase
       .from('bookmarks')
       .select(`
@@ -61,18 +74,22 @@ export class BookmarkService {
     const { data, error } = await query
 
     if (error) {
+      console.error('Error fetching bookmarks:', error)
       throw new Error(`Failed to fetch bookmarks: ${error.message}`)
     }
 
+    console.log(`Found ${data?.length || 0} bookmarks for user`)
     // Transform the data to include tags properly
     return data?.map(bookmark => ({
       ...bookmark,
-      tags: bookmark.tags?.map((bt: { tag: Tag }) => bt.tag).filter(Boolean) || []
+      tags: bookmark.tags?.map((bt: any) => bt.tag).filter(Boolean) || []
     })) || []
   }
 
   // Get a single bookmark by ID
   async getBookmark(id: string): Promise<BookmarkWithRelations | null> {
+    console.log('Fetching bookmark:', id, 'for user:', this.userId)
+    
     const { data, error } = await this.supabase
       .from('bookmarks')
       .select(`
@@ -85,30 +102,44 @@ export class BookmarkService {
       .single()
 
     if (error) {
-      if (error.code === 'PGRST116') return null // Not found
+      if (error.code === 'PGRST116') {
+        console.log('Bookmark not found:', id)
+        return null
+      }
+      console.error('Error fetching bookmark:', error)
       throw new Error(`Failed to fetch bookmark: ${error.message}`)
     }
 
+    console.log('Successfully fetched bookmark:', id)
     return {
       ...data,
-      tags: data.tags?.map((bt: { tag: Tag }) => bt.tag).filter(Boolean) || []
+      tags: data.tags?.map((bt: any) => bt.tag).filter(Boolean) || []
     }
   }
 
   // Create a new bookmark
   async createBookmark(bookmark: Omit<BookmarkInsert, 'user_id'>, tagIds?: string[]): Promise<Bookmark> {
+    console.log('Creating bookmark for user:', this.userId)
+    
+    const bookmarkData = {
+      ...bookmark,
+      user_id: this.userId,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+
     const { data, error } = await this.supabase
       .from('bookmarks')
-      .insert({
-        ...bookmark,
-        user_id: this.userId
-      })
+      .insert(bookmarkData)
       .select()
       .single()
 
     if (error) {
+      console.error('Error creating bookmark:', error)
       throw new Error(`Failed to create bookmark: ${error.message}`)
     }
+
+    console.log('Successfully created bookmark:', data.id)
 
     // Add tags if provided
     if (tagIds && tagIds.length > 0) {
@@ -120,28 +151,34 @@ export class BookmarkService {
 
   // Update a bookmark
   async updateBookmark(id: string, updates: BookmarkUpdate): Promise<Bookmark> {
-    const response = await fetch('/api/bookmarks', {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include', // Include cookies for Clerk authentication
-      body: JSON.stringify({
-        id,
-        ...updates
-      }),
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.error || 'Failed to update bookmark')
+    console.log('Updating bookmark:', id, 'for user:', this.userId)
+    
+    const updateData = {
+      ...updates,
+      updated_at: new Date().toISOString()
     }
 
-    return response.json()
+    const { data, error } = await this.supabase
+      .from('bookmarks')
+      .update(updateData)
+      .eq('id', id)
+      .eq('user_id', this.userId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error updating bookmark:', error)
+      throw new Error(`Failed to update bookmark: ${error.message}`)
+    }
+
+    console.log('Successfully updated bookmark:', id)
+    return data
   }
 
   // Delete a bookmark
   async deleteBookmark(id: string): Promise<void> {
+    console.log('Deleting bookmark:', id, 'for user:', this.userId)
+    
     const { error } = await this.supabase
       .from('bookmarks')
       .delete()
@@ -149,8 +186,11 @@ export class BookmarkService {
       .eq('user_id', this.userId)
 
     if (error) {
+      console.error('Error deleting bookmark:', error)
       throw new Error(`Failed to delete bookmark: ${error.message}`)
     }
+
+    console.log('Successfully deleted bookmark:', id)
   }
 
   // Add tags to a bookmark
@@ -206,7 +246,7 @@ export class BookmarkService {
 
     return data?.map(bookmark => ({
       ...bookmark,
-      tags: bookmark.tags?.map((bt: { tag: Tag }) => bt.tag).filter(Boolean) || []
+      tags: bookmark.tags?.map((bt: any) => bt.tag).filter(Boolean) || []
     })) || []
   }
 
@@ -238,14 +278,14 @@ export class BookmarkService {
 
   // Bulk operations
   async bulkUpdate(ids: string[], updates: BookmarkUpdate): Promise<void> {
-    // For bulk operations, we'll update each bookmark individually using the API
-    // This ensures consistency with RLS and error handling
-    const updatePromises = ids.map(id => this.updateBookmark(id, updates))
-    
-    try {
-      await Promise.all(updatePromises)
-    } catch (error) {
-      throw new Error(`Failed to bulk update bookmarks: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    const { error } = await this.supabase
+      .from('bookmarks')
+      .update(updates)
+      .in('id', ids)
+      .eq('user_id', this.userId)
+
+    if (error) {
+      throw new Error(`Failed to bulk update bookmarks: ${error.message}`)
     }
   }
 

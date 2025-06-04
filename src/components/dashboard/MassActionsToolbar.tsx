@@ -36,6 +36,7 @@ import { useSelection } from '../../contexts/SelectionContext';
 import { BookmarkService, type BookmarkWithRelations } from '../../lib/services/bookmarks';
 import { ExportService } from '../../lib/services/export';
 import type { Folder as FolderType, Tag } from '../../types/supabase';
+import { toast } from 'sonner';
 
 interface MassActionsToolbarProps {
   bookmarks: BookmarkWithRelations[];
@@ -78,11 +79,24 @@ export function MassActionsToolbar({
     setLoading(true);
     try {
       const ids = selectedItems.map(item => item.id);
-      await bookmarkService.bulkDelete(ids);
+      
+      // Use the API route to ensure proper persistence
+      const response = await fetch(`/api/bookmarks?ids=${ids.join(',')}`, {
+        method: 'DELETE'
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete bookmarks');
+      }
+      
       exitSelectionMode();
       onUpdate();
+      toast.success(`Successfully deleted ${ids.length} bookmark${ids.length > 1 ? 's' : ''}`);
     } catch (error) {
       console.error('Failed to delete bookmarks:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      toast.error(`Failed to delete bookmarks: ${errorMessage}`);
     } finally {
       setLoading(false);
       setShowDeleteDialog(false);
@@ -96,11 +110,28 @@ export function MassActionsToolbar({
     setLoading(true);
     try {
       const ids = selectedItems.map(item => item.id);
-      await bookmarkService.bulkUpdate(ids, { is_archived: archive });
+      
+      // Use API for bulk updates to ensure persistence
+      for (const id of ids) {
+        const response = await fetch('/api/bookmarks', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, is_archived: archive })
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to update bookmark');
+        }
+      }
+      
       exitSelectionMode();
       onUpdate();
+      toast.success(`Successfully ${archive ? 'archived' : 'unarchived'} ${ids.length} bookmark${ids.length > 1 ? 's' : ''}`);
     } catch (error) {
       console.error('Failed to update bookmarks:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      toast.error(`Failed to update bookmarks: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -113,11 +144,28 @@ export function MassActionsToolbar({
     setLoading(true);
     try {
       const ids = selectedItems.map(item => item.id);
-      await bookmarkService.bulkUpdate(ids, { is_favorite: favorite });
+      
+      // Use API for bulk updates to ensure persistence
+      for (const id of ids) {
+        const response = await fetch('/api/bookmarks', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, is_favorite: favorite })
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to update bookmark');
+        }
+      }
+      
       exitSelectionMode();
       onUpdate();
+      toast.success(`Successfully ${favorite ? 'added to' : 'removed from'} favorites for ${ids.length} bookmark${ids.length > 1 ? 's' : ''}`);
     } catch (error) {
       console.error('Failed to update bookmarks:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      toast.error(`Failed to update bookmarks: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -130,13 +178,30 @@ export function MassActionsToolbar({
     setLoading(true);
     try {
       const ids = selectedItems.map(item => item.id);
-      await bookmarkService.bulkUpdate(ids, { 
-        folder_id: selectedFolderId === 'none' ? null : selectedFolderId 
-      });
+      const folderId = selectedFolderId === 'none' ? null : selectedFolderId;
+      
+      // Use API for bulk updates to ensure persistence
+      for (const id of ids) {
+        const response = await fetch('/api/bookmarks', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, folder_id: folderId })
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to update bookmark');
+        }
+      }
+      
       exitSelectionMode();
       onUpdate();
+      const folderName = folderId ? folders.find(f => f.id === folderId)?.name || 'Unknown folder' : 'No folder';
+      toast.success(`Successfully moved ${ids.length} bookmark${ids.length > 1 ? 's' : ''} to ${folderName}`);
     } catch (error) {
       console.error('Failed to move bookmarks:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      toast.error(`Failed to move bookmarks: ${errorMessage}`);
     } finally {
       setLoading(false);
       setShowMoveDialog(false);

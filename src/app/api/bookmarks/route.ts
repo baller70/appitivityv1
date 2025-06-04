@@ -130,4 +130,86 @@ export async function PUT(request: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { userId } = await auth()
+    
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const url = new URL(request.url)
+    const id = url.searchParams.get('id')
+    const ids = url.searchParams.get('ids')
+    
+    if (!id && !ids) {
+      return NextResponse.json({ error: 'Bookmark ID or IDs are required' }, { status: 400 })
+    }
+
+    const normalizedUserId = normalizeUserId(userId)
+    
+    if (ids) {
+      // Bulk delete
+      const bookmarkIds = ids.split(',')
+      
+      // Delete bookmark_tags first (due to foreign key constraints)
+      await supabaseAdmin
+        .from('bookmark_tags')
+        .delete()
+        .in('bookmark_id', bookmarkIds)
+      
+      // Delete bookmarks
+      const { error } = await supabaseAdmin
+        .from('bookmarks')
+        .delete()
+        .in('id', bookmarkIds)
+        .eq('user_id', normalizedUserId)
+
+      if (error) {
+        console.error('Database error:', error)
+        return NextResponse.json(
+          { error: `Failed to delete bookmarks: ${error.message}` }, 
+          { status: 500 }
+        )
+      }
+
+      return NextResponse.json({ 
+        message: `Successfully deleted ${bookmarkIds.length} bookmarks` 
+      })
+    } else {
+      // Single delete
+      // Delete bookmark_tags first (due to foreign key constraints)
+      await supabaseAdmin
+        .from('bookmark_tags')
+        .delete()
+        .eq('bookmark_id', id!)
+      
+              // Delete bookmark
+        const { error } = await supabaseAdmin
+          .from('bookmarks')
+          .delete()
+          .eq('id', id!)
+          .eq('user_id', normalizedUserId)
+
+      if (error) {
+        console.error('Database error:', error)
+        return NextResponse.json(
+          { error: `Failed to delete bookmark: ${error.message}` }, 
+          { status: 500 }
+        )
+      }
+
+      return NextResponse.json({ 
+        message: 'Bookmark deleted successfully' 
+      })
+    }
+  } catch (error) {
+    console.error('Error deleting bookmark(s):', error)
+    return NextResponse.json(
+      { error: 'Failed to delete bookmark(s)' }, 
+      { status: 500 }
+    )
+  }
 } 

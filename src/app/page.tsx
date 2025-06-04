@@ -33,7 +33,7 @@ export default function HomePage() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">        
+      <main className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
         <div className="text-center">
           <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white sm:text-5xl md:text-6xl">
             <span className="block">Organize Your</span>

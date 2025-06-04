@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Label } from '../ui/label';
@@ -18,7 +19,8 @@ import {
   Download, 
   Trash2,
   Moon,
-  Sun
+  Sun,
+  ArrowLeft
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -27,6 +29,8 @@ interface SettingsPageProps {
 }
 
 export function SettingsPage({ }: SettingsPageProps) {
+  const router = useRouter();
+  
   const [settings, setSettings] = useState({
     theme: 'light',
     notifications: {
@@ -96,6 +100,16 @@ export function SettingsPage({ }: SettingsPageProps) {
       <div className="space-y-6">
         {/* Header */}
         <div>
+          <div className="flex items-center gap-4 mb-4">
+            <Button
+              variant="outline"
+              onClick={() => router.push('/dashboard')}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Dashboard
+            </Button>
+          </div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
             Settings
           </h1>

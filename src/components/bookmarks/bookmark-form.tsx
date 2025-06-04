@@ -22,8 +22,7 @@ export function BookmarkForm({ bookmark, folders, onSubmit, onCancel }: Bookmark
     title: bookmark?.title || '',
     url: bookmark?.url || '',
     description: bookmark?.description || '',
-    folder_id: bookmark?.folder_id || '',
-    tag_ids: bookmark?.tag_ids || []
+    folder_id: bookmark?.folder_id || 'no-folder'
   });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -61,8 +60,7 @@ export function BookmarkForm({ bookmark, folders, onSubmit, onCancel }: Bookmark
         title: formData.title.trim() || metadata?.title || formData.url,
         url: formData.url,
         description: formData.description.trim(),
-        folder_id: formData.folder_id || null,
-        tag_ids: formData.tag_ids,
+        folder_id: formData.folder_id && formData.folder_id !== 'no-folder' ? formData.folder_id : null,
         favicon_url: metadata?.favicon_url || null
       };
 
@@ -80,8 +78,9 @@ export function BookmarkForm({ bookmark, folders, onSubmit, onCancel }: Bookmark
           updated_at: new Date().toISOString(),
           last_visited_at: null,
           visit_count: 0,
-          is_favorited: false,
+          is_favorite: false,
           is_archived: false,
+          screenshot_url: null,
           folder: null,
           tags: []
         } as BookmarkWithRelations;
@@ -150,7 +149,7 @@ export function BookmarkForm({ bookmark, folders, onSubmit, onCancel }: Bookmark
             <SelectValue placeholder="Select a folder" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">No folder</SelectItem>
+            <SelectItem value="no-folder">No folder</SelectItem>
             {folders.map(folder => (
               <SelectItem key={folder.id} value={folder.id}>
                 {folder.name}

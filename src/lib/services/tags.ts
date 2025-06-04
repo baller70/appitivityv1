@@ -16,6 +16,7 @@ export class TagService {
   private userId: string
 
   constructor(userId: string) {
+    // Normalize the user ID to UUID format for database operations
     this.userId = normalizeUserId(userId)
     this.supabase = createSupabaseClient(this.userId)
   }
@@ -227,7 +228,7 @@ export class TagService {
       throw new Error(`Failed to fetch bookmark tags: ${error.message}`)
     }
 
-    return data?.map((bt: { tag: Tag }) => bt.tag).filter(Boolean) || []
+    return data?.map((bt: any) => bt.tag).filter(Boolean) || []
   }
 
   // Create or get existing tag by name
@@ -253,9 +254,9 @@ export class TagService {
         try {
           const tag = await this.createOrGetTag(name)
           tags.push(tag)
-        } catch {
+        } catch (error) {
           // Skip if tag creation fails (e.g., duplicate)
-          console.warn(`Failed to create tag "${name}"`)
+          console.warn(`Failed to create tag "${name}":`, error)
         }
       }
     }
@@ -291,7 +292,7 @@ export class TagService {
               bookmark_id: bt.bookmark_id,
               tag_id: targetTagId
             })
-        } catch {
+        } catch (error) {
           // Skip if association already exists
         }
       }

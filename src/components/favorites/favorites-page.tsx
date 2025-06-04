@@ -42,10 +42,6 @@ export function FavoritesPage({ userId }: FavoritesPageProps) {
     loadData();
   }, [userId]);
 
-  useEffect(() => {
-    applyFilters();
-  }, [bookmarks, searchTerm]);
-
   const loadData = async () => {
     try {
       setLoading(true);
@@ -87,6 +83,10 @@ export function FavoritesPage({ userId }: FavoritesPageProps) {
 
     setFilteredBookmarks(filtered);
   }, [bookmarks, searchTerm]);
+
+  useEffect(() => {
+    applyFilters();
+  }, [bookmarks, searchTerm, applyFilters]);
 
   const handleBookmarkUpdated = (updatedBookmark: BookmarkWithRelations) => {
     setBookmarks(prev => prev.map(b => 

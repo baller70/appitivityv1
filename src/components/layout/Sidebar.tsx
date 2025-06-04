@@ -1,16 +1,14 @@
 'use client'
 
 import React from 'react'
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
 import { 
-  HomeIcon, 
-  ChartBarIcon, 
-  HeartIcon, 
-  CogIcon,
-  Bars3Icon,
-  PlusIcon
-} from '@heroicons/react/24/outline'
+  Home, 
+  BarChart3, 
+  Heart, 
+  Settings,
+  Menu,
+  Plus
+} from 'lucide-react'
 
 interface SidebarProps {
   isCollapsed: boolean
@@ -18,13 +16,11 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
-  const pathname = usePathname()
-  
   const navigationItems = [
-    { name: 'Dashboard', icon: HomeIcon, href: '/' as const, count: undefined },
-    { name: 'Analytics', icon: ChartBarIcon, href: '/analytics' as const, count: undefined },
-    { name: 'Favorites', icon: HeartIcon, href: '/favorites' as const, count: 3 },
-    { name: 'Settings', icon: CogIcon, href: '/settings' as const, count: undefined },
+    { name: 'Dashboard', icon: Home, active: true },
+    { name: 'Analytics', icon: BarChart3, active: false },
+    { name: 'Favorites', icon: Heart, count: 3, active: false },
+    { name: 'Settings', icon: Settings, active: false },
   ]
 
   const categories = [
@@ -55,7 +51,7 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
               onClick={onToggle}
               className="p-2 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-white"
             >
-              <Bars3Icon className="w-5 h-5" />
+              <Menu className="w-5 h-5" />
             </button>
           </div>
         </div>
@@ -68,32 +64,29 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
             </h2>
           )}
           <nav className="space-y-1">
-            {navigationItems.map((item) => {
-              const isActive = pathname === item.href || (item.href === '/' && pathname === '/dashboard')
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                  }`}
-                >
-                  <item.icon className="w-5 h-5 mr-3" />
-                  {!isCollapsed && (
-                    <>
-                      <span className="flex-1">{item.name}</span>
-                      {item.count && (
-                        <span className="bg-gray-700 text-gray-300 text-xs px-2 py-1 rounded-full">
-                          {item.count}
-                        </span>
-                      )}
-                    </>
-                  )}
-                </Link>
-              )
-            })}
+            {navigationItems.map((item) => (
+              <a
+                key={item.name}
+                href="#"
+                className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  item.active
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                }`}
+              >
+                <item.icon className="w-5 h-5 mr-3" />
+                {!isCollapsed && (
+                  <>
+                    <span className="flex-1">{item.name}</span>
+                    {item.count && (
+                      <span className="bg-gray-700 text-gray-300 text-xs px-2 py-1 rounded-full">
+                        {item.count}
+                      </span>
+                    )}
+                  </>
+                )}
+              </a>
+            ))}
           </nav>
         </div>
 
@@ -137,7 +130,7 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
             </div>
             
             <button className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center">
-              <PlusIcon className="w-4 h-4 mr-2" />
+              <Plus className="w-4 h-4 mr-2" />
               Add Bookmark
             </button>
           </div>

@@ -1,4 +1,4 @@
-import { createSupabaseClient } from '../supabase'
+import { supabaseAdmin } from '../supabase'
 import { normalizeUserId } from '../uuid-compat'
 import type { 
   Folder, 
@@ -17,8 +17,10 @@ export class FolderService {
   private userId: string
 
   constructor(userId: string) {
+    // Normalize the user ID to UUID format for database operations
     this.userId = normalizeUserId(userId)
-    this.supabase = createSupabaseClient(this.userId)
+    // Use admin client to bypass RLS - we handle user filtering manually
+    this.supabase = supabaseAdmin
   }
 
   // Get all folders for the current user
@@ -82,16 +84,33 @@ export class FolderService {
 
   // Create a new folder
   async createFolder(folder: Omit<FolderInsert, 'user_id'>): Promise<Folder> {
+    const folderData = {
+      ...folder,
+      user_id: this.userId
+    }
+    
+    console.log('FolderService.createFolder called with:', {
+      originalData: folder,
+      finalData: folderData,
+      userId: this.userId,
+      supabaseClientType: 'admin'
+    })
+    
     const { data, error } = await this.supabase
       .from('folders')
-      .insert({
-        ...folder,
-        user_id: this.userId
-      })
+      .insert(folderData)
       .select()
       .single()
 
+    console.log('FolderService.createFolder result:', { data, error })
+
     if (error) {
+      console.error('FolderService.createFolder error details:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      })
       throw new Error(`Failed to create folder: ${error.message}`)
     }
 

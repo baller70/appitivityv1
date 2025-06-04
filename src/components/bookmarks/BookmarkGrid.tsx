@@ -17,9 +17,11 @@ interface Bookmark {
 }
 
 export default function BookmarkGrid() {
+  const generateId = () => crypto.randomUUID();
+  
   const bookmarks: Bookmark[] = [
     {
-      id: '1',
+      id: generateId(),
       title: 'GitHub',
       url: 'https://github.com',
       description: 'Development platform for version control and collaboration',
@@ -31,7 +33,7 @@ export default function BookmarkGrid() {
       fullDescription: 'Main repository hosting platform for all projects. Contains personal and work repositories.'
     },
     {
-      id: '2',
+      id: generateId(),
       title: 'Figma',
       url: 'https://figma.com',
       description: 'Collaborative design tool for UI/UX',
@@ -43,7 +45,7 @@ export default function BookmarkGrid() {
       fullDescription: 'Primary design tool for all UI/UX projects. Team collaboration workspace.'
     },
     {
-      id: '3',
+      id: generateId(),
       title: 'Stack Overflow',
       url: 'https://stackoverflow.com',
       description: 'Q&A platform for developers',
@@ -55,7 +57,7 @@ export default function BookmarkGrid() {
       fullDescription: 'Go-to resource for coding questions and solutions. Great community support.'
     },
     {
-      id: '4',
+      id: generateId(),
       title: 'Notion',
       url: 'https://notion.so',
       description: 'All-in-one workspace for notes and collaboration',
@@ -67,7 +69,7 @@ export default function BookmarkGrid() {
       fullDescription: 'Main workspace for project management, documentation, and team collaboration.'
     },
     {
-      id: '5',
+      id: generateId(),
       title: 'Dribbble',
       url: 'https://dribbble.com',
       description: 'Design inspiration and portfolio platform',
@@ -79,7 +81,7 @@ export default function BookmarkGrid() {
       fullDescription: 'Source of design inspiration and trends. Follow top designers for ideas.'
     },
     {
-      id: '6',
+      id: generateId(),
       title: 'Linear',
       url: 'https://linear.app',
       description: 'Issue tracking and project management',

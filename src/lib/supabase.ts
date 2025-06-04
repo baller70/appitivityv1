@@ -1,12 +1,14 @@
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '../types/supabase'
 
-// Create Supabase client for database operations only (auth handled by Clerk)
+// Get environment variables
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+// Service role key is available in server environments
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-// Standard client for public operations
+// Client for public operations (uses RLS with Clerk user ID)
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: false, // We don't use Supabase auth
@@ -15,7 +17,8 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   }
 })
 
-// Service role client for admin operations (bypasses RLS)
+// Admin client for server-side operations (bypasses RLS)
+// Always create the admin client - it will only be used on the server
 export const supabaseAdmin = supabaseServiceKey 
   ? createClient<Database>(supabaseUrl, supabaseServiceKey, {
       auth: {
@@ -24,23 +27,16 @@ export const supabaseAdmin = supabaseServiceKey
         detectSessionInUrl: false
       }
     })
-  : supabase // Fallback to regular client if no service key
-
-// Helper function to create client with user context for RLS
-export function createSupabaseClient() {
-  // Use service role client to bypass RLS for development
-  // This avoids the "row violates row-level security policy" error
-  if (supabaseServiceKey) {
-    return createClient<Database>(supabaseUrl, supabaseServiceKey, {
+  : createClient<Database>(supabaseUrl, supabaseAnonKey, {
       auth: {
         persistSession: false,
         autoRefreshToken: false,
         detectSessionInUrl: false
       }
     })
-  }
-  
-  // Fallback to regular client with RLS bypass attempt
+
+// Helper function to create client with user context for RLS
+export function createSupabaseClient(userId: string) {
   return createClient<Database>(supabaseUrl, supabaseAnonKey, {
     auth: {
       persistSession: false,
@@ -49,8 +45,8 @@ export function createSupabaseClient() {
     },
     global: {
       headers: {
-        // Bypass RLS by using service role privileges
-        'X-Client-Info': 'supabase-js-admin'
+        // Set the user ID for RLS policies
+        'x-user-id': userId
       }
     }
   })
@@ -70,18 +66,4 @@ export function getClerkUserId(): string | null {
   // This will be implemented when we add Clerk hooks
   // For now, return null to prevent errors
   return null
-}
-
-export async function getProfile() {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .single();
-
-  if (error) {
-    console.error('Error fetching profile:', error);
-    return null;
-  }
-
-  return data;
 } 

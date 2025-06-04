@@ -1,6 +1,6 @@
 /**
  * UUID compatibility layer for Clerk integration
- * Temporarily converts Clerk user IDs to UUID format for database compatibility
+ * Converts Clerk user IDs to UUID format for database compatibility
  */
 
 import { v5 as uuidv5 } from 'uuid'
@@ -9,7 +9,7 @@ import { v5 as uuidv5 } from 'uuid'
 const CLERK_UUID_NAMESPACE = '6ba7b810-9dad-11d1-80b4-00c04fd430c8'
 
 /**
- * Convert Clerk user ID to a consistent UUID
+ * Convert Clerk user ID to a consistent UUID using uuid v5
  * This creates a deterministic UUID from the Clerk user ID
  */
 export function clerkIdToUuid(clerkId: string): string {
@@ -25,11 +25,21 @@ export function isValidUuid(str: string): boolean {
 }
 
 /**
- * Convert user ID to UUID format if needed
+ * Normalize user ID - convert Clerk format to UUID if needed
  */
 export function normalizeUserId(userId: string): string {
+  // If it's already a valid UUID, return as-is
   if (isValidUuid(userId)) {
     return userId
   }
+  
+  // Convert Clerk user ID to UUID format
   return clerkIdToUuid(userId)
+}
+
+/**
+ * Generate a random UUID (for new records)
+ */
+export function generateUuid(): string {
+  return crypto.randomUUID()
 } 

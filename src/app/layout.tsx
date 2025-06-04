@@ -1,9 +1,8 @@
 import React, { ReactNode } from 'react'
 import type { Metadata } from 'next'
 import { ClerkProvider } from '@clerk/nextjs'
-import { ThemeProvider } from '../components/providers/ThemeProvider'
 import '../styles/globals.css'
-import { Toaster } from 'sonner'
+import { Toaster } from '../components/ui/toaster'
 
 export const metadata: Metadata = {
   title: 'AppOrganizer Dashboard',
@@ -20,10 +19,8 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en" suppressHydrationWarning>
         <body className="bg-secondary-50 dark:bg-secondary-900 text-secondary-900 dark:text-secondary-100 antialiased">
-          <ThemeProvider>
-            {children}
-            <Toaster />
-          </ThemeProvider>
+          {children}
+          <Toaster />
         </body>
       </html>
     </ClerkProvider>

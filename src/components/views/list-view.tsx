@@ -48,7 +48,7 @@ export function ListView({ bookmarks, onBookmarkClick, onFavorite, loading }: Li
       bookmark.url.toLowerCase().includes(searchTerm.toLowerCase())
     )
     .filter(bookmark => 
-      !filterTag || bookmark.tags?.some(tag => tag.name === filterTag)
+      !filterTag || filterTag === 'all-tags' || bookmark.tags?.some(tag => tag.name === filterTag)
     )
     .sort((a, b) => {
       let aValue: string | number | Date = a[sortBy] || '';
@@ -186,7 +186,7 @@ export function ListView({ bookmarks, onBookmarkClick, onFavorite, loading }: Li
                     <SelectValue placeholder="All Tags" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl shadow-xl border-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl">
-                    <SelectItem value="">All Tags</SelectItem>
+                    <SelectItem value="all-tags">All Tags</SelectItem>
                     {allTags.map(tag => (
                       <SelectItem key={tag} value={tag}>{tag}</SelectItem>
                     ))}

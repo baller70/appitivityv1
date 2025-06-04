@@ -1,4 +1,5 @@
 import { createSupabaseClient } from '../supabase'
+import { normalizeUserId } from '../uuid-compat'
 import type { 
   Profile, 
   ProfileInsert, 
@@ -10,8 +11,9 @@ export class ProfileService {
   private userId: string
 
   constructor(userId: string) {
-    this.userId = userId
-    this.supabase = createSupabaseClient(userId)
+    // Normalize the user ID to UUID format for database operations
+    this.userId = normalizeUserId(userId)
+    this.supabase = createSupabaseClient(this.userId)
   }
 
   // Get the current user's profile
