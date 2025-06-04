@@ -182,6 +182,7 @@ export function BookmarkCard({ bookmark, folders, onUpdated, onDeleted, onOpenDe
     } else {
       // Open detail modal when clicking on the card
       onOpenDetail?.();
+      toast.success('Opening bookmark details');
     }
   };
 
@@ -271,22 +272,17 @@ export function BookmarkCard({ bookmark, folders, onUpdated, onDeleted, onOpenDe
               )} />
             </Button>
 
-            {/* Eye - View */}
+            {/* Eye - View Details */}
             <Button
               variant="ghost"
               size="sm"
               className="p-1 h-auto w-auto hover:bg-white/80"
               onClick={(e) => {
                 e.stopPropagation();
-                try {
-                  window.open(bookmark.url, '_blank');
-                  toast.success('Opening bookmark in new tab');
-                } catch (error) {
-                  console.error('Failed to open bookmark:', error);
-                  toast.error('Failed to open bookmark');
-                }
+                onOpenDetail?.();
+                toast.info('Opening bookmark details');
               }}
-              title="View bookmark"
+              title="View bookmark details"
             >
               <Eye className="h-4 w-4 text-gray-400 hover:text-blue-500" />
             </Button>
@@ -306,7 +302,7 @@ export function BookmarkCard({ bookmark, folders, onUpdated, onDeleted, onOpenDe
               <Edit className="h-4 w-4 text-gray-400 hover:text-green-500" />
             </Button>
 
-            {/* External Link */}
+            {/* External Link - Opens website */}
             <Button
               variant="ghost"
               size="sm"
@@ -315,13 +311,13 @@ export function BookmarkCard({ bookmark, folders, onUpdated, onDeleted, onOpenDe
                 e.stopPropagation();
                 try {
                   window.open(bookmark.url, '_blank');
-                  toast.success('Opening in new tab');
+                  toast.success('Opening website in new tab');
                 } catch (error) {
                   console.error('Failed to open bookmark:', error);
                   toast.error('Failed to open bookmark');
                 }
               }}
-              title="Open in new tab"
+              title="Open website in new tab"
             >
               <ExternalLink className="h-4 w-4 text-gray-400 hover:text-blue-500" />
             </Button>
@@ -408,15 +404,9 @@ export function BookmarkCard({ bookmark, folders, onUpdated, onDeleted, onOpenDe
             </h3>
 
             {/* URL */}
-            <a
-              href={bookmark.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-gray-500 dark:text-gray-400 hover:underline block mb-3"
-              onClick={(e) => e.stopPropagation()}
-            >
+            <div className="text-sm text-gray-500 dark:text-gray-400 block mb-3">
               {bookmark.url}
-            </a>
+            </div>
 
             {/* Description */}
             {bookmark.description && (

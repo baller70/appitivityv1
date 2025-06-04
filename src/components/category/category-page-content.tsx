@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BookmarkService, type BookmarkWithRelations } from '../../lib/services/bookmarks';
 import { Folder, Tag } from '../../types/supabase';
 import { BookmarkCard } from '../bookmarks/bookmark-card';
@@ -20,13 +20,20 @@ import {
   Zap,
   GraduationCap,
   Music,
-  FileText
+  FileText,
+  Briefcase,
+  Gamepad2,
+  ShoppingCart,
+  Wrench,
+  Star,
+  Archive
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import NextLink from 'next/link';
+import { BookmarkDetailModal } from '../bookmarks/bookmark-detail-modal';
 
 interface CategoryPageContentProps {
   categorySlug: string;
@@ -35,6 +42,8 @@ interface CategoryPageContentProps {
 export function CategoryPageContent({ categorySlug }: CategoryPageContentProps) {
   const [bookmarks, setBookmarks] = useState<BookmarkWithRelations[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
+  const [selectedBookmark, setSelectedBookmark] = useState<BookmarkWithRelations | null>(null);
+  const [showBookmarkDetail, setShowBookmarkDetail] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -169,6 +178,11 @@ export function CategoryPageContent({ categorySlug }: CategoryPageContentProps) 
   const handleBookmarkDeleted = (bookmarkId: string) => {
     setBookmarks(prev => prev.filter(b => b.id !== bookmarkId));
     toast.success('Bookmark deleted successfully');
+  };
+
+  const handleOpenDetail = (bookmark: BookmarkWithRelations) => {
+    setSelectedBookmark(bookmark);
+    setShowBookmarkDetail(true);
   };
 
   if (loading) {
@@ -330,12 +344,25 @@ export function CategoryPageContent({ categorySlug }: CategoryPageContentProps) 
                 folders={folders}
                 onUpdated={handleBookmarkUpdated}
                 onDeleted={() => handleBookmarkDeleted(bookmark.id)}
-                onOpenDetail={() => window.open(bookmark.url, '_blank')}
+                onOpenDetail={() => handleOpenDetail(bookmark)}
               />
             ))}
           </div>
         )}
       </div>
+
+      {/* Bookmark Detail Modal */}
+      <BookmarkDetailModal
+        bookmark={selectedBookmark}
+        folders={folders}
+        tags={[]} // We'll need to load tags if needed
+        isOpen={showBookmarkDetail}
+        onClose={() => {
+          setShowBookmarkDetail(false);
+          setSelectedBookmark(null);
+        }}
+        onUpdated={handleBookmarkUpdated}
+      />
     </div>
     </SelectionProvider>
   );

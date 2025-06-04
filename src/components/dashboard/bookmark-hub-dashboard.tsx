@@ -1000,16 +1000,100 @@ function BookmarkHubDashboardContent({ userId, userData }: BookmarkHubDashboardP
               tags={tags}
             />
 
-            {/* Main Content Display - Only show folders on front page */}
-            <FolderGridView
-              folders={folders}
-              bookmarks={bookmarks}
-              onCreateFolder={handleCreateFolder}
-              onEditFolder={handleEditFolder}
-              onDeleteFolder={handleDeleteFolder}
-              onAddBookmarkToFolder={handleAddBookmarkToFolder}
-              onDropBookmarkToFolder={handleDropBookmarkToFolder}
-            />
+            {/* Main Content Display */}
+            {selectedCategory === 'all' && searchTerm === '' ? (
+              // Show folders on main dashboard
+              <FolderGridView
+                folders={folders}
+                bookmarks={bookmarks}
+                onCreateFolder={handleCreateFolder}
+                onEditFolder={handleEditFolder}
+                onDeleteFolder={handleDeleteFolder}
+                onAddBookmarkToFolder={handleAddBookmarkToFolder}
+                onDropBookmarkToFolder={handleDropBookmarkToFolder}
+              />
+            ) : (
+              // Show bookmarks when category is selected or searching
+              <div className={
+                viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" :
+                viewMode === 'list' ? "space-y-3" :
+                viewMode === 'compact' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3" :
+                viewMode === 'kanban' ? "grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6" :
+                viewMode === 'timeline' ? "space-y-6" :
+                "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+              }>
+                {viewMode === 'timeline' ? (
+                  // Timeline View - Chronological with dates
+                  filteredAndSortedBookmarks.map((bookmark) => (
+                    <div key={bookmark.id} className="flex">
+                      <div className="flex-shrink-0 w-24 text-right pr-4">
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          {new Date(bookmark.created_at || Date.now()).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <div className="flex-shrink-0 w-px bg-gray-200 dark:bg-gray-700 mr-4 relative">
+                        <div className="absolute w-3 h-3 bg-blue-500 rounded-full -left-1.5 top-2"></div>
+                      </div>
+                      <div className="flex-1">
+                        <BookmarkCard
+                          bookmark={bookmark}
+                          onUpdated={handleBookmarkUpdated}
+                          onDeleted={() => handleBookmarkDeleted(bookmark.id)}
+                          onOpenDetail={() => handleOpenDetail(bookmark)}
+                          folders={folders}
+                        />
+                      </div>
+                    </div>
+                  ))
+                ) : viewMode === 'kanban' ? (
+                  // Kanban View - Grouped by priority/folder
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {['High', 'Medium', 'Low'].map(priority => (
+                      <div key={priority} className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                        <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
+                          {priority} Priority
+                        </h3>
+                        <div className="space-y-3">
+                          {filteredAndSortedBookmarks
+                            .filter(bookmark => (bookmark as BookmarkWithRelations & { priority?: string }).priority === priority.toLowerCase() || 
+                              (priority === 'Medium' && !(bookmark as BookmarkWithRelations & { priority?: string }).priority))
+                            .map((bookmark) => (
+                              <BookmarkCard
+                                key={bookmark.id}
+                                bookmark={bookmark}
+                                onUpdated={handleBookmarkUpdated}
+                                onDeleted={() => handleBookmarkDeleted(bookmark.id)}
+                                onOpenDetail={() => handleOpenDetail(bookmark)}
+                                folders={folders}
+                              />
+                            ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : viewMode === 'list' ? (
+                  // Enhanced List View
+                  <BookmarkListView
+                    bookmarks={filteredAndSortedBookmarks}
+                    onOpenDetail={handleOpenDetail}
+                    onBookmarkDeleted={handleBookmarkDeleted}
+                    onLoadData={loadData}
+                  />
+                ) : (
+                  // Grid and Compact Views
+                  filteredAndSortedBookmarks.map((bookmark) => (
+                    <BookmarkCard
+                      key={bookmark.id}
+                      bookmark={bookmark}
+                      onUpdated={handleBookmarkUpdated}
+                      onDeleted={() => handleBookmarkDeleted(bookmark.id)}
+                      onOpenDetail={() => handleOpenDetail(bookmark)}
+                      folders={folders}
+                    />
+                  ))
+                )}
+              </div>
+            )}
           </main>
         </div>
       </div>
