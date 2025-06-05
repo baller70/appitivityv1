@@ -3,6 +3,8 @@ import type { Metadata } from 'next'
 import { ClerkProvider } from '@clerk/nextjs'
 import '../styles/globals.css'
 import { Toaster } from '../components/ui/toaster'
+import { NotificationProvider, NotificationContainer } from '@/components/notifications'
+import { ReminderProvider } from '@/components/reminders'
 
 export const metadata: Metadata = {
   title: 'AppOrganizer Dashboard',
@@ -19,8 +21,13 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en" suppressHydrationWarning>
         <body className="bg-secondary-50 dark:bg-secondary-900 text-secondary-900 dark:text-secondary-100 antialiased">
-          {children}
-          <Toaster />
+          <NotificationProvider>
+            <ReminderProvider>
+              {children}
+              <NotificationContainer />
+              <Toaster />
+            </ReminderProvider>
+          </NotificationProvider>
         </body>
       </html>
     </ClerkProvider>

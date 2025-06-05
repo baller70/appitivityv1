@@ -30,9 +30,13 @@ import {
   Copy,
   Globe,
   Upload,
-  X
+  X,
+  RotateCcw
 } from 'lucide-react';
 import { RichTextEditor } from '../ui/rich-text-editor';
+import { NotificationIframe } from '../notifications/notification-iframe';
+import { ReminderManager } from '@/components/reminders';
+import { RelatedManager } from '@/components/related';
 import { BookmarkService, type BookmarkWithRelations } from '../../lib/services/bookmarks';
 import type { Folder, Tag } from '../../types/supabase';
 import { useUser } from '@clerk/nextjs';
@@ -68,6 +72,12 @@ export function BookmarkDetailModal({
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [timerProgress, setTimerProgress] = useState(0);
   
+  // Quick Timer state
+  const [quickTimerTask, setQuickTimerTask] = useState('');
+  const [quickTimerList, setQuickTimerList] = useState('');
+  const [quickTimerDuration, setQuickTimerDuration] = useState(25);
+  const [initialTime, setInitialTime] = useState(25 * 60);
+  
   // Editable fields state
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [editedDescription, setEditedDescription] = useState(bookmark?.description || '');
@@ -75,6 +85,7 @@ export function BookmarkDetailModal({
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [allBookmarks, setAllBookmarks] = useState<BookmarkWithRelations[]>([]);
 
   // Update edited description when bookmark changes
   useEffect(() => {
@@ -99,24 +110,27 @@ export function BookmarkDetailModal({
       interval = setInterval(() => {
         setTimerTime(prev => {
           const newTime = prev - 1;
-          setTimerProgress(((25 * 60 - newTime) / (25 * 60)) * 100);
+          setTimerProgress(((initialTime - newTime) / initialTime) * 100);
           if (newTime <= 0) {
             setIsTimerRunning(false);
             // Timer completed notification
             if ('Notification' in window && Notification.permission === 'granted') {
               new Notification(`Timer completed for ${bookmark?.title}!`, {
-                body: 'Time to take a break or start a new session.',
+                body: `${quickTimerTask || 'Timer'} session completed!`,
                 icon: '/favicon.ico'
               });
             }
-            toast.success(`Timer completed for ${bookmark?.title}!`);
+            const taskName = quickTimerTask === 'bookmark-focus' ? `Focus on ${bookmark?.title}` : 
+                            quickTimerTask ? quickTimerTask.charAt(0).toUpperCase() + quickTimerTask.slice(1).replace('-', ' ') : 
+                            'Timer';
+            toast.success(`🎉 ${taskName} completed!`);
           }
           return newTime;
         });
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [isTimerRunning, timerTime, bookmark?.title]);
+  }, [isTimerRunning, timerTime, bookmark?.title, initialTime, quickTimerTask]);
 
   // Request notification permission when component mounts
   useEffect(() => {
@@ -124,6 +138,23 @@ export function BookmarkDetailModal({
       Notification.requestPermission();
     }
   }, []);
+
+  // Fetch all bookmarks for related bookmarks functionality
+  useEffect(() => {
+    const fetchAllBookmarks = async () => {
+      if (!user || !isOpen) return;
+      
+      try {
+        const bookmarkService = new BookmarkService(user.id);
+        const bookmarks = await bookmarkService.getBookmarks();
+        setAllBookmarks(bookmarks);
+      } catch (error) {
+        console.error('Failed to fetch bookmarks:', error);
+      }
+    };
+
+    fetchAllBookmarks();
+  }, [user, isOpen]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -143,9 +174,10 @@ export function BookmarkDetailModal({
   
   const resetTimer = () => {
     setIsTimerRunning(false);
-    setTimerTime(25 * 60);
+    setTimerTime(quickTimerDuration * 60);
+    setInitialTime(quickTimerDuration * 60);
     setTimerProgress(0);
-    toast.info('🔄 Timer reset to 25 minutes');
+    toast.info(`🔄 Timer reset to ${quickTimerDuration} minutes`);
   };
 
   const saveDescription = () => {
@@ -741,45 +773,272 @@ export function BookmarkDetailModal({
             <div className="space-y-6">
               <div className="text-center">
                 <h3 className="text-lg font-semibold mb-4">Focus Timer</h3>
-                <div className="text-6xl font-mono font-bold text-gray-900 dark:text-white mb-4">
-                  {formatTime(timerTime)}
-                </div>
                 
-                {/* Progress Bar */}
-                <div className="w-full max-w-md mx-auto bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-6">
-                  <div 
-                    className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${timerProgress}%` }}
-                  />
-                </div>
+                {/* Bookmark Focus Card */}
+                <Card className="mb-6">
+                  <CardContent className="p-6">
+                    <div className="flex items-center space-x-3 mb-4">
+                      <div className="w-10 h-10 flex items-center justify-center bg-blue-100 dark:bg-blue-900/20 rounded-lg overflow-hidden flex-shrink-0">
+                        {getFaviconUrl(bookmark.url) ? (
+                          <img 
+                            src={getFaviconUrl(bookmark.url) || ''} 
+                            alt="Site favicon" 
+                            className="w-6 h-6 object-contain"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              target.nextElementSibling?.classList.remove('hidden');
+                            }}
+                          />
+                        ) : null}
+                        <Globe className={`w-5 h-5 text-blue-500 ${getFaviconUrl(bookmark.url) ? 'hidden' : ''}`} />
+                      </div>
+                      <div className="text-left">
+                        <h4 className="font-semibold text-gray-900 dark:text-white">
+                          Focus on: {bookmark.title}
+                        </h4>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Start a Pomodoro session for this bookmark
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* Quick Timer Actions */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                      <Button
+                        onClick={() => {
+                          // Store bookmark context in localStorage for the timer
+                          localStorage.setItem('pomodoroBookmarkContext', JSON.stringify({
+                            id: bookmark.id,
+                            title: bookmark.title,
+                            url: bookmark.url,
+                            favicon: getFaviconUrl(bookmark.url)
+                          }));
+                          // Open the comprehensive timer in a new tab
+                          window.open('/timer', '_blank');
+                        }}
+                        className="w-full"
+                      >
+                        <Play className="h-4 w-4 mr-2" />
+                        Start 25min Focus
+                      </Button>
+                      
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          // Store bookmark context and close modal
+                          localStorage.setItem('pomodoroBookmarkContext', JSON.stringify({
+                            id: bookmark.id,
+                            title: bookmark.title,
+                            url: bookmark.url,
+                            favicon: getFaviconUrl(bookmark.url)
+                          }));
+                          onClose();
+                          // Navigate to timer page
+                          window.location.href = '/timer';
+                        }}
+                        className="w-full"
+                      >
+                        <Clock className="h-4 w-4 mr-2" />
+                        Go to Timer Page
+                      </Button>
+                    </div>
+                    
+                    {/* Enhanced Quick Timer */}
+                    <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Quick timer (enhanced mode):</p>
+                      
+                      {/* Quick Timer Configuration - Compact Row */}
+                      <div className="grid grid-cols-3 gap-2 mb-3">
+                        {/* Task Selection */}
+                        <div>
+                          <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Task</label>
+                          <select 
+                            className="w-full text-xs p-1.5 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                            value={quickTimerTask}
+                            onChange={(e) => setQuickTimerTask(e.target.value)}
+                          >
+                            <option value="">Select task...</option>
+                            <option value="bookmark-focus">Focus on bookmark</option>
+                            <option value="reading">Reading session</option>
+                            <option value="research">Research time</option>
+                            <option value="learning">Learning session</option>
+                            <option value="review">Content review</option>
+                          </select>
+                        </div>
 
-                {/* Timer Controls */}
-                <div className="flex justify-center space-x-4">
-                  <Button
-                    onClick={startTimer}
-                    disabled={isTimerRunning || timerTime === 0}
-                    className="min-w-[100px]"
-                  >
-                    <Play className="h-4 w-4 mr-2" />
-                    Start
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={pauseTimer}
-                    disabled={!isTimerRunning}
-                    className="min-w-[100px]"
-                  >
-                    <Pause className="h-4 w-4 mr-2" />
-                    Pause
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={resetTimer}
-                    className="min-w-[100px]"
-                  >
-                    <Square className="h-4 w-4 mr-2" />
-                    Reset
-                  </Button>
+                        {/* List/Category Selection */}
+                        <div>
+                          <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">List</label>
+                          <select 
+                            className="w-full text-xs p-1.5 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                            value={quickTimerList}
+                            onChange={(e) => setQuickTimerList(e.target.value)}
+                          >
+                            <option value="">No list</option>
+                            <option value="work">Work tasks</option>
+                            <option value="personal">Personal</option>
+                            <option value="learning">Learning</option>
+                            <option value="urgent">Urgent</option>
+                            <option value="someday">Someday/Maybe</option>
+                          </select>
+                        </div>
+
+                        {/* Duration Selection */}
+                        <div>
+                          <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Minutes</label>
+                          <select 
+                            className="w-full text-xs p-1.5 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                            value={quickTimerDuration}
+                            onChange={(e) => {
+                              const newDuration = parseInt(e.target.value);
+                              setQuickTimerDuration(newDuration);
+                              setTimerTime(newDuration * 60);
+                              setInitialTime(newDuration * 60);
+                            }}
+                          >
+                            <option value="5">5 min</option>
+                            <option value="10">10 min</option>
+                            <option value="15">15 min</option>
+                            <option value="20">20 min</option>
+                            <option value="25">25 min</option>
+                            <option value="30">30 min</option>
+                            <option value="45">45 min</option>
+                            <option value="60">60 min</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Current Task Display */}
+                      {quickTimerTask && (
+                        <div className="bg-blue-50 dark:bg-blue-900/20 rounded p-2 mb-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
+                              {quickTimerTask === 'bookmark-focus' ? `Focus: ${bookmark.title}` : 
+                               quickTimerTask.charAt(0).toUpperCase() + quickTimerTask.slice(1).replace('-', ' ')}
+                            </span>
+                            {quickTimerList && (
+                              <span className="text-xs text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-800 px-1.5 py-0.5 rounded">
+                                {quickTimerList}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      
+                      <div className="text-3xl font-mono font-bold text-gray-700 dark:text-gray-300 mb-3 text-center">
+                        {formatTime(timerTime)}
+                      </div>
+                      
+                      {/* Progress Bar */}
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mb-4">
+                        <div 
+                          className="bg-blue-500 h-1.5 rounded-full transition-all duration-300"
+                          style={{ width: `${timerProgress}%` }}
+                        />
+                      </div>
+
+                      {/* Enhanced Timer Controls */}
+                      <div className="flex justify-center space-x-2">
+                        <Button
+                          size="sm"
+                          onClick={startTimer}
+                          disabled={isTimerRunning || timerTime === 0}
+                          variant="outline"
+                        >
+                          <Play className="h-3 w-3 mr-1" />
+                          Start
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={pauseTimer}
+                          disabled={!isTimerRunning}
+                        >
+                          <Pause className="h-3 w-3 mr-1" />
+                          Pause
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={resetTimer}
+                        >
+                          <RotateCcw className="h-3 w-3 mr-1" />
+                          Reset
+                        </Button>
+                      </div>
+
+                      {/* Quick Actions */}
+                      <div className="flex justify-center space-x-1 mt-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setQuickTimerDuration(5);
+                            setTimerTime(5 * 60);
+                            setInitialTime(5 * 60);
+                          }}
+                          className="text-xs px-2 py-1"
+                        >
+                          5m
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setQuickTimerDuration(15);
+                            setTimerTime(15 * 60);
+                            setInitialTime(15 * 60);
+                          }}
+                          className="text-xs px-2 py-1"
+                        >
+                          15m
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setQuickTimerDuration(25);
+                            setTimerTime(25 * 60);
+                            setInitialTime(25 * 60);
+                          }}
+                          className="text-xs px-2 py-1"
+                        >
+                          25m
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                {/* Feature Benefits */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <Card>
+                    <CardContent className="p-4">
+                      <h5 className="font-semibold text-blue-600 dark:text-blue-400 mb-2">
+                        Comprehensive Timer
+                      </h5>
+                      <ul className="text-gray-600 dark:text-gray-400 space-y-1">
+                        <li>• Full Pomodoro cycles</li>
+                        <li>• Task management</li>
+                        <li>• Progress tracking</li>
+                        <li>• Statistics</li>
+                      </ul>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <h5 className="font-semibold text-green-600 dark:text-green-400 mb-2">
+                        Quick Timer
+                      </h5>
+                      <ul className="text-gray-600 dark:text-gray-400 space-y-1">
+                        <li>• Simple 25min timer</li>
+                        <li>• In-modal convenience</li>
+                        <li>• No setup required</li>
+                        <li>• Basic notifications</li>
+                      </ul>
+                    </CardContent>
+                  </Card>
                 </div>
               </div>
             </div>
@@ -788,15 +1047,42 @@ export function BookmarkDetailModal({
           {/* Notifications Tab */}
           {activeTab === 'notifications' && (
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Notifications</h3>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span>Browser notifications when timer completes</span>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Notification System</h3>
+                <div className="flex items-center space-x-2">
+                  <Bell className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    Comprehensive notification management
+                  </span>
+                </div>
+              </div>
+              
+              {/* Embedded Notification Demo */}
+              <NotificationIframe height="600px" />
+              
+              {/* Quick Actions */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card>
+                  <CardContent className="p-4">
+                    <h5 className="font-semibold text-blue-600 dark:text-blue-400 mb-2">
+                      Quick Setup
+                    </h5>
+                    <div className="space-y-2">
                       <Button 
                         variant="outline" 
                         size="sm"
+                        className="w-full justify-start"
+                        onClick={() => {
+                          window.open('/notifications-test', '_blank', 'width=800,height=600');
+                        }}
+                      >
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Open Full Notification Center
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="w-full justify-start"
                         onClick={() => {
                           if ('Notification' in window) {
                             if (Notification.permission === 'default') {
@@ -810,69 +1096,60 @@ export function BookmarkDetailModal({
                             toast.error('Notifications not supported in this browser');
                           }
                         }}
-                        title="Configure notifications"
                       >
-                        <Settings className="h-4 w-4" />
+                        <Settings className="h-4 w-4 mr-2" />
+                        Configure Browser Notifications
                       </Button>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span>Daily reading reminder</span>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => toast.info('Daily reminders coming soon!')}
-                        title="Add daily reminder"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardContent className="p-4">
+                    <h5 className="font-semibold text-green-600 dark:text-green-400 mb-2">
+                      Features Available
+                    </h5>
+                    <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                      <li>• Toast notifications (success, error, warning, info)</li>
+                      <li>• Priority levels (low, medium, high, urgent)</li>
+                      <li>• Browser notifications support</li>
+                      <li>• Audio alerts with volume control</li>
+                      <li>• Notification center with history</li>
+                      <li>• Filtering and search capabilities</li>
+                      <li>• Persistent storage</li>
+                      <li>• Customizable settings</li>
+                    </ul>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           )}
 
           {/* Reminders Tab */}
           {activeTab === 'reminders' && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Smart Reminders</h3>
-              <Card>
-                <CardContent className="p-4">
-                  <p className="text-gray-600 dark:text-gray-400 text-center py-8">
-                    Set up intelligent reminders to revisit this bookmark based on your learning goals and browsing patterns.
-                  </p>
-                  <div className="text-center">
-                    <Button onClick={() => toast.info('Smart reminders feature coming soon!')}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Reminder
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            <ReminderManager 
+              bookmarkId={bookmark.id} 
+              bookmarkTitle={bookmark.title}
+            />
           )}
 
           {/* Related Tab */}
-          {activeTab === 'related' && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Related Bookmarks</h3>
-              <Card>
-                <CardContent className="p-4">
-                  <p className="text-gray-600 dark:text-gray-400 text-center py-8">
-                    Discover bookmarks related to &ldquo;{bookmark.title}&rdquo; based on content similarity, tags, and browsing patterns.
-                  </p>
-                  <div className="text-center">
-                    <Button 
-                      variant="outline"
-                      onClick={() => toast.info('Related bookmarks feature coming soon!')}
-                    >
-                      <Link className="h-4 w-4 mr-2" />
-                      Find Related
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+          {activeTab === 'related' && bookmark && (
+            <RelatedManager 
+              targetBookmark={bookmark}
+              allBookmarks={allBookmarks}
+              onBookmarkVisit={(relatedBookmark) => {
+                // Open the related bookmark in a new tab
+                window.open(relatedBookmark.url, '_blank');
+                toast.success(`Opened ${relatedBookmark.title}`);
+              }}
+              onBookmarkViewDetails={(relatedBookmark) => {
+                // Close current modal and open the related bookmark's details
+                onClose();
+                // In a real app, you'd trigger opening the modal for the related bookmark
+                toast.info(`Viewing details for ${relatedBookmark.title}`);
+              }}
+            />
           )}
 
           {/* Documents Tab */}
