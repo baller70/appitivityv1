@@ -10,6 +10,14 @@ export const metadata: Metadata = {
   title: 'AppOrganizer Dashboard',
   description: 'Personal bookmark and app organization tool',
   keywords: ['dashboard', 'bookmarks', 'organization', 'productivity'],
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/favicon.svg', type: 'image/svg+xml' }
+    ],
+    shortcut: '/favicon.ico',
+    apple: '/favicon.ico'
+  }
 }
 
 export default function RootLayout({

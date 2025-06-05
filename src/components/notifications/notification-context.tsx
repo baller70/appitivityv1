@@ -111,9 +111,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         if (Notification.permission === 'granted') {
           const browserNotification = new Notification(notification.title, {
             body: notification.message,
-            icon: `/favicon.ico`,
+            icon: '/favicon.ico',
             tag: notification.id,
-            badge: `/favicon.ico`,
+            badge: '/favicon.ico',
           });
 
           browserNotification.onclick = () => {
