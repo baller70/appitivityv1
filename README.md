@@ -34,6 +34,21 @@ Each bookmark card includes:
 - **Category Classification**
 - **Visit Count Tracking**
 - **Detailed Descriptions**
+- **Favorite Toggle** (via API routes)
+- **Selection Mode** with long-press functionality
+
+### 📊 **Advanced Views**
+- **Organizational Chart View** with hierarchical folder management
+  - **Drag-and-Drop Hierarchy Lane** with customizable titles, colors, and icons
+  - **Professional Vertical Lane** with Director/Teams/Collaborators structure
+  - **Add More Titles** functionality with repositioning capabilities
+  - **Filtering System** (search, hierarchy levels, sorting options)
+  - **Pagination System** (5 bookmarks per container with navigation)
+  - **Section-based Organization** with "Add Folder" buttons for each hierarchy level
+- **List View** with comprehensive filtering and stats overview
+- **Grid View** with responsive layouts and professional styling
+- **Timeline View** with chronological bookmark organization
+- **Compact View** for high-density display
 
 ### 📱 **Navigation Categories**
 - **Dashboard** (Active)
@@ -114,9 +129,24 @@ src/
 │   │   ├── Sidebar.tsx           # Collapsible sidebar navigation
 │   │   └── DashboardLayout.tsx   # Main layout wrapper
 │   ├── dashboard/
-│   │   └── DashboardStats.tsx    # Statistics cards
+│   │   ├── DashboardStats.tsx    # Statistics cards
+│   │   └── bookmark-stats.tsx    # Enhanced bookmark statistics
 │   ├── bookmarks/
-│   │   └── BookmarkGrid.tsx      # Bookmark cards grid
+│   │   ├── BookmarkGrid.tsx      # Bookmark cards grid
+│   │   ├── bookmark-card.tsx     # Individual bookmark card component
+│   │   └── bookmark-detail-modal.tsx # Detailed bookmark view modal
+│   ├── folders/
+│   │   ├── folder-org-chart-view.tsx     # Organizational chart view
+│   │   ├── folder-hierarchy-manager.tsx  # Drag-and-drop hierarchy management
+│   │   ├── folder-card.tsx              # Folder card component
+│   │   └── folder-grid-view.tsx         # Grid view for folders
+│   ├── views/
+│   │   ├── list-view.tsx         # List view with filtering
+│   │   ├── timeline-view.tsx     # Timeline chronological view
+│   │   ├── compact-view.tsx      # High-density compact view
+│   │   └── kanban-view.tsx       # Kanban board organization
+│   ├── contexts/
+│   │   └── SelectionContext.tsx  # Selection state management
 │   └── notifications/
 │       └── notification-context.tsx  # Notification system
 ├── styles/
@@ -129,7 +159,17 @@ src/
 
 ## 🔧 **Recent Improvements**
 
-### Console Error Fixes (Latest Update)
+### Organizational Chart View Enhancement (Latest Update)
+- ✅ **Drag-and-Drop Hierarchy Lane**: Implemented customizable hierarchy titles with colors and icons
+- ✅ **Professional Lane Styling**: Clean, rectangular outlines without backgrounds for modern look
+- ✅ **Dynamic Title Management**: Ability to add more titles and reposition them via drag-and-drop
+- ✅ **Comprehensive Filtering**: Search, hierarchy filtering, sorting options with stats overview
+- ✅ **Pagination System**: 5-bookmark limit per container with ChevronLeft/Right navigation
+- ✅ **Section Organization**: Category-specific "Add Folder" buttons for each hierarchy level
+- ✅ **Error Resolution**: Fixed bookmark favorite toggle API routing and SelectionProvider context
+- ✅ **Interface Consistency**: Unified styling across all view components with professional design
+
+### Console Error Fixes (Previous Update)
 - ✅ **404 Favicon Errors**: Completely resolved with proper favicon implementation
 - ✅ **Missing Icons**: Added `favicon.ico` and `favicon.svg` with dark mode support
 - ✅ **Layout Metadata**: Updated `layout.tsx` with proper icon metadata configuration
@@ -195,9 +235,14 @@ This project is a faithful recreation of the original design found at:
 - ✅ **Error Handling**: Complete
 - ✅ **Database Integration**: Complete
 - ✅ **MCP Server Setup**: Complete
+- ✅ **Organizational Chart View**: Complete
+- ✅ **Drag-and-Drop Hierarchy**: Complete
+- ✅ **Advanced Filtering & Pagination**: Complete
+- ✅ **API Route Integration**: Complete
+- ✅ **Context Management**: Complete
 - 🔄 **Testing & Polish**: In Progress
-- ⏳ **Add Bookmark Functionality**: Planned
-- ⏳ **Advanced Data Features**: Planned
+- ⏳ **Real-time Collaboration Features**: Planned
+- ⏳ **Advanced Analytics Dashboard**: Planned
 
 ## 📝 **Development Notes**
 
