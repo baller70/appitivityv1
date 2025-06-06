@@ -60,9 +60,17 @@ import { BulkImportModal } from '../bulk-import-modal';
 import { BookmarkListView } from '../bookmarks/bookmark-list-view';
 import { BookmarkKanban } from '../bookmarks/bookmark-kanban';
 import { Timeline } from '../ui/timeline';
+import { KanbanView } from '../views/kanban-view';
+import { TimelineView } from '../views/timeline-view';
+import { ListView } from '../views/list-view';
+import { CompactView } from '../views/compact-view';
 import { EnhancedBookmarkDialog } from '../bookmarks/enhanced-bookmark-dialog';
+import { BookmarkStats } from './bookmark-stats';
 import { FolderGridView } from '../folders/folder-grid-view';
+import { FolderOrgChartView } from '../folders/folder-org-chart-view';
 import { FolderFormDialog } from '../folders/folder-form-dialog';
+import { FilterPopover } from '../ui/filter-popover';
+
 
 interface BookmarkHubDashboardProps {
   userId: string;
@@ -72,6 +80,8 @@ interface BookmarkHubDashboardProps {
     email: string | undefined;
   };
 }
+
+type ViewMode = 'grid' | 'list' | 'compact' | 'kanban' | 'timeline' | 'folder' | 'org-chart';
 
 function BookmarkHubDashboardContent({ userId, userData }: BookmarkHubDashboardProps) {
   const { enterSelectionMode, isSelectionMode } = useSelection();
@@ -87,14 +97,21 @@ function BookmarkHubDashboardContent({ userId, userData }: BookmarkHubDashboardP
 
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'compact' | 'kanban' | 'timeline'>('grid');
-  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'title' | 'url'>('newest');
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [selectedBookmark, setSelectedBookmark] = useState<BookmarkWithRelations | null>(null);
   const [showBookmarkDetail, setShowBookmarkDetail] = useState(false);
   const [showEnhancedDialog, setShowEnhancedDialog] = useState(false);
   const [showFolderForm, setShowFolderForm] = useState(false);
   const [editingFolder, setEditingFolder] = useState<Folder | null>(null);
   const [targetFolderId, setTargetFolderId] = useState<string | null>(null);
+  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
+
+  // Filter state for the new FilterPopover
+  const [filters, setFilters] = useState({
+    contentType: 'all' as 'all' | 'bookmarks' | 'notes' | 'tags',
+    context: 'all' as 'all' | 'personal' | 'work' | 'shared',
+    sortBy: 'newest' as 'newest' | 'oldest' | 'title' | 'url' | 'recent' | 'visits' | 'favorites'
+  });
 
   const bookmarkService = new BookmarkService(userId);
 
@@ -381,16 +398,30 @@ function BookmarkHubDashboardContent({ userId, userData }: BookmarkHubDashboardP
         bookmark.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         bookmark.url.toLowerCase().includes(searchTerm.toLowerCase());
       
-      // Category filter
-      if (selectedCategory === 'all') {
-        return matchesSearch;
-      } else if (selectedCategory === 'favorites') {
-        return matchesSearch && bookmark.is_favorite;
-      } else {
-        // Match folder by name (case-insensitive)
-        const folderMatch = bookmark.folder?.name?.toLowerCase() === selectedCategory.toLowerCase();
-        return matchesSearch && folderMatch;
+      // Content type filter
+      const matchesContentFilter = filters.contentType === 'all' || 
+        (filters.contentType === 'bookmarks' && !(bookmark.is_archived ?? false)) ||
+        (filters.contentType === 'notes' && bookmark.description && bookmark.description.length > 0) ||
+        (filters.contentType === 'tags' && bookmark.tags && bookmark.tags.length > 0);
+
+      // Context filter (based on folder/category)
+      const matchesContextFilter = filters.context === 'all' ||
+        (filters.context === 'personal' && (!bookmark.folder || bookmark.folder.name.toLowerCase().includes('personal'))) ||
+        (filters.context === 'work' && bookmark.folder?.name.toLowerCase().includes('work')) ||
+        (filters.context === 'shared' && bookmark.folder?.name.toLowerCase().includes('shared'));
+      
+      // Category filter from sidebar
+      let matchesCategoryFilter = true;
+      if (selectedCategory !== 'all') {
+        if (selectedCategory === 'favorites') {
+          matchesCategoryFilter = bookmark.is_favorite ?? false;
+        } else {
+          // Categories from reference website
+          matchesCategoryFilter = bookmark.folder?.name?.toLowerCase() === selectedCategory.toLowerCase();
+        }
       }
+      
+      return matchesSearch && matchesContentFilter && matchesContextFilter && matchesCategoryFilter;
     })
     .filter(bookmark => {
       // Tag filter
@@ -398,13 +429,20 @@ function BookmarkHubDashboardContent({ userId, userData }: BookmarkHubDashboardP
       return bookmark.tags?.some(tag => selectedTags.includes(tag.id)) || false;
     })
     .sort((a, b) => {
-      switch (sortBy) {
+      switch (filters.sortBy) {
         case 'title':
           return a.title.localeCompare(b.title);
         case 'url':
           return a.url.localeCompare(b.url);
         case 'oldest':
           return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
+        case 'recent':
+          return (b.last_visited_at ? new Date(b.last_visited_at).getTime() : 0) - 
+                 (a.last_visited_at ? new Date(a.last_visited_at).getTime() : 0);
+        case 'visits':
+          return (b.visit_count || 0) - (a.visit_count || 0);
+        case 'favorites':
+          return (b.is_favorite ? 1 : 0) - (a.is_favorite ? 1 : 0);
         case 'newest':
         default:
           return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
@@ -774,46 +812,7 @@ function BookmarkHubDashboardContent({ userId, userData }: BookmarkHubDashboardP
           </header>
 
           {/* Dashboard Stats Cards */}
-          <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-4 text-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-blue-100 text-sm">Total Bookmarks</p>
-                    <p className="text-2xl font-bold">{totalBookmarks}</p>
-                  </div>
-                  <Bookmark className="h-8 w-8 text-blue-200" />
-                </div>
-              </div>
-              <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-4 text-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-green-100 text-sm">This Month</p>
-                    <p className="text-2xl font-bold">+{thisMonthBookmarks}</p>
-                  </div>
-                  <TrendingUp className="h-8 w-8 text-green-200" />
-                </div>
-              </div>
-              <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-4 text-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-purple-100 text-sm">Total Visits</p>
-                    <p className="text-2xl font-bold">{totalVisits}</p>
-                  </div>
-                  <BarChart3 className="h-8 w-8 text-purple-200" />
-                </div>
-              </div>
-              <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-lg p-4 text-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-yellow-100 text-sm">Favorites</p>
-                    <p className="text-2xl font-bold">{favoriteBookmarks}</p>
-                  </div>
-                  <Heart className="h-8 w-8 text-yellow-200" />
-                </div>
-              </div>
-            </div>
-          </div>
+          <BookmarkStats bookmarks={bookmarks} />
 
           {/* Content Area */}
           <main className="flex-1 p-6 overflow-auto">
@@ -841,49 +840,15 @@ function BookmarkHubDashboardContent({ userId, userData }: BookmarkHubDashboardP
                   />
                 </div>
 
-                {/* First "All" Dropdown */}
-                <Select value="all" onValueChange={() => {}}>
-                  <SelectTrigger className="w-[100px]">
-                    <SelectValue placeholder="All" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="bookmarks">Bookmarks</SelectItem>
-                    <SelectItem value="notes">Notes</SelectItem>
-                    <SelectItem value="tags">Tags</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                {/* Second "All" Dropdown */}
-                <Select value="all" onValueChange={() => {}}>
-                  <SelectTrigger className="w-[100px]">
-                    <SelectValue placeholder="All" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="personal">Personal</SelectItem>
-                    <SelectItem value="work">Work</SelectItem>
-                    <SelectItem value="shared">Shared</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                {/* Last Visited Dropdown */}
-                <Select value={sortBy} onValueChange={(value) => setSortBy(value as 'newest' | 'oldest' | 'title' | 'url')}>
-                  <SelectTrigger className="w-[120px]">
-                    <SelectValue placeholder="Last Visited" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="recent">Last Visited</SelectItem>
-                    <SelectItem value="title">Title</SelectItem>
-                    <SelectItem value="url">URL</SelectItem>
-                    <SelectItem value="visits">Most Visited</SelectItem>
-                    <SelectItem value="favorites">Favorites</SelectItem>
-                  </SelectContent>
-                </Select>
+                {/* Modern Filter Popover */}
+                <FilterPopover
+                  filters={filters}
+                  onFiltersChange={setFilters}
+                />
               </div>
 
               <div className="flex items-center space-x-2">
-                {/* 5 View Mode Buttons */}
+                {/* View Mode Navigation Buttons */}
                 <div className="flex items-center border border-gray-300 dark:border-gray-600 rounded-lg">
                   {/* Grid View */}
                   <Button
@@ -905,6 +870,28 @@ function BookmarkHubDashboardContent({ userId, userData }: BookmarkHubDashboardP
                     title="List View"
                   >
                     <List className="h-4 w-4" />
+                  </Button>
+
+                  {/* Folder View */}
+                  <Button
+                    variant={viewMode === 'folder' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setViewMode('folder')}
+                    className="p-2 rounded-none border-r border-gray-300 dark:border-gray-600"
+                    title="Folder View"
+                  >
+                    <FolderIcon className="h-4 w-4" />
+                  </Button>
+
+                  {/* Org Chart View */}
+                  <Button
+                    variant={viewMode === 'org-chart' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setViewMode('org-chart')}
+                    className="p-2 rounded-none border-r border-gray-300 dark:border-gray-600"
+                    title="Organizational Chart View"
+                  >
+                    <BarChart3 className="h-4 w-4" />
                   </Button>
 
                   {/* Compact View */}
@@ -934,13 +921,11 @@ function BookmarkHubDashboardContent({ userId, userData }: BookmarkHubDashboardP
                     variant={viewMode === 'timeline' ? 'default' : 'ghost'}
                     size="sm"
                     onClick={() => setViewMode('timeline')}
-                    className="p-2 rounded-r-lg"
+                    className="p-2 rounded-l-none"
                     title="Timeline View"
                   >
                     <Calendar className="h-4 w-4" />
                   </Button>
-
-
                 </div>
 
                 <Button onClick={() => setShowEnhancedDialog(true)} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white">
@@ -1001,8 +986,8 @@ function BookmarkHubDashboardContent({ userId, userData }: BookmarkHubDashboardP
             />
 
             {/* Main Content Display */}
-            {selectedCategory === 'all' && searchTerm === '' ? (
-              // Show folders on main dashboard
+            {viewMode === 'folder' ? (
+              // Dedicated Folder View Mode - always shows folders
               <FolderGridView
                 folders={folders}
                 bookmarks={bookmarks}
@@ -1011,87 +996,88 @@ function BookmarkHubDashboardContent({ userId, userData }: BookmarkHubDashboardP
                 onDeleteFolder={handleDeleteFolder}
                 onAddBookmarkToFolder={handleAddBookmarkToFolder}
                 onDropBookmarkToFolder={handleDropBookmarkToFolder}
+                onBookmarkUpdated={handleBookmarkUpdated}
+                onBookmarkDeleted={handleBookmarkDeleted}
+                onOpenDetail={handleOpenDetail}
+                currentFolderId={currentFolderId}
+                onFolderNavigate={setCurrentFolderId}
+              />
+            ) : viewMode === 'org-chart' ? (
+              // Organizational Chart View Mode - folder hierarchy visualization
+              <FolderOrgChartView
+                folders={folders}
+                bookmarks={bookmarks}
+                onCreateFolder={handleCreateFolder}
+                onEditFolder={handleEditFolder}
+                onDeleteFolder={handleDeleteFolder}
+                onAddBookmarkToFolder={handleAddBookmarkToFolder}
+                onDropBookmarkToFolder={handleDropBookmarkToFolder}
+                onBookmarkUpdated={handleBookmarkUpdated}
+                onBookmarkDeleted={handleBookmarkDeleted}
+                onOpenDetail={handleOpenDetail}
+                currentFolderId={currentFolderId}
+                onFolderNavigate={setCurrentFolderId}
+              />
+            ) : viewMode === 'timeline' ? (
+              <TimelineView
+                bookmarks={filteredAndSortedBookmarks}
+                onBookmarkClick={handleOpenDetail}
+                onFavorite={(bookmark: BookmarkWithRelations) => {
+                  const updatedBookmark = { ...bookmark, is_favorite: !bookmark.is_favorite };
+                  handleBookmarkUpdated(updatedBookmark);
+                }}
+                loading={loading}
+              />
+            ) : viewMode === 'kanban' ? (
+              <KanbanView
+                bookmarks={filteredAndSortedBookmarks}
+                onBookmarkClick={handleOpenDetail}
+                onFavorite={(bookmark: BookmarkWithRelations) => {
+                  const updatedBookmark = { ...bookmark, is_favorite: !bookmark.is_favorite };
+                  handleBookmarkUpdated(updatedBookmark);
+                }}
+                loading={loading}
+              />
+            ) : viewMode === 'list' ? (
+              <ListView
+                bookmarks={filteredAndSortedBookmarks}
+                onBookmarkClick={handleOpenDetail}
+                onFavorite={(bookmark: BookmarkWithRelations) => {
+                  const updatedBookmark = { ...bookmark, is_favorite: !bookmark.is_favorite };
+                  handleBookmarkUpdated(updatedBookmark);
+                }}
+                onReorder={(reorderedBookmarks: BookmarkWithRelations[]) => {
+                  setBookmarks(reorderedBookmarks);
+                }}
+                loading={loading}
+              />
+            ) : viewMode === 'compact' ? (
+              <CompactView
+                bookmarks={filteredAndSortedBookmarks}
+                folders={folders}
+                tags={tags}
+                onBookmarkUpdated={handleBookmarkUpdated}
+                onBookmarkDeleted={(bookmarkId: string) => {
+                  handleBookmarkDeleted(bookmarkId);
+                }}
+                onCreateFolder={handleCreateFolder}
+                onEditFolder={handleEditFolder}
+                onDeleteFolder={handleDeleteFolder}
+                onAddBookmarkToFolder={handleAddBookmarkToFolder}
               />
             ) : (
-              // Show bookmarks when category is selected or searching
-              <div className={
-                viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" :
-                viewMode === 'list' ? "space-y-3" :
-                viewMode === 'compact' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3" :
-                viewMode === 'kanban' ? "grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6" :
-                viewMode === 'timeline' ? "space-y-6" :
-                "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-              }>
-                {viewMode === 'timeline' ? (
-                  // Timeline View - Chronological with dates
-                  filteredAndSortedBookmarks.map((bookmark) => (
-                    <div key={bookmark.id} className="flex">
-                      <div className="flex-shrink-0 w-24 text-right pr-4">
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                          {new Date(bookmark.created_at || Date.now()).toLocaleDateString()}
-                        </div>
-                      </div>
-                      <div className="flex-shrink-0 w-px bg-gray-200 dark:bg-gray-700 mr-4 relative">
-                        <div className="absolute w-3 h-3 bg-blue-500 rounded-full -left-1.5 top-2"></div>
-                      </div>
-                      <div className="flex-1">
-                        <BookmarkCard
-                          bookmark={bookmark}
-                          onUpdated={handleBookmarkUpdated}
-                          onDeleted={() => handleBookmarkDeleted(bookmark.id)}
-                          onOpenDetail={() => handleOpenDetail(bookmark)}
-                          folders={folders}
-                        />
-                      </div>
-                    </div>
-                  ))
-                ) : viewMode === 'kanban' ? (
-                  // Kanban View - Grouped by priority/folder
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {['High', 'Medium', 'Low'].map(priority => (
-                      <div key={priority} className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                        <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
-                          {priority} Priority
-                        </h3>
-                        <div className="space-y-3">
-                          {filteredAndSortedBookmarks
-                            .filter(bookmark => (bookmark as BookmarkWithRelations & { priority?: string }).priority === priority.toLowerCase() || 
-                              (priority === 'Medium' && !(bookmark as BookmarkWithRelations & { priority?: string }).priority))
-                            .map((bookmark) => (
-                              <BookmarkCard
-                                key={bookmark.id}
-                                bookmark={bookmark}
-                                onUpdated={handleBookmarkUpdated}
-                                onDeleted={() => handleBookmarkDeleted(bookmark.id)}
-                                onOpenDetail={() => handleOpenDetail(bookmark)}
-                                folders={folders}
-                              />
-                            ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : viewMode === 'list' ? (
-                  // Enhanced List View
-                  <BookmarkListView
-                    bookmarks={filteredAndSortedBookmarks}
-                    onOpenDetail={handleOpenDetail}
-                    onBookmarkDeleted={handleBookmarkDeleted}
-                    onLoadData={loadData}
+              // Grid View - shows bookmark cards
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredAndSortedBookmarks.map((bookmark) => (
+                  <BookmarkCard
+                    key={bookmark.id}
+                    bookmark={bookmark}
+                    onUpdated={handleBookmarkUpdated}
+                    onDeleted={() => handleBookmarkDeleted(bookmark.id)}
+                    onOpenDetail={() => handleOpenDetail(bookmark)}
+                    folders={folders}
                   />
-                ) : (
-                  // Grid and Compact Views
-                  filteredAndSortedBookmarks.map((bookmark) => (
-                    <BookmarkCard
-                      key={bookmark.id}
-                      bookmark={bookmark}
-                      onUpdated={handleBookmarkUpdated}
-                      onDeleted={() => handleBookmarkDeleted(bookmark.id)}
-                      onOpenDetail={() => handleOpenDetail(bookmark)}
-                      folders={folders}
-                    />
-                  ))
-                )}
+                ))}
               </div>
             )}
           </main>

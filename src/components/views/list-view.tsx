@@ -1,133 +1,321 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Card, CardContent } from '../ui/card';
 import { Input } from '../ui/input';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+  DragStartEvent,
+  DragOverlay,
+  UniqueIdentifier,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import {
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { 
   ExternalLink, 
   Heart, 
-  Calendar, 
+  MoreVertical,
+  Star,
   Globe, 
   Search,
-  Bookmark,
-  TrendingUp,
-  Eye,
+  ArrowRight,
   Folder,
-  Tag,
-  ArrowUpDown
+  GripVertical,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../ui/select';
-import type { BookmarkWithRelations } from '../../lib/services/bookmarks';
+import { type BookmarkWithRelations } from '../../lib/services/bookmarks';
+
+import { getDomainFromUrl, getFaviconUrl } from '../../lib/utils';
 
 interface ListViewProps {
   bookmarks: BookmarkWithRelations[];
   onBookmarkClick?: (bookmark: BookmarkWithRelations) => void;
   onFavorite?: (bookmark: BookmarkWithRelations) => void;
   loading?: boolean;
+  onReorder?: (bookmarks: BookmarkWithRelations[]) => void;
 }
 
-export function ListView({ bookmarks, onBookmarkClick, onFavorite, loading }: ListViewProps) {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<'title' | 'created_at' | 'visit_count' | 'updated_at'>('created_at');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [filterTag, setFilterTag] = useState('');
+interface FolderGroup {
+  id: string;
+  name: string;
+  bookmarks: BookmarkWithRelations[];
+  count: number;
+}
 
-  // Filter and sort bookmarks
-  const filteredBookmarks = bookmarks
-    .filter(bookmark => 
+interface SortableBookmarkItemProps {
+  bookmark: BookmarkWithRelations;
+  onBookmarkClick?: (bookmark: BookmarkWithRelations) => void;
+  onFavorite?: (bookmark: BookmarkWithRelations) => void;
+  isDragging?: boolean;
+  index: number;
+}
+
+function SortableBookmarkItem({ bookmark, onBookmarkClick, onFavorite, isDragging, index }: SortableBookmarkItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: bookmark.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'Unknown date';
+    
+    try {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffTime = Math.abs(now.getTime() - date.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays === 1) return 'Today';
+      if (diffDays === 2) return 'Yesterday';
+      if (diffDays <= 7) return `${diffDays - 1} days ago`;
+      if (diffDays <= 30) return `${Math.floor((diffDays - 1) / 7)} weeks ago`;
+      if (diffDays <= 365) return `${Math.floor((diffDays - 1) / 30)} months ago`;
+      return `${Math.floor((diffDays - 1) / 365)} years ago`;
+    } catch (error) {
+      return 'Unknown date';
+    }
+  };
+
+  return (
+    <motion.div
+      ref={setNodeRef}
+      style={style}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.05 }}
+      className={`group relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl border border-gray-200/60 dark:border-gray-700/60 hover:border-blue-300/60 dark:hover:border-blue-600/60 transition-all duration-300 hover:shadow-lg cursor-pointer ${
+        isDragging ? 'shadow-2xl scale-105 opacity-75 z-50' : ''
+      }`}
+    >
+      {/* Drag Handle */}
+      <div
+        {...attributes}
+        {...listeners}
+        className="absolute left-3 top-1/2 transform -translate-y-1/2 p-1 rounded opacity-0 group-hover:opacity-100 transition-all duration-200 cursor-grab active:cursor-grabbing hover:bg-gray-100 dark:hover:bg-gray-700"
+      >
+        <GripVertical className="h-4 w-4 text-gray-400" />
+      </div>
+
+      <div 
+        className="p-6 pl-12 flex items-center justify-between"
+        onClick={() => onBookmarkClick?.(bookmark)}
+      >
+        <div className="flex items-center space-x-4 flex-1 min-w-0">
+          {/* Enhanced Favicon with Glow Effect */}
+          <div className="w-12 h-12 flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-700 dark:to-gray-600 rounded-xl overflow-hidden flex-shrink-0 border border-gray-200/60 dark:border-gray-600/60 group-hover:shadow-lg transition-all duration-300">
+            {getFaviconUrl(bookmark.url) ? (
+              <div 
+                className="w-8 h-8 object-contain rounded bg-cover bg-center"
+                style={{ backgroundImage: `url(${getFaviconUrl(bookmark.url)})` }}
+              />
+            ) : (
+              <Globe className="w-6 h-6 text-blue-500 dark:text-blue-400" />
+            )}
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between">
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-gray-900 dark:text-white text-lg line-clamp-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300">
+                  {bookmark.title}
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400 text-sm line-clamp-2 mt-1">
+                  {bookmark.description || 'No description available'}
+                </p>
+                <div className="flex items-center space-x-4 mt-2">
+                  <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">
+                    {getDomainFromUrl(bookmark.url)}
+                  </span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500">
+                    {formatDate(bookmark.created_at)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-all duration-200">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              onFavorite?.(bookmark);
+            }}
+            className={`rounded-full hover:scale-110 transition-all duration-200 ${
+              bookmark.is_favorite 
+                ? 'text-red-500 hover:text-red-600' 
+                : 'text-gray-400 hover:text-red-500'
+            }`}
+          >
+            <Star 
+              className={`h-4 w-4 ${bookmark.is_favorite ? 'fill-current' : ''}`} 
+            />
+          </Button>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              window.open(bookmark.url, '_blank');
+            }}
+            className="rounded-full text-gray-400 hover:text-blue-500 hover:scale-110 transition-all duration-200"
+          >
+            <ExternalLink className="h-4 w-4" />
+          </Button>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            className="rounded-full text-gray-400 hover:text-gray-600 hover:scale-110 transition-all duration-200"
+          >
+            <MoreVertical className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+export function ListView({ bookmarks, onBookmarkClick, onFavorite, loading, onReorder }: ListViewProps) {
+  const router = useRouter();
+  const [localBookmarks, setLocalBookmarks] = useState<BookmarkWithRelations[]>(bookmarks);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  useEffect(() => {
+    setLocalBookmarks(bookmarks);
+  }, [bookmarks]);
+
+  // Group bookmarks by folder
+  const folderGroups = useMemo<FolderGroup[]>(() => {
+    // Filter bookmarks based on search term
+    const filteredBookmarks = localBookmarks.filter(bookmark =>
       bookmark.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       bookmark.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       bookmark.url.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .filter(bookmark => 
-      !filterTag || filterTag === 'all-tags' || bookmark.tags?.some(tag => tag.name === filterTag)
-    )
-    .sort((a, b) => {
-      let aValue: string | number | Date = a[sortBy] || '';
-      let bValue: string | number | Date = b[sortBy] || '';
-      
-      if (sortBy === 'created_at' || sortBy === 'updated_at') {
-        aValue = new Date(aValue as string || 0).getTime();
-        bValue = new Date(bValue as string || 0).getTime();
+    );
+
+    // Group by folder
+    const groups = new Map<string, BookmarkWithRelations[]>();
+    
+    filteredBookmarks.forEach(bookmark => {
+      const folderName = bookmark.folder?.name || 'Uncategorized';
+      if (!groups.has(folderName)) {
+        groups.set(folderName, []);
       }
-      
-      if (sortOrder === 'asc') {
-        return aValue > bValue ? 1 : -1;
+      groups.get(folderName)!.push(bookmark);
+    });
+
+    // Convert to FolderGroup format and sort
+    return Array.from(groups.entries()).map(([name, bookmarks]) => ({
+      id: name.toLowerCase().replace(/\s+/g, '-'),
+      name,
+      bookmarks: bookmarks.sort((a, b) => 
+        new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+      ),
+      count: bookmarks.length
+    }));
+  }, [localBookmarks, searchTerm]);
+
+  const handleFolderClick = (folderName: string) => {
+    // Convert folder name to URL-safe slug
+    const slug = folderName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    
+    // Navigate to the category page for this folder
+    router.push(`/category/${slug}`);
+  };
+
+  const toggleFolderExpansion = (folderId: string) => {
+    setExpandedFolders(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(folderId)) {
+        newSet.delete(folderId);
       } else {
-        return aValue < bValue ? 1 : -1;
+        newSet.add(folderId);
       }
-    });
-
-  // Get all unique tags for filtering
-  const allTags = Array.from(
-    new Set(bookmarks.flatMap(b => b.tags?.map(t => t.name) || []))
-  );
-
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'Unknown';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
+      return newSet;
     });
   };
 
-  const getDomainFromUrl = (url: string) => {
-    try {
-      return new URL(url).hostname.replace('www.', '');
-    } catch {
-      return 'unknown';
-    }
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id);
   };
 
-  const getFaviconUrl = (url: string) => {
-    try {
-      const domain = new URL(url).hostname;
-      return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
-    } catch {
-      return null;
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (over && active.id !== over.id) {
+      const activeBookmark = localBookmarks.find(b => b.id === active.id);
+      const overBookmark = localBookmarks.find(b => b.id === over.id);
+      
+      if (activeBookmark && overBookmark) {
+        // Only allow reordering within the same folder
+        if (activeBookmark.folder?.id === overBookmark.folder?.id) {
+          const oldIndex = localBookmarks.findIndex(b => b.id === active.id);
+          const newIndex = localBookmarks.findIndex(b => b.id === over.id);
+          
+          if (oldIndex !== -1 && newIndex !== -1) {
+            const newBookmarks = arrayMove(localBookmarks, oldIndex, newIndex);
+            setLocalBookmarks(newBookmarks);
+            onReorder?.(newBookmarks);
+          }
+        }
+      }
     }
+    
+    setActiveId(null);
   };
+
+  const totalBookmarks = localBookmarks.length;
+  const favoriteBookmarks = localBookmarks.filter(b => b.is_favorite).length;
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-blue-950/30">
-        <div className="container mx-auto px-6 py-8">
-          <div className="space-y-6">
-            {/* Loading Header */}
-            <div className="text-center space-y-4 animate-pulse">
-              <div className="h-10 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded-2xl w-80 mx-auto"></div>
-              <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded-lg w-64 mx-auto"></div>
-            </div>
-
-            {/* Loading Cards */}
-            <div className="grid gap-4">
-              {[...Array(6)].map((_, i) => (
-                <Card key={i} className="border-0 shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl">
-                  <CardContent className="p-6">
-                    <div className="animate-pulse flex items-center space-x-4">
-                      <div className="w-12 h-12 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-600 dark:to-gray-700 rounded-xl"></div>
-                      <div className="flex-1 space-y-2">
-                        <div className="h-6 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-600 dark:to-gray-700 rounded-lg w-3/4"></div>
-                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded-lg w-1/2"></div>
-                        <div className="flex space-x-2 pt-2">
-                          <div className="h-6 bg-gradient-to-r from-blue-200 to-purple-200 dark:from-blue-800 dark:to-purple-800 rounded-full w-16"></div>
-                          <div className="h-6 bg-gradient-to-r from-green-200 to-blue-200 dark:from-green-800 dark:to-blue-800 rounded-full w-20"></div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+        <div className="container mx-auto px-6 py-8 max-w-6xl">
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           </div>
         </div>
       </div>
@@ -135,219 +323,182 @@ export function ListView({ bookmarks, onBookmarkClick, onFavorite, loading }: Li
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-blue-950/30">
-      <div className="container mx-auto px-6 py-8 max-w-6xl">
-        {/* Enhanced Header */}
-        <div className="text-center mb-10">
-          <div className="flex items-center justify-center mb-6">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-600 rounded-3xl blur-xl opacity-20"></div>
-              <div className="relative p-4 bg-gradient-to-br from-blue-500 to-purple-600 rounded-3xl shadow-xl">
-                <Bookmark className="h-8 w-8 text-white" />
-              </div>
+    <div className="space-y-6">
+      {/* Header with uniform pattern */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div className="flex items-center space-x-4">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+              LIST VIEW - ALL BOOKMARKS
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
+              Click folder names to explore • Use arrows to expand/collapse content
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-4">
+          {/* Stats Overview */}
+          <div className="flex items-center space-x-4 text-sm">
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+              <span className="text-gray-600 dark:text-gray-400">
+                <span className="font-semibold text-gray-900 dark:text-white">{totalBookmarks}</span> bookmarks
+              </span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+              <span className="text-gray-600 dark:text-gray-400">
+                <span className="font-semibold text-gray-900 dark:text-white">{favoriteBookmarks}</span> favorites
+              </span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
+              <span className="text-gray-600 dark:text-gray-400">
+                <span className="font-semibold text-gray-900 dark:text-white">{folderGroups.length}</span> folders
+              </span>
             </div>
           </div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 dark:from-white dark:via-blue-300 dark:to-purple-300 bg-clip-text text-transparent mb-3">
-            Your Personal Library
-          </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-400 font-medium">
-            Discover and organize your curated collection
-          </p>
-          <Badge className="mt-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 text-sm font-semibold rounded-xl shadow-lg">
-            <TrendingUp className="h-4 w-4 mr-2" />
-            {filteredBookmarks.length} bookmarks
-          </Badge>
-        </div>
 
-        {/* Enhanced Control Panel */}
-        <Card className="mb-8 border-0 shadow-xl bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-3xl overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-600/5"></div>
-          <CardContent className="relative p-6">
-            <div className="flex flex-col lg:flex-row gap-4 items-center">
-              {/* Search */}
-              <div className="relative flex-1 max-w-xl">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-600/10 rounded-2xl blur-lg"></div>
-                <div className="relative">
-                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <Input
-                    placeholder="Search your bookmarks..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-12 pr-4 h-12 text-base border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl shadow-sm focus:shadow-lg transition-all duration-300 focus:ring-2 focus:ring-blue-500/20"
-                  />
-                </div>
-              </div>
-              
-              {/* Filters */}
-              <div className="flex gap-3">
-                <Select value={filterTag} onValueChange={setFilterTag}>
-                  <SelectTrigger className="w-44 h-12 border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl shadow-sm text-base">
-                    <Tag className="h-4 w-4 mr-2 text-blue-500" />
-                    <SelectValue placeholder="All Tags" />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl shadow-xl border-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl">
-                    <SelectItem value="all-tags">All Tags</SelectItem>
-                    {allTags.map(tag => (
-                      <SelectItem key={tag} value={tag}>{tag}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                
-                <Select
-                  value={`${sortBy}-${sortOrder}`}
-                  onValueChange={(value) => {
-                    const [field, order] = value.split('-') as [typeof sortBy, typeof sortOrder];
-                    setSortBy(field);
-                    setSortOrder(order);
-                  }}
-                >
-                  <SelectTrigger className="w-48 h-12 border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl shadow-sm text-base">
-                    <ArrowUpDown className="h-4 w-4 mr-2 text-purple-500" />
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl shadow-xl border-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl">
-                    <SelectItem value="created_at-desc">Newest First</SelectItem>
-                    <SelectItem value="created_at-asc">Oldest First</SelectItem>
-                    <SelectItem value="title-asc">Title A-Z</SelectItem>
-                    <SelectItem value="title-desc">Title Z-A</SelectItem>
-                    <SelectItem value="visit_count-desc">Most Visited</SelectItem>
-                    <SelectItem value="updated_at-desc">Recently Updated</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Bookmarks Grid */}
-        <div className="space-y-4">
-          {filteredBookmarks.length === 0 ? (
-            <Card className="border-0 shadow-xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-3xl">
-              <CardContent className="p-12 text-center">
-                <div className="relative mb-6">
-                  <div className="absolute inset-0 bg-gradient-to-br from-gray-400 to-gray-500 rounded-full blur-xl opacity-20"></div>
-                  <div className="relative w-20 h-20 mx-auto bg-gradient-to-br from-gray-400 to-gray-500 rounded-full flex items-center justify-center">
-                    <Search className="h-10 w-10 text-white" />
-                  </div>
-                </div>
-                <h3 className="text-2xl font-bold text-gray-700 dark:text-gray-300 mb-2">NO BOOKMARKS FOUND</h3>
-                <p className="text-lg text-gray-500 dark:text-gray-400">Try adjusting your search or filters</p>
-              </CardContent>
-            </Card>
-          ) : (
-            filteredBookmarks.map((bookmark) => (
-              <Card 
-                key={bookmark.id} 
-                className="group overflow-hidden border-0 shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl transition-all duration-300 hover:shadow-xl hover:scale-[1.01] cursor-pointer"
-                onClick={() => onBookmarkClick?.(bookmark)}
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/3 to-purple-600/3 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <CardContent className="relative p-6">
-                  <div className="flex items-center space-x-4">
-                    {/* Favicon */}
-                    <div className="relative flex-shrink-0">
-                      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-600/10 rounded-xl blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                      <div className="relative w-12 h-12 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 rounded-xl flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow duration-300">
-                        {getFaviconUrl(bookmark.url) ? (
-                          <div 
-                            className="w-8 h-8 rounded-lg bg-cover bg-center"
-                            style={{ backgroundImage: `url(${getFaviconUrl(bookmark.url)})` }}
-                          />
-                        ) : null}
-                        <Globe className={`h-6 w-6 text-gray-400 ${getFaviconUrl(bookmark.url) ? 'hidden' : ''}`} />
-                      </div>
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 min-w-0 pr-4">
-                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300 line-clamp-1">
-                            {bookmark.title}
-                          </h3>
-                          <div className="flex items-center space-x-3 text-sm text-gray-500 dark:text-gray-400 mb-2">
-                            <span className="flex items-center">
-                              <Globe className="h-3 w-3 mr-1" />
-                              {getDomainFromUrl(bookmark.url)}
-                            </span>
-                            <span className="flex items-center">
-                              <Calendar className="h-3 w-3 mr-1" />
-                              {formatDate(bookmark.created_at)}
-                            </span>
-                            {(bookmark.visit_count ?? 0) > 0 && (
-                              <span className="flex items-center">
-                                <Eye className="h-3 w-3 mr-1" />
-                                {bookmark.visit_count} visits
-                              </span>
-                            )}
-                          </div>
-                          
-                          {/* Description */}
-                          {bookmark.description && (
-                            <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed mb-3 line-clamp-2">
-                              {bookmark.description}
-                            </p>
-                          )}
-
-                          {/* Tags & Folder */}
-                          <div className="flex flex-wrap gap-2">
-                            {bookmark.folder && (
-                              <Badge className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-2 py-1 rounded-lg text-xs">
-                                <Folder className="h-3 w-3 mr-1" />
-                                {bookmark.folder.name.toUpperCase()}
-                              </Badge>
-                            )}
-                            {bookmark.tags?.slice(0, 3).map(tag => (
-                              <Badge 
-                                key={tag.id} 
-                                className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-2 py-1 rounded-lg text-xs"
-                              >
-                                <Tag className="h-3 w-3 mr-1" />
-                                {tag.name}
-                              </Badge>
-                            ))}
-                            {bookmark.tags && bookmark.tags.length > 3 && (
-                              <Badge className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-2 py-1 rounded-lg text-xs">
-                                +{bookmark.tags.length - 3} more
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex items-center space-x-2 flex-shrink-0">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onFavorite?.(bookmark);
-                            }}
-                            className="opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl p-2"
-                          >
-                            <Heart className={`h-4 w-4 ${bookmark.is_favorite ? 'fill-red-500 text-red-500' : 'text-gray-400 hover:text-red-500'}`} />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              window.open(bookmark.url, '_blank');
-                            }}
-                            className="opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl p-2"
-                          >
-                            <ExternalLink className="h-4 w-4 text-gray-400 hover:text-blue-500" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              placeholder="Search bookmarks..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 w-64"
+            />
+          </div>
         </div>
       </div>
+
+      {/* Folder Groups with Dropdown */}
+      <DndContext 
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="space-y-6">
+          {folderGroups.map((folder, folderIndex) => (
+            <motion.div
+              key={folder.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: folderIndex * 0.1 }}
+              className="space-y-4"
+            >
+              {/* Folder Header with separate click areas */}
+              <div className="flex items-center justify-between p-6 bg-gradient-to-r from-blue-500/10 to-purple-500/10 dark:from-blue-900/20 dark:to-purple-900/20 backdrop-blur-sm rounded-2xl border border-blue-200/30 dark:border-blue-700/30 hover:from-blue-500/15 hover:to-purple-500/15 transition-all duration-300 hover:shadow-lg group">
+                
+                {/* Clickable folder name area for navigation */}
+                <div 
+                  className="flex items-center space-x-4 flex-1 cursor-pointer"
+                  onClick={() => handleFolderClick(folder.name)}
+                >
+                  <div className="p-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl text-white shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                    <Folder className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300">
+                      {folder.name.toUpperCase()}
+                    </h2>
+                    <p className="text-gray-600 dark:text-gray-400">
+                      {folder.count} bookmark{folder.count !== 1 ? 's' : ''} • Click to explore
+                    </p>
+                  </div>
+                </div>
+
+                {/* Controls area */}
+                <div className="flex items-center space-x-3">
+                  <Badge className="bg-white/80 dark:bg-gray-800/80 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-xl font-semibold">
+                    {folder.count}
+                  </Badge>
+                  
+                  {/* Separate expand/collapse button */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleFolderExpansion(folder.id);
+                    }}
+                    className="rounded-xl hover:bg-white/50 dark:hover:bg-gray-700/50 transition-all duration-200"
+                  >
+                    {expandedFolders.has(folder.id) ? (
+                      <ChevronDown className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                    ) : (
+                      <ChevronRight className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                    )}
+                  </Button>
+                  
+                  {/* Navigate icon */}
+                  <ArrowRight className="h-6 w-6 text-gray-500 dark:text-gray-400 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors duration-300" />
+                </div>
+              </div>
+
+              {/* Expandable Bookmarks Section */}
+              <AnimatePresence>
+                {expandedFolders.has(folder.id) && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                    className="overflow-hidden pl-4"
+                  >
+                    <SortableContext items={folder.bookmarks.map(b => b.id)} strategy={verticalListSortingStrategy}>
+                      <div className="space-y-3">
+                        {folder.bookmarks.map((bookmark, index) => (
+                          <SortableBookmarkItem
+                            key={bookmark.id}
+                            bookmark={bookmark}
+                            onBookmarkClick={onBookmarkClick}
+                            onFavorite={onFavorite}
+                            isDragging={activeId === bookmark.id}
+                            index={index}
+                          />
+                        ))}
+                      </div>
+                    </SortableContext>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Drag Overlay */}
+        <DragOverlay>
+          {activeId ? (
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-4 opacity-90">
+              <p className="font-medium text-gray-900 dark:text-white">
+                {localBookmarks.find(b => b.id === activeId)?.title}
+              </p>
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
+
+      {/* Empty State */}
+      {folderGroups.length === 0 && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center py-16"
+        >
+          <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/20 dark:to-purple-900/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <Folder className="w-10 h-10 text-blue-500 dark:text-blue-400" />
+          </div>
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+            No bookmarks found
+          </h3>
+          <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+            {searchTerm ? `No bookmarks match "${searchTerm}"` : 'Start by adding some bookmarks to organize them in folders.'}
+          </p>
+        </motion.div>
+      )}
     </div>
   );
 } 

@@ -10,19 +10,8 @@ interface CategoryPageProps {
 export default async function CategoryPage({ params }: CategoryPageProps) {
   const { slug } = await params;
   
-  // List of valid category slugs
-  const validCategories = [
-    'all',
-    'favorites', 
-    'uncategorized',
-    'development',
-    'design',
-    'productivity',
-    'learning',
-    'entertainment'
-  ];
-  
-  if (!validCategories.includes(slug)) {
+  // Validate slug format: should be alphanumeric with hyphens, not empty
+  if (!slug || !/^[a-z0-9-]+$/.test(slug)) {
     notFound();
   }
   
@@ -30,6 +19,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
 }
 
 export function generateStaticParams() {
+  // Generate static params for common categories, but dynamic pages will work too
   return [
     { slug: 'all' },
     { slug: 'favorites' },

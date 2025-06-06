@@ -70,7 +70,7 @@ export function RelatedBookmarksList({
 
   // Filter and sort bookmarks
   const filteredAndSortedBookmarks = useMemo(() => {
-    let filtered = bookmarks.filter(bookmark => {
+    const filtered = bookmarks.filter(bookmark => {
       // Search filter
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();

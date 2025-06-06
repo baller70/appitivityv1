@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { BookmarkService, type BookmarkWithRelations } from '../../lib/services/bookmarks';
+import { type BookmarkWithRelations } from '../../lib/services/bookmarks';
 import { type Folder } from '../../types/supabase';
 import { BookmarkForm } from './bookmark-form';
 import { Card, CardContent } from '../ui/card';
@@ -44,7 +44,7 @@ export function BookmarkCard({ bookmark, folders, onUpdated, onDeleted, onOpenDe
     enterSelectionMode 
   } = useSelection();
 
-  const bookmarkService = user ? new BookmarkService(user.id) : null;
+
 
   const handleToggleFavorite = async () => {
     if (!isSignedIn || !user) {
@@ -52,21 +52,33 @@ export function BookmarkCard({ bookmark, folders, onUpdated, onDeleted, onOpenDe
       return;
     }
     
-    if (!bookmarkService) {
-      console.error('BookmarkService not available. User:', user?.id, 'isSignedIn:', isSignedIn);
-      toast.error('Authentication required - please refresh the page');
-      return;
-    }
-    
     try {
       setLoading(true);
       console.log('Toggling favorite for bookmark:', bookmark.id, 'Current favorite status:', bookmark.is_favorite);
       
-      // Update the bookmark in the database
-      const updated = await bookmarkService.updateBookmark(bookmark.id, {
-        is_favorite: !bookmark.is_favorite
+      // Use the API route to ensure proper persistence
+      const response = await fetch('/api/bookmarks', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: bookmark.id,
+          title: bookmark.title,
+          url: bookmark.url,
+          description: bookmark.description,
+          folder_id: bookmark.folder_id,
+          is_favorite: !bookmark.is_favorite,
+          is_archived: bookmark.is_archived
+        }),
       });
       
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update bookmark');
+      }
+      
+      const updated = await response.json();
       console.log('Updated bookmark result:', updated);
       
       // Update the local state with the response from server

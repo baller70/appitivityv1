@@ -1,4 +1,4 @@
-import { supabaseAdmin } from '../supabase'
+import { supabaseAdmin, supabase, createSupabaseClient } from '../supabase'
 import { normalizeUserId } from '../uuid-compat'
 import type { 
   Bookmark, 
@@ -24,12 +24,21 @@ export class BookmarkService {
     // Store both original and normalized user IDs for debugging
     this.originalUserId = userId
     this.userId = normalizeUserId(userId)
-    // Use admin client to bypass RLS - we handle user filtering manually
-    this.supabase = supabaseAdmin
+    
+    // Use admin client on server side, or regular client with user context on client side
+    const isServer = typeof window === 'undefined'
+    if (isServer && supabaseAdmin) {
+      // Server-side: use admin client to bypass RLS
+      this.supabase = supabaseAdmin
+    } else {
+      // Client-side: use regular client with user context for RLS
+      this.supabase = createSupabaseClient(this.userId)
+    }
     
     console.log('BookmarkService initialized for user:', {
       original: this.originalUserId,
-      normalized: this.userId
+      normalized: this.userId,
+      environment: isServer ? 'server' : 'client'
     })
   }
 

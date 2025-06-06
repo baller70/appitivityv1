@@ -5,7 +5,7 @@ import { UserButton } from '@clerk/nextjs';
 import { Button } from '../ui/button';
 import { apiClient } from '../../lib/api/client';
 import { BookmarkHubDashboard } from './bookmark-hub-dashboard';
-import { AnalyticsDashboard } from '../analytics/analytics-dashboard';
+import { AnalyticsPage } from '../analytics/analytics-page';
 import { FavoritesPage } from '../favorites/favorites-page';
 import { SettingsPage } from '../settings/settings-page';
 import { EnhancedSearchDashboard } from '../search/enhanced-search-dashboard';
@@ -142,7 +142,7 @@ export function DashboardMain({ userId, userData }: DashboardMainProps) {
           />
         );
       case 'analytics':
-        return <AnalyticsDashboard userId={userId} />;
+        return <AnalyticsPage userId={userId} />;
       case 'favorites':
         return <FavoritesPage userId={userId} />;
       case 'search':

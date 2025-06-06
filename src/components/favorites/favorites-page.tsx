@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { SelectionProvider } from '../../contexts/SelectionContext';
 
 interface FavoritesPageProps {
   userId: string;
@@ -146,7 +147,6 @@ export function FavoritesPage({ userId }: FavoritesPageProps) {
             key={bookmark.id}
             bookmark={bookmark}
             folders={folders}
-            tags={tags}
             onUpdated={handleBookmarkUpdated}
             onDeleted={() => handleBookmarkDeleted(bookmark.id)}
             onOpenDetail={() => handleOpenDetail(bookmark)}
@@ -165,7 +165,8 @@ export function FavoritesPage({ userId }: FavoritesPageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <SelectionProvider>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
         <div className="flex items-center justify-between">
@@ -267,8 +268,8 @@ export function FavoritesPage({ userId }: FavoritesPageProps) {
           setSelectedBookmark(null);
         }}
         onUpdated={handleBookmarkUpdated}
-        onDeleted={() => handleBookmarkDeleted(selectedBookmark?.id || '')}
       />
     </div>
+    </SelectionProvider>
   );
 } 
