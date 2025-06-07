@@ -71,6 +71,19 @@ class ApiClient {
     return this.request<BookmarkWithRelations[]>('/bookmarks')
   }
 
+  async searchBookmarks(query: string, options?: any): Promise<BookmarkWithRelations[]> {
+    const searchParams = new URLSearchParams({ q: query })
+    if (options?.filters) {
+      // Add any filter parameters if needed
+      Object.entries(options.filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          searchParams.append(key, String(value))
+        }
+      })
+    }
+    return this.request<BookmarkWithRelations[]>(`/bookmarks/search?${searchParams}`)
+  }
+
   async createBookmark(bookmark: Omit<BookmarkWithRelations, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'tags' | 'folder'>): Promise<BookmarkWithRelations> {
     return this.request<BookmarkWithRelations>('/bookmarks', {
       method: 'POST',

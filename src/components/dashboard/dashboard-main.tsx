@@ -19,6 +19,8 @@ import {
   Loader2
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
+import type { BookmarkWithRelations } from '../../lib/services/bookmarks';
+import type { Folder, Tag } from '../../types/supabase';
 
 interface DashboardMainProps {
   userId: string;
@@ -33,7 +35,17 @@ export function DashboardMain({ userId, userData }: DashboardMainProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'favorites' | 'settings' | 'search'>('overview');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [dashboardData, setDashboardData] = useState({
+  const [dashboardData, setDashboardData] = useState<{
+    bookmarks: BookmarkWithRelations[];
+    folders: Folder[];
+    tags: Tag[];
+    stats: {
+      totalBookmarks: number;
+      thisMonth: number;
+      favorites: number;
+      totalVisits: number;
+    };
+  }>({
     bookmarks: [],
     folders: [],
     tags: [],

@@ -142,16 +142,22 @@ export function FavoritesPage({ userId }: FavoritesPageProps) {
 
     return (
       <div className={`grid gap-6 ${gridClasses[viewMode]}`}>
-        {filteredBookmarks.map((bookmark) => (
-          <BookmarkCard
-            key={bookmark.id}
-            bookmark={bookmark}
-            folders={folders}
-            onUpdated={handleBookmarkUpdated}
-            onDeleted={() => handleBookmarkDeleted(bookmark.id)}
-            onOpenDetail={() => handleOpenDetail(bookmark)}
-          />
-        ))}
+        {filteredBookmarks.map((bookmark) => {
+          // Calculate total visits for percentage calculation
+          const totalVisits = bookmarks.reduce((sum, b) => sum + (b.visit_count || 0), 0);
+          
+          return (
+            <BookmarkCard
+              key={bookmark.id}
+              bookmark={bookmark}
+              folders={folders}
+              onUpdated={handleBookmarkUpdated}
+              onDeleted={() => handleBookmarkDeleted(bookmark.id)}
+              onOpenDetail={() => handleOpenDetail(bookmark)}
+              totalBookmarkVisits={totalVisits}
+            />
+          );
+        })}
       </div>
     );
   };

@@ -13,19 +13,22 @@ export interface FolderWithChildren extends Folder {
 }
 
 export class FolderService {
-  private supabase
+  private supabase: NonNullable<typeof supabaseAdmin>
   private userId: string
 
   constructor(userId: string) {
     // Normalize the user ID to UUID format for database operations
     this.userId = normalizeUserId(userId)
     // Use admin client to bypass RLS - we handle user filtering manually
+    if (!supabaseAdmin) {
+      throw new Error('Supabase admin client is not available')
+    }
     this.supabase = supabaseAdmin
   }
 
   // Get all folders for the current user
   async getFolders(): Promise<Folder[]> {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.supabase!
       .from('folders')
       .select('*')
       .eq('user_id', this.userId)

@@ -5,6 +5,7 @@ import '../styles/globals.css'
 import { Toaster } from '../components/ui/toaster'
 import { NotificationProvider, NotificationContainer } from '@/components/notifications'
 import { ReminderProvider } from '@/components/reminders'
+import StagewiseToolbar from '@/components/dev/stagewise-toolbar'
 
 export const metadata: Metadata = {
   title: 'AppOrganizer Dashboard',
@@ -34,6 +35,7 @@ export default function RootLayout({
               {children}
               <NotificationContainer />
               <Toaster />
+              <StagewiseToolbar />
             </ReminderProvider>
           </NotificationProvider>
         </body>

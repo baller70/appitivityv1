@@ -65,7 +65,13 @@ class BookmarkValidationService {
           lastChecked: new Date().toISOString()
         }
       } catch {
-        return { isValid: false, error: 'Unexpected validation error' };
+        return {
+          id: '',
+          url,
+          isValid: false,
+          error: 'Unexpected validation error',
+          lastChecked: new Date().toISOString()
+        };
       }
     }
   }

@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { BookmarkWithRelations } from '../../lib/services/bookmarks';
 import { RelatedBookmark, RelatedBookmarksSettings, DEFAULT_RELATED_SETTINGS } from './related-types';
-import { RelatedBookmarksService } from './related-service';
+// import { RelatedBookmarksService } from './related-service'; // Disabled - table doesn't exist
 import { RelatedList } from './related-list';
 import { Alert, AlertDescription } from '../ui/alert';
 
@@ -52,10 +52,10 @@ export function RelatedManager({
   const [activeTab, setActiveTab] = useState('related');
   const [showAddBookmark, setShowAddBookmark] = useState(false);
 
-  // Initialize service
-  const relatedService = useMemo(() => new RelatedBookmarksService(settings), [settings]);
+  // Initialize service - DISABLED: table doesn't exist
+  // const relatedService = useMemo(() => new RelatedBookmarksService(settings), [settings]);
 
-  // Find related bookmarks
+  // Find related bookmarks - DISABLED: service doesn't exist
   const findRelatedBookmarks = useCallback(async () => {
     if (!targetBookmark || allBookmarks.length === 0) return;
 
@@ -63,18 +63,35 @@ export function RelatedManager({
     setError(null);
 
     try {
-      const related = await relatedService.findRelatedBookmarks(targetBookmark, allBookmarks);
-      // const analyticsData = relatedService.generateAnalytics(targetBookmark, related, allBookmarks);
+      // Simple related bookmarks based on tags and folder
+      const related: RelatedBookmark[] = allBookmarks
+        .filter(bookmark => bookmark.id !== targetBookmark.id)
+        .filter(bookmark => {
+          // Same folder
+          if (bookmark.folder_id === targetBookmark.folder_id && targetBookmark.folder_id) {
+            return true;
+          }
+          // Shared tags
+          const targetTags = targetBookmark.tags?.map(t => t.id) || [];
+          const bookmarkTags = bookmark.tags?.map(t => t.id) || [];
+          return targetTags.some(tagId => bookmarkTags.includes(tagId));
+        })
+        .slice(0, 10)
+        .map(bookmark => ({
+          ...bookmark,
+          similarity_score: 0.5,
+          relationship_type: 'tag_similarity' as const,
+          relationship_reason: 'Shares tags or folder'
+        } as RelatedBookmark));
       
       setRelatedBookmarks(related);
-      // setAnalytics(analyticsData);
     } catch (err) {
       console.error('Error finding related bookmarks:', err);
       setError(err instanceof Error ? err.message : 'Failed to find related bookmarks');
     } finally {
       setIsLoading(false);
     }
-  }, [targetBookmark, allBookmarks, relatedService]);
+  }, [targetBookmark, allBookmarks]);
 
   // Initial load and when dependencies change
   useEffect(() => {

@@ -168,16 +168,22 @@ export function FolderGridView({
             BOOKMARKS
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {relevantBookmarks.map((bookmark) => (
-              <BookmarkCard
-                key={bookmark.id}
-                bookmark={bookmark}
-                onUpdated={onBookmarkUpdated}
-                onDeleted={() => onBookmarkDeleted(bookmark.id)}
-                onOpenDetail={() => onOpenDetail(bookmark)}
-                folders={folders}
-              />
-            ))}
+            {relevantBookmarks.map((bookmark) => {
+              // Calculate total visits for percentage calculation
+              const totalVisits = bookmarks.reduce((sum, b) => sum + (b.visit_count || 0), 0);
+              
+              return (
+                <BookmarkCard
+                  key={bookmark.id}
+                  bookmark={bookmark}
+                  onUpdated={onBookmarkUpdated}
+                  onDeleted={() => onBookmarkDeleted(bookmark.id)}
+                  onOpenDetail={() => onOpenDetail(bookmark)}
+                  folders={folders}
+                  totalBookmarkVisits={totalVisits}
+                />
+              );
+            })}
           </div>
         </div>
       )}

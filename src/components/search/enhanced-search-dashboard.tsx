@@ -41,10 +41,7 @@ export function EnhancedSearchDashboard({ userId }: EnhancedSearchDashboardProps
 
     setIsLoading(true);
     try {
-      const results = await apiClient.searchBookmarks(query, {
-        userId,
-        filters: activeFilters
-      });
+      const results = await apiClient.searchBookmarks(query);
       setBookmarks(results);
       
       // Add to search history
@@ -57,7 +54,7 @@ export function EnhancedSearchDashboard({ userId }: EnhancedSearchDashboardProps
     } finally {
       setIsLoading(false);
     }
-  }, [userId, activeFilters, searchHistory]);
+  }, [userId, searchHistory]);
 
   useEffect(() => {
     if (searchQuery) {
@@ -71,8 +68,8 @@ export function EnhancedSearchDashboard({ userId }: EnhancedSearchDashboardProps
   const loadInitialData = useCallback(async () => {
     try {
       const [foldersData, tagsData] = await Promise.all([
-        apiClient.getFolders(userId),
-        apiClient.getTags(userId)
+        apiClient.getFolders(),
+        apiClient.getTags()
       ]);
       setFolders(foldersData);
       setTags(tagsData);
@@ -224,9 +221,12 @@ export function EnhancedSearchDashboard({ userId }: EnhancedSearchDashboardProps
                     key={bookmark.id}
                     bookmark={bookmark}
                     folders={folders}
-                    tags={tags}
-                    onBookmarkUpdated={() => performSearch(searchQuery)}
-                    onBookmarkDeleted={() => performSearch(searchQuery)}
+                    onUpdated={(updatedBookmark) => {
+                      setBookmarks(prev => prev.map(b => b.id === updatedBookmark.id ? updatedBookmark : b));
+                    }}
+                    onDeleted={() => {
+                      setBookmarks(prev => prev.filter(b => b.id !== bookmark.id));
+                    }}
                   />
                 ))}
               </div>

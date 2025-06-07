@@ -19,7 +19,7 @@ export async function applyClerkMigrations() {
       console.log(`Executing: ${query}`)
       
       // Use the SQL editor approach
-      const { error } = await supabaseAdmin
+      const { error } = await supabaseAdmin!
         .from('profiles') // This will fail but we need to try direct SQL
         .select('*')
         .limit(0)

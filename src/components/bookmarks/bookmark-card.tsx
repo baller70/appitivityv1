@@ -29,9 +29,10 @@ interface BookmarkCardProps {
   onUpdated: (bookmark: BookmarkWithRelations) => void;
   onDeleted: () => void;
   onOpenDetail?: () => void;
+  totalBookmarkVisits?: number;
 }
 
-export function BookmarkCard({ bookmark, folders, onUpdated, onDeleted, onOpenDetail }: BookmarkCardProps) {
+export function BookmarkCard({ bookmark, folders, onUpdated, onDeleted, onOpenDetail, totalBookmarkVisits }: BookmarkCardProps) {
   const { user } = useUser();
   const { isSignedIn } = useAuth();
   const [showEdit, setShowEdit] = useState(false);
@@ -43,8 +44,6 @@ export function BookmarkCard({ bookmark, folders, onUpdated, onDeleted, onOpenDe
     toggleItem, 
     enterSelectionMode 
   } = useSelection();
-
-
 
   const handleToggleFavorite = async () => {
     if (!isSignedIn || !user) {
@@ -230,6 +229,24 @@ export function BookmarkCard({ bookmark, folders, onUpdated, onDeleted, onOpenDe
       return null;
     }
   };
+
+  // Calculate usage percentage
+  const calculateUsagePercentage = (): number => {
+    if (!totalBookmarkVisits || totalBookmarkVisits === 0) return 0;
+    const bookmarkVisits = bookmark.visit_count || 0;
+    return Math.round((bookmarkVisits / totalBookmarkVisits) * 100);
+  };
+
+  const usagePercentage = calculateUsagePercentage();
+  
+  // Debug logging
+  console.log('BookmarkCard Debug:', {
+    bookmarkTitle: bookmark.title,
+    bookmarkVisits: bookmark.visit_count,
+    totalBookmarkVisits,
+    usagePercentage,
+    shouldShow: totalBookmarkVisits && totalBookmarkVisits >= 0
+  });
 
   return (
     <>
@@ -450,9 +467,21 @@ export function BookmarkCard({ bookmark, folders, onUpdated, onDeleted, onOpenDe
             </div>
 
             {/* Visit Count - Exact from Reference */}
-            <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 mb-3">
-              <Eye className="h-4 w-4 mr-1" />
-              <span>{bookmark.visit_count || 0} visits</span>
+            <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400 mb-3">
+              <div className="flex items-center">
+                <Eye className="h-4 w-4 mr-1" />
+                <span>{bookmark.visit_count || 0} visits</span>
+              </div>
+              
+              {/* Usage Percentage - Bottom Right Corner */}
+              {totalBookmarkVisits !== undefined && totalBookmarkVisits >= 0 && (
+                <div 
+                  className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full text-xs font-medium"
+                  title="Usage."
+                >
+                  <span className="font-bold">{usagePercentage}%</span>
+                </div>
+              )}
             </div>
           </div>
         </CardContent>

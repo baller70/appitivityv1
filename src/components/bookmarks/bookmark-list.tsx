@@ -42,6 +42,9 @@ export function BookmarkList({
   }
 
   if (viewMode === 'grid') {
+    // Calculate total visits for percentage calculation
+    const totalVisits = bookmarks.reduce((sum, b) => sum + (b.visit_count || 0), 0);
+    
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {bookmarks.map((bookmark) => (
@@ -49,9 +52,9 @@ export function BookmarkList({
             key={bookmark.id}
             bookmark={bookmark}
             folders={folders}
-            tags={tags}
             onUpdated={onBookmarkUpdated}
             onDeleted={() => onBookmarkDeleted(bookmark.id)}
+            totalBookmarkVisits={totalVisits}
           />
         ))}
       </div>

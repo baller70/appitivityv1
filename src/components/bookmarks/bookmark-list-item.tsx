@@ -272,7 +272,6 @@ export function BookmarkListItem({ bookmark, folders, tags, onUpdated, onDeleted
           <BookmarkForm
             bookmark={bookmark}
             folders={folders}
-            tags={tags}
             onSubmit={handleEdit}
             onCancel={() => setShowEdit(false)}
           />

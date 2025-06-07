@@ -40,7 +40,7 @@ test.describe('BookmarkHub Dashboard', () => {
     
     // Get initial sidebar width
     const sidebar = page.locator('[data-testid="sidebar"]');
-    const initialWidth = await sidebar.evaluate(el => el.offsetWidth);
+    const initialWidth = await sidebar.evaluate(el => (el as HTMLElement).offsetWidth);
     
     // Click toggle button
     await toggleButton.click();
@@ -49,7 +49,7 @@ test.describe('BookmarkHub Dashboard', () => {
     await page.waitForTimeout(500);
     
     // Check that sidebar width has changed (collapsed)
-    const newWidth = await sidebar.evaluate(el => el.offsetWidth);
+    const newWidth = await sidebar.evaluate(el => (el as HTMLElement).offsetWidth);
     expect(newWidth).toBeLessThan(initialWidth);
     
     // Click again to expand
@@ -57,7 +57,7 @@ test.describe('BookmarkHub Dashboard', () => {
     await page.waitForTimeout(500);
     
     // Check that sidebar is expanded again
-    const expandedWidth = await sidebar.evaluate(el => el.offsetWidth);
+    const expandedWidth = await sidebar.evaluate(el => (el as HTMLElement).offsetWidth);
     expect(expandedWidth).toBeGreaterThan(newWidth);
   });
 

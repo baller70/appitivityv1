@@ -500,7 +500,7 @@ export function FolderOrgChartView({
                       checked={hierarchyFilter === level.id}
                       onCheckedChange={() => setHierarchyFilter(level.id as any)}
                     >
-                      <level.icon className="h-4 w-4 mr-2" />
+                      {React.createElement(getIconForSection(level.iconName), { className: "h-4 w-4 mr-2" })}
                       {level.title}
                     </DropdownMenuCheckboxItem>
                   ))}

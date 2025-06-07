@@ -791,15 +791,15 @@ function BookmarkHubDashboardContent({ userId, userData }: BookmarkHubDashboardP
           <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {selectedCategory === 'all' ? 'Dashboard' : 
-                   selectedCategory === 'favorites' ? 'Favorites' : 
-                                               selectedCategory === 'development' ? 'Development' :
-                selectedCategory === 'design' ? 'Design' :
-                selectedCategory === 'productivity' ? 'Productivity' :
-                selectedCategory === 'learning' ? 'Learning' :
-                selectedCategory === 'entertainment' ? 'Entertainment' :
-                   selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)}
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {selectedCategory === 'all' ? 'DASHBOARD' : 
+                   selectedCategory === 'favorites' ? 'FAVORITES' : 
+                                               selectedCategory === 'development' ? 'DEVELOPMENT' :
+                selectedCategory === 'design' ? 'DESIGN' :
+                selectedCategory === 'productivity' ? 'PRODUCTIVITY' :
+                selectedCategory === 'learning' ? 'LEARNING' :
+                selectedCategory === 'entertainment' ? 'ENTERTAINMENT' :
+                   selectedCategory.toUpperCase()}
                 </h2>
               </div>
               <div className="flex items-center space-x-4">
@@ -928,7 +928,7 @@ function BookmarkHubDashboardContent({ userId, userData }: BookmarkHubDashboardP
                   </Button>
                 </div>
 
-                <Button onClick={() => setShowEnhancedDialog(true)} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white">
+                <Button onClick={() => setShowEnhancedDialog(true)} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-black">
                   <Plus className="h-4 w-4 mr-2" />
                   Add Bookmark
                 </Button>
@@ -1068,16 +1068,22 @@ function BookmarkHubDashboardContent({ userId, userData }: BookmarkHubDashboardP
             ) : (
               // Grid View - shows bookmark cards
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredAndSortedBookmarks.map((bookmark) => (
-                  <BookmarkCard
-                    key={bookmark.id}
-                    bookmark={bookmark}
-                    onUpdated={handleBookmarkUpdated}
-                    onDeleted={() => handleBookmarkDeleted(bookmark.id)}
-                    onOpenDetail={() => handleOpenDetail(bookmark)}
-                    folders={folders}
-                  />
-                ))}
+                {filteredAndSortedBookmarks.map((bookmark) => {
+                  // Calculate total visits for percentage calculation
+                  const totalVisits = bookmarks.reduce((sum, b) => sum + (b.visit_count || 0), 0);
+                  
+                  return (
+                    <BookmarkCard
+                      key={bookmark.id}
+                      bookmark={bookmark}
+                      onUpdated={handleBookmarkUpdated}
+                      onDeleted={() => handleBookmarkDeleted(bookmark.id)}
+                      onOpenDetail={() => handleOpenDetail(bookmark)}
+                      folders={folders}
+                      totalBookmarkVisits={totalVisits}
+                    />
+                  );
+                })}
               </div>
             )}
           </main>

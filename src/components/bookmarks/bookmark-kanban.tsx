@@ -63,6 +63,7 @@ const Board = ({
         folderId={null}
         headingColor="text-gray-600 dark:text-gray-400"
         bookmarks={uncategorizedBookmarks}
+        allBookmarks={bookmarks}
         folders={folders}
         onBookmarkUpdated={onBookmarkUpdated}
         onBookmarkDeleted={onBookmarkDeleted}
@@ -80,6 +81,7 @@ const Board = ({
             folderId={folder.id}
             headingColor="text-blue-600 dark:text-blue-400"
             bookmarks={folderBookmarks}
+            allBookmarks={bookmarks}
             folders={folders}
             onBookmarkUpdated={onBookmarkUpdated}
             onBookmarkDeleted={onBookmarkDeleted}
@@ -105,6 +107,7 @@ type ColumnProps = {
   title: string;
   headingColor: string;
   bookmarks: BookmarkWithRelations[];
+  allBookmarks: BookmarkWithRelations[];
   folders: Folder[];
   column: KanbanColumn;
   folderId: string | null;
@@ -117,6 +120,7 @@ const Column = ({
   title,
   headingColor,
   bookmarks,
+  allBookmarks,
   folders,
   column,
   folderId,
@@ -210,6 +214,7 @@ const Column = ({
               key={bookmark.id}
               bookmark={bookmark}
               folders={folders}
+              allBookmarks={allBookmarks}
               onBookmarkUpdated={onBookmarkUpdated}
               onBookmarkDeleted={onBookmarkDeleted}
               onOpenDetail={onOpenDetail}
@@ -231,6 +236,7 @@ const Column = ({
 type KanbanBookmarkCardProps = {
   bookmark: BookmarkWithRelations;
   folders: Folder[];
+  allBookmarks: BookmarkWithRelations[];
   onBookmarkUpdated: (bookmark: BookmarkWithRelations) => void;
   onBookmarkDeleted: (bookmarkId: string) => void;
   onOpenDetail: (bookmark: BookmarkWithRelations) => void;
@@ -240,11 +246,15 @@ type KanbanBookmarkCardProps = {
 const KanbanBookmarkCard = ({
   bookmark,
   folders,
+  allBookmarks,
   onBookmarkUpdated,
   onBookmarkDeleted,
   onOpenDetail,
   handleDragStart,
 }: KanbanBookmarkCardProps) => {
+  // Calculate total visits for percentage calculation
+  const totalVisits = allBookmarks.reduce((sum, b) => sum + (b.visit_count || 0), 0);
+  
   return (
     <div
       draggable="true"
@@ -261,6 +271,7 @@ const KanbanBookmarkCard = ({
           onDeleted={() => onBookmarkDeleted(bookmark.id)}
           onOpenDetail={() => onOpenDetail(bookmark)}
           folders={folders}
+          totalBookmarkVisits={totalVisits}
         />
       </motion.div>
     </div>
