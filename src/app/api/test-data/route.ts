@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createTestData } from '@/lib/test-data';
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     const result = await createTestData();
     

@@ -1,0 +1,2 @@
+[console_scripts]
+nocodebackend-mcp = nocodebackend_mcp.server:main

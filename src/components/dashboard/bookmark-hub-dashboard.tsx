@@ -15,9 +15,7 @@ import {
   Search, 
   Grid3X3, 
   List, 
-  Bookmark, 
   Star,
-  TrendingUp,
   Calendar,
   BarChart3,
   Menu,
@@ -30,36 +28,14 @@ import {
   Trello,
   ExternalLink,
   Folder as FolderIcon,
-  Eye,
-  Edit,
-  Trash2,
-  Tags,
-  User,
-  LogOut,
-  Archive,
-  FileText,
-  Globe,
-  Clock,
-  Activity,
-  Zap,
-  Target,
-  CheckCircle,
-  Info,
-  MoreVertical,
-  LayoutGrid,
-  X,
   CheckSquare
 } from 'lucide-react';
 import { BookmarkValidationModal } from '../bookmarks/bookmark-validation-modal';
 import { SelectionProvider, useSelection } from '../../contexts/SelectionContext';
 import { MassActionsToolbar } from './MassActionsToolbar';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { toast } from 'sonner';
 import { BookmarkDetailModal } from '../bookmarks/bookmark-detail-modal';
 import { BulkImportModal } from '../bulk-import-modal';
-import { BookmarkListView } from '../bookmarks/bookmark-list-view';
-import { BookmarkKanban } from '../bookmarks/bookmark-kanban';
-import { Timeline } from '../ui/timeline';
 import { KanbanView } from '../views/kanban-view';
 import { TimelineView } from '../views/timeline-view';
 import { ListView } from '../views/list-view';
@@ -113,7 +89,7 @@ function BookmarkHubDashboardContent({ userId, userData }: BookmarkHubDashboardP
     sortBy: 'newest' as 'newest' | 'oldest' | 'title' | 'url' | 'recent' | 'visits' | 'favorites'
   });
 
-  const bookmarkService = new BookmarkService(userId);
+
 
   const loadData = useCallback(async () => {
     try {
@@ -168,10 +144,7 @@ function BookmarkHubDashboardContent({ userId, userData }: BookmarkHubDashboardP
     loadData();
   }, [loadData]);
 
-  const handleBookmarkCreated = (newBookmark: BookmarkWithRelations) => {
-    setBookmarks(prev => [newBookmark, ...prev]);
-    toast.success('Bookmark created successfully');
-  };
+
 
   const handleEnhancedBookmarkSubmit = async (bookmarkData: BookmarkWithRelations) => {
     try {

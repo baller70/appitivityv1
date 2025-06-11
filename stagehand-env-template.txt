@@ -1,0 +1,34 @@
+# Stagehand MCP Environment Variables
+# Copy these to your actual environment configuration
+
+# Required: OpenAI API Key for Stagehand's AI capabilities
+OPENAI_API_KEY=your_openai_api_key_here
+
+# Required: Browserbase API credentials for cloud browser automation
+BROWSERBASE_API_KEY=bb_live_audK__wfBIXmt1LU1PAy-O4QVEk
+BROWSERBASE_PROJECT_ID=770de61f-ca88-4e5a-8ba9-b888338f08f7
+
+# Optional: Custom Stagehand configuration
+STAGEHAND_DEBUG=false
+STAGEHAND_TIMEOUT=30000
+
+# How to get these credentials:
+# 1. OpenAI API Key: https://platform.openai.com/api-keys
+# 2. Browserbase: https://www.browserbase.com/ (sign up for free)
+#    - After signing up, get your API key and project ID from dashboard
+
+# Example Cursor configuration:
+# Add this to your ~/.cursor/mcp.json file:
+# {
+#   "mcpServers": {
+#     "stagehand": {
+#       "command": "node",
+#       "args": ["/path/to/stagehand/dist/index.js"],
+#       "env": {
+#         "OPENAI_API_KEY": "sk-...",
+#         "BROWSERBASE_API_KEY": "bb_...",
+#         "BROWSERBASE_PROJECT_ID": "prj_..."
+#       }
+#     }
+#   }
+# } 

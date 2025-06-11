@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { SUPABASE_PROJECT_ID } from '@/lib/supabase'
 
 export async function POST(request: NextRequest) {
   try {

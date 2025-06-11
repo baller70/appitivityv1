@@ -1,0 +1,49 @@
+{
+  "mcpServers": {
+    "puppeteer": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--init", "-e", "DOCKER_CONTAINER=true", "mcp/puppeteer"]
+    },
+    "time": {
+      "command": "docker", 
+      "args": ["run", "-i", "--rm", "--init", "mcp/time"]
+    },
+    "filesystem": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--init", "-v", "/Users:/Users", "mcp/filesystem", "/Users"]
+    },
+    "sqlite": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--init", "mcp/sqlite"]
+    },
+    "github": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--init", "-e", "GITHUB_PERSONAL_ACCESS_TOKEN=your_token_here", "mcp/github"]
+    },
+    "postgres": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--init", "mcp/postgres", "postgresql://user:password@host:port/database"]
+    },
+    "memory": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--init", "-v", "/tmp/mcp-memory:/app/data", "mcp/memory"]
+    },
+    "fetch": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--init", "mcp/fetch"]
+    },
+    "git": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--init", "-v", "/Users:/Users", "mcp/git", "/Users"]
+    },
+    "stagehand": {
+      "command": "node",
+      "args": ["/Volumes/Softwaare Program/apptivity final v1/mcp-server-browserbase/stagehand/dist/index.js"],
+      "env": {
+        "OPENAI_API_KEY": "${OPENAI_API_KEY}",
+        "BROWSERBASE_API_KEY": "bb_live_audK__wfBIXmt1LU1PAy-O4QVEk",
+        "BROWSERBASE_PROJECT_ID": "770de61f-ca88-4e5a-8ba9-b888338f08f7"
+      }
+    }
+  }
+} 

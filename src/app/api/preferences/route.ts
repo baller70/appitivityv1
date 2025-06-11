@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { supabaseAdmin } from '../../../lib/supabase'
-import { normalizeUserId } from '../../../lib/uuid-compat'
 
 interface UserPreferences {
   theme: 'light' | 'dark' | 'system'

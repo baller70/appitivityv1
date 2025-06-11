@@ -1,0 +1,103 @@
+# Clerk Authentication Rules for Next.js App
+
+## Clerk Integration Guidelines
+
+### Authentication Flow
+- Always use Clerk's built-in components for sign-in/sign-up flows
+- Use `useUser()` hook to access current user data
+- Use `useAuth()` hook for authentication state and methods
+- Implement proper loading states while authentication is being checked
+
+### User Management
+- Always check `user.id` exists before making database operations
+- Use Clerk's `user.id` as the primary identifier for database relations
+- Handle user creation/profile setup in middleware or API routes
+- Never expose sensitive user data in client-side code
+
+### Route Protection
+- Use Clerk's middleware for route protection
+- Implement proper redirects for unauthenticated users
+- Use `auth()` in API routes for server-side authentication
+- Always validate user permissions before database operations
+
+### Environment Variables
+- Keep all Clerk keys in environment variables
+- Use `NEXT_PUBLIC_` prefix only for publishable keys
+- Never commit secret keys to version control
+- Ensure all Clerk env vars are set in production
+
+### Error Handling
+- Implement proper error boundaries for authentication failures
+- Handle network errors gracefully in auth flows
+- Provide clear user feedback for authentication issues
+- Log authentication errors for debugging
+
+### Database Integration
+- Always normalize Clerk user IDs for database storage
+- Create user profiles automatically on first sign-in
+- Handle user deletion/deactivation properly
+- Sync user data changes from Clerk webhooks when needed
+
+### Development Workflow
+- Test authentication flows in both development and production
+- Verify all protected routes work correctly
+- Test sign-out functionality thoroughly
+- Ensure proper cleanup of user sessions
+
+## Code Quality Rules
+
+### TypeScript
+- Always use proper TypeScript types for Clerk objects
+- Define interfaces for user profile data
+- Use strict type checking for authentication states
+
+### Error Prevention
+- Always check for user existence before database operations
+- Handle async authentication operations properly
+- Implement proper loading states for auth-dependent components
+- Use try-catch blocks for authentication API calls
+
+### Performance
+- Minimize re-renders caused by authentication state changes
+- Use proper dependency arrays in useEffect hooks
+- Implement proper caching for user data
+- Avoid unnecessary API calls for user information
+
+## Specific Implementation Notes
+
+### User Profile Creation
+```typescript
+// Always ensure user profile exists
+const ensureUserProfile = async (clerkUserId: string) => {
+  // Check if profile exists, create if not
+  // Use normalized user ID for database operations
+}
+```
+
+### Protected API Routes
+```typescript
+// Always authenticate API routes
+export async function GET() {
+  const { userId } = auth()
+  if (!userId) {
+    return new Response('Unauthorized', { status: 401 })
+  }
+  // Continue with authenticated logic
+}
+```
+
+### Client-Side Protection
+```typescript
+// Use proper loading states
+const { isLoaded, isSignedIn, user } = useUser()
+
+if (!isLoaded) return <LoadingSpinner />
+if (!isSignedIn) return <SignInPrompt />
+// Continue with authenticated component
+```
+
+## Build and Deployment
+- Always test authentication in production environment
+- Verify all environment variables are properly set
+- Test sign-in/sign-out flows after deployment
+- Monitor authentication errors in production logs 

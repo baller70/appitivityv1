@@ -35,7 +35,7 @@ export async function GET() {
       checks.stagewise.extensionConnection = '❌ Extension responded but with error';
       checks.recommendations.push('Check if Stagewise extension is properly initialized');
     }
-  } catch (error) {
+  } catch {
     checks.stagewise.extensionConnection = '❌ Cannot connect to extension on port 5747';
     checks.recommendations.push('Ensure Stagewise VS Code/Cursor extension is running');
     checks.recommendations.push('Try running CMD+Shift+P and search for "Stagewise: Start"');

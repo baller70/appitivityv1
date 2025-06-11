@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "composio": {
+      "command": "python3",
+      "args": ["/Volumes/Softwaare Program/apptivity final v1/composio-mcp-server-enhanced.py"],
+      "env": {
+        "COMPOSIO_API_KEY": "3nf218shuwbcvquot6mznn"
+      }
+    }
+  }
+}

@@ -1,0 +1,28 @@
+# Environment Variables for MCP Servers
+# Copy this file to .env and fill in your actual values
+
+# GitHub Integration
+GITHUB_TOKEN=your_github_personal_access_token_here
+
+# PostgreSQL Database (if using postgres MCP server)
+POSTGRES_CONNECTION_STRING=postgresql://user:password@host:port/database
+
+# Example: postgresql://postgres:password@localhost:5432/mydb
+
+# Optional: Set timezone for time server
+TZ=America/New_York
+
+# Optional: Custom data directory for memory server
+MCP_DATA_DIR=./mcp-data
+
+# Optional: Slack integration (if using slack MCP server)
+SLACK_BOT_TOKEN=xoxb-your-slack-bot-token
+SLACK_USER_TOKEN=xoxp-your-slack-user-token
+
+# Optional: Google Drive (if using google-drive MCP server)
+GOOGLE_DRIVE_CREDENTIALS_PATH=/path/to/credentials.json
+
+# Stagehand MCP Server (for AI browser automation)
+OPENAI_API_KEY=your_openai_api_key_here
+BROWSERBASE_API_KEY=your_browserbase_api_key_here
+BROWSERBASE_PROJECT_ID=your_browserbase_project_id_here 
