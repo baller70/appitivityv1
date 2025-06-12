@@ -186,11 +186,36 @@ export function BookmarkCard({ bookmark, folders, onUpdated, onDeleted, onOpenDe
     }
   };
 
-  const handleCardClick = (e: React.MouseEvent) => {
+  const handleCardClick = async (e: React.MouseEvent) => {
     if (isSelectionMode) {
       e.preventDefault();
       toggleItem(bookmark.id);
     } else {
+      // Track the visit when opening detail modal
+      try {
+        const response = await fetch('/api/bookmarks/visit', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            bookmarkId: bookmark.id,
+          }),
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          // Update the local bookmark state with new visit count
+          onUpdated({
+            ...bookmark,
+            visit_count: result.bookmark.visit_count,
+            last_visited_at: result.bookmark.last_visited_at,
+          });
+        }
+      } catch (error) {
+        console.error('Failed to track visit:', error);
+      }
+
       // Open detail modal when clicking on the card
       onOpenDetail?.();
       toast.success('Opening bookmark details');
@@ -336,9 +361,30 @@ export function BookmarkCard({ bookmark, folders, onUpdated, onDeleted, onOpenDe
               variant="ghost"
               size="sm"
               className="p-1 h-auto w-auto hover:bg-white/80"
-              onClick={(e) => {
+              onClick={async (e) => {
                 e.stopPropagation();
                 try {
+                  // Track the visit
+                  const response = await fetch('/api/bookmarks/visit', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      bookmarkId: bookmark.id,
+                    }),
+                  });
+
+                  if (response.ok) {
+                    const result = await response.json();
+                    // Update the local bookmark state with new visit count
+                    onUpdated({
+                      ...bookmark,
+                      visit_count: result.bookmark.visit_count,
+                      last_visited_at: result.bookmark.last_visited_at,
+                    });
+                  }
+
                   window.open(bookmark.url, '_blank');
                   toast.success('Opening website in new tab');
                 } catch (error) {
@@ -476,10 +522,10 @@ export function BookmarkCard({ bookmark, folders, onUpdated, onDeleted, onOpenDe
               {/* Usage Percentage - Bottom Right Corner */}
               {totalBookmarkVisits !== undefined && totalBookmarkVisits >= 0 && (
                 <div 
-                  className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full text-xs font-medium"
-                  title="Usage."
+                  className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-3 py-2 rounded-full"
+                  title="Usage percentage"
                 >
-                  <span className="font-bold">{usagePercentage}%</span>
+                  <span className="text-lg font-bold">{usagePercentage}%</span>
                 </div>
               )}
             </div>

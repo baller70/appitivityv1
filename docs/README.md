@@ -9,6 +9,15 @@ Welcome to the comprehensive documentation for Apptivity - a modern, AI-enhanced
 - **[Environment Setup](./environment-setup.md)** - Local development environment configuration
 - **[Deployment Guide](./07-deployment-guide.md)** - Production deployment instructions
 
+### User Documentation
+- **[User Guide](./guides/user-guide.md)** - Comprehensive guide for using the Bookmark App
+- **[Troubleshooting](./guides/troubleshooting.md)** - Common issues and solutions
+
+### Developer Documentation
+- **[Developer Guide](./guides/developer-guide.md)** - Setup, architecture, and coding standards
+- **[API Documentation](./06-api-documentation.md)** - RESTful API endpoints and usage
+- **[API Examples](./guides/api-examples.md)** - Detailed API request/response examples
+
 ### Planning & Architecture
 - **[01. Project Idea](./01-project-idea.md)** - Vision, users, and guiding principles
 - **[02. PRD - Core Features](./02-prd-core-features.md)** - Product requirements and acceptance criteria
@@ -17,7 +26,6 @@ Welcome to the comprehensive documentation for Apptivity - a modern, AI-enhanced
 ### Technical Documentation
 - **[04. Database Schema](./04-database-schema.md)** - Complete database design and relationships
 - **[05. Testing Strategy](./05-testing-strategy.md)** - Comprehensive testing approach and examples
-- **[06. API Documentation](./06-api-documentation.md)** - RESTful API endpoints and usage
 
 ### Operations & Integrations
 - **[07. Deployment Guide](./07-deployment-guide.md)** - Production deployment and maintenance
@@ -75,24 +83,9 @@ apptivity/
 - **Bookmark Management**: Create, edit, delete, and organize bookmarks
 - **Category System**: Hierarchical organization with visual indicators
 - **Tag Management**: Flexible tagging for cross-category organization
-- **Search Functionality**: Full-text search across bookmarks
-- **Dashboard Analytics**: Statistics and usage insights
-- **Responsive Design**: Works on desktop, tablet, and mobile
-- **Authentication**: Secure user management via Clerk
-- **Database**: PostgreSQL with Supabase integration
-
-### 🔄 In Progress
-- Advanced search filters and sorting options
-- Bookmark import/export functionality
-- Activity tracking and analytics
-- User preferences and customization
-
-### ⏳ Planned
-- AI-powered bookmark categorization
-- Team collaboration features
-- Browser extension integration
-- Mobile app development
-- Advanced analytics and reporting
+- **Analytics**: Usage tracking and insights
+- **MCP Integrations**: Model Context Protocol tools
+- **Professional UI/UX**: Clean, modern design
 
 ## 🛠️ Technology Stack
 

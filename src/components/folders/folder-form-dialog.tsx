@@ -17,7 +17,7 @@ interface FolderFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   folder?: Folder | null;
-  onSubmit: (data: { name: string; description?: string; color?: string }) => void;
+  onSubmit: (data: { name: string; description?: string; color?: string; reminder_at?: string | null }) => void;
 }
 
 const predefinedColors = [
@@ -43,6 +43,7 @@ export function FolderFormDialog({
     name: '',
     description: '',
     color: '#3b82f6',
+    reminder_at: folder?.reminder_at ? folder.reminder_at.split('T')[0] : ''
   });
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -53,12 +54,14 @@ export function FolderFormDialog({
         name: folder.name,
         description: folder.description || '',
         color: folder.color || '#3b82f6',
+        reminder_at: folder.reminder_at ? folder.reminder_at.split('T')[0] : ''
       });
     } else {
       setFormData({
         name: '',
         description: '',
         color: '#3b82f6',
+        reminder_at: ''
       });
     }
     setErrors({});
@@ -86,6 +89,7 @@ export function FolderFormDialog({
       name: formData.name.trim(),
       description: formData.description.trim() || undefined,
       color: formData.color,
+      reminder_at: formData.reminder_at ? new Date(formData.reminder_at).toISOString() : null
     });
     
     onOpenChange(false);
@@ -132,6 +136,103 @@ export function FolderFormDialog({
               rows={3}
               className="resize-none"
             />
+          </div>
+
+          {/* Deadline & Goal Section */}
+          <div className="space-y-4 border-t border-gray-200 dark:border-gray-700 pt-6 mt-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Deadline & Goal</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Deadline Date */}
+              <div>
+                <Label htmlFor="folder-deadline-date">Deadline Date</Label>
+                <input
+                  id="folder-deadline-date"
+                  type="date"
+                  className="w-full mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  value={folder?.deadline_date ? new Date(folder.deadline_date).toISOString().split('T')[0] : ''}
+                  readOnly
+                />
+              </div>
+              {/* Goal Type */}
+              <div>
+                <Label htmlFor="folder-goal-type">Goal Type</Label>
+                <select
+                  id="folder-goal-type"
+                  className="w-full mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  value={folder?.goal_type || ''}
+                >
+                  <option value="">Select type</option>
+                  <option value="organize">Organize</option>
+                  <option value="complete_all">Complete All</option>
+                  <option value="review_all">Review All</option>
+                  <option value="learn_category">Learn Category</option>
+                  <option value="research_topic">Research Topic</option>
+                  <option value="custom">Custom</option>
+                </select>
+              </div>
+              {/* Goal Description */}
+              <div className="md:col-span-2">
+                <Label htmlFor="folder-goal-description">Goal Description</Label>
+                <Textarea
+                  id="folder-goal-description"
+                  className="w-full mt-1"
+                  value={folder?.goal_description || ''}
+                  readOnly
+                />
+              </div>
+              {/* Goal Status */}
+              <div>
+                <Label htmlFor="folder-goal-status">Goal Status</Label>
+                <select
+                  id="folder-goal-status"
+                  className="w-full mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  value={folder?.goal_status || ''}
+                >
+                  <option value="pending">Pending</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="completed">Completed</option>
+                  <option value="overdue">Overdue</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+              {/* Goal Priority */}
+              <div>
+                <Label htmlFor="folder-goal-priority">Goal Priority</Label>
+                <select
+                  id="folder-goal-priority"
+                  className="w-full mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  value={folder?.goal_priority || ''}
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="urgent">Urgent</option>
+                </select>
+              </div>
+              {/* Goal Progress */}
+              <div>
+                <Label htmlFor="folder-goal-progress">Goal Progress (%)</Label>
+                <input
+                  id="folder-goal-progress"
+                  type="number"
+                  min={0}
+                  max={100}
+                  className="w-full mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  value={folder?.goal_progress ?? 0}
+                  readOnly
+                />
+              </div>
+              {/* Goal Notes */}
+              <div className="md:col-span-2">
+                <Label htmlFor="folder-goal-notes">Goal Notes</Label>
+                <Textarea
+                  id="folder-goal-notes"
+                  className="w-full mt-1"
+                  value={folder?.goal_notes || ''}
+                  readOnly
+                />
+              </div>
+            </div>
           </div>
 
           {/* Color Picker */}
@@ -200,6 +301,17 @@ export function FolderFormDialog({
                 )}
               </div>
             </div>
+          </div>
+
+          {/* Reminder Input */}
+          <div className="space-y-2">
+            <Label htmlFor="reminder_at">Reminder</Label>
+            <Input
+              id="reminder_at"
+              type="date"
+              value={formData.reminder_at}
+              onChange={e => setFormData({ ...formData, reminder_at: e.target.value })}
+            />
           </div>
 
           {/* Form Actions */}

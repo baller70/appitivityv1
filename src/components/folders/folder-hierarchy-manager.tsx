@@ -5,6 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../ui/dropdown-menu';
 import { Settings, Edit2, Check, X, Crown, Users, User, GripVertical } from 'lucide-react';
 import { type Folder } from '../../types/supabase';
 import {
@@ -56,7 +62,12 @@ interface FolderHierarchyManagerProps {
 }
 
 // Sortable Folder Item Component
-function SortableFolderItem({ folder, level }: { folder: Folder; level: HierarchyLevel }) {
+function SortableFolderItem({ folder, level, onAssignToLevel, showLevelSelector = false }: { 
+  folder: Folder; 
+  level: HierarchyLevel;
+  onAssignToLevel?: (folderId: string, level: HierarchyLevel) => void;
+  showLevelSelector?: boolean;
+}) {
   const {
     attributes,
     listeners,
@@ -71,6 +82,12 @@ function SortableFolderItem({ folder, level }: { folder: Folder; level: Hierarch
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
+
+  const hierarchyLevels = [
+    { id: 'director' as HierarchyLevel, title: 'DIRECTOR', icon: Crown },
+    { id: 'teams' as HierarchyLevel, title: 'TEAMS', icon: Users },
+    { id: 'collaborators' as HierarchyLevel, title: 'COLLABORATORS', icon: User },
+  ];
 
   return (
     <div
@@ -92,9 +109,31 @@ function SortableFolderItem({ folder, level }: { folder: Folder; level: Hierarch
       <span className="text-sm font-medium text-gray-900 dark:text-white">
         {folder.name}
       </span>
-      <Badge variant="outline" className="ml-auto text-xs">
+      <Badge variant="outline" className="text-xs">
         {(folder as any).bookmark_count || 0}
       </Badge>
+      
+      {showLevelSelector && onAssignToLevel && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="ml-auto text-xs">
+              Assign Level
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {hierarchyLevels.map((hierarchyLevel) => (
+              <DropdownMenuItem
+                key={hierarchyLevel.id}
+                onClick={() => onAssignToLevel(folder.id, hierarchyLevel.id)}
+                className="flex items-center gap-2"
+              >
+                <hierarchyLevel.icon className="w-4 h-4" />
+                {hierarchyLevel.title}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
     </div>
   );
 }
@@ -330,6 +369,23 @@ export function FolderHierarchyManager({
     setEditingTitle('');
   };
 
+  const handleAssignToLevel = (folderId: string, level: HierarchyLevel) => {
+    // Remove from current assignment if exists
+    const newAssignments = assignments.filter(a => a.folderId !== folderId);
+    
+    // Add to new level
+    const existingInLevel = newAssignments.filter(a => a.level === level);
+    const newOrder = Math.max(0, ...existingInLevel.map(a => a.order), -1) + 1;
+    
+    newAssignments.push({
+      folderId,
+      level,
+      order: newOrder,
+    });
+    
+    onAssignmentsChange(newAssignments);
+  };
+
   const activeFolder = activeId ? folders.find(f => f.id === activeId) : null;
 
   if (!isOpen) return null;
@@ -407,7 +463,9 @@ export function FolderHierarchyManager({
                             <SortableFolderItem 
                               key={folder.id} 
                               folder={folder} 
-                              level={'teams' as HierarchyLevel} 
+                              level={'teams' as HierarchyLevel}
+                              onAssignToLevel={handleAssignToLevel}
+                              showLevelSelector={true}
                             />
                           ))}
                         </div>
@@ -436,7 +494,8 @@ export function FolderHierarchyManager({
 
           <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
             <p className="text-sm text-blue-800 dark:text-blue-200">
-              <strong>Instructions:</strong> Drag folders between sections to organize your hierarchy. 
+              <strong>Instructions:</strong> Use the "Assign Level" dropdown on unassigned folders to choose their hierarchy level, 
+              or drag folders between sections to organize your hierarchy. 
               Click the edit icon to rename section titles. Folders in higher levels will appear above 
               those in lower levels in the organizational chart.
             </p>

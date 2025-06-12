@@ -9,6 +9,8 @@ import { AnalyticsPage } from '../analytics/analytics-page';
 import { FavoritesPage } from '../favorites/favorites-page';
 import { SettingsPage } from '../settings/settings-page';
 import { EnhancedSearchDashboard } from '../search/enhanced-search-dashboard';
+import { TimeCapsulePage } from '../time-capsule/time-capsule-page';
+import DnaProfilePage from '../dna-profile/dna-profile-page';
 import { 
   BarChart3, 
   Heart, 
@@ -16,7 +18,9 @@ import {
   Search, 
   User, 
   AlertCircle,
-  Loader2
+  Loader2,
+  Package,
+  Brain
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import type { BookmarkWithRelations } from '../../lib/services/bookmarks';
@@ -32,7 +36,7 @@ interface DashboardMainProps {
 }
 
 export function DashboardMain({ userId, userData }: DashboardMainProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'favorites' | 'settings' | 'search'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'favorites' | 'settings' | 'search' | 'time-capsule' | 'dna-profile'>('overview');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dashboardData, setDashboardData] = useState<{
@@ -111,6 +115,8 @@ export function DashboardMain({ userId, userData }: DashboardMainProps) {
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
     { id: 'favorites', label: 'Favorites', icon: Heart },
     { id: 'search', label: 'Search', icon: Search },
+    { id: 'time-capsule', label: 'Time Capsule', icon: Package },
+    { id: 'dna-profile', label: 'DNA Profile', icon: Brain },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
@@ -151,6 +157,7 @@ export function DashboardMain({ userId, userData }: DashboardMainProps) {
           <BookmarkHubDashboard 
             userId={userId} 
             userData={userData}
+            onNavigate={(path) => setActiveTab(path as typeof activeTab)}
           />
         );
       case 'analytics':
@@ -159,6 +166,10 @@ export function DashboardMain({ userId, userData }: DashboardMainProps) {
         return <FavoritesPage userId={userId} />;
       case 'search':
         return <EnhancedSearchDashboard userId={userId} />;
+      case 'time-capsule':
+        return <TimeCapsulePage />;
+      case 'dna-profile':
+        return <DnaProfilePage />;
       case 'settings':
         return <SettingsPage userId={userId} />;
       default:
@@ -166,6 +177,7 @@ export function DashboardMain({ userId, userData }: DashboardMainProps) {
           <BookmarkHubDashboard 
             userId={userId} 
             userData={userData}
+            onNavigate={(path) => setActiveTab(path as typeof activeTab)}
           />
         );
     }
@@ -216,7 +228,7 @@ export function DashboardMain({ userId, userData }: DashboardMainProps) {
 
         {/* User Profile */}
         <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-          <div className="flex items-center">
+          <div className="flex items-center mb-3">
             <User className="h-8 w-8 text-gray-400 mr-3" />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
@@ -227,6 +239,21 @@ export function DashboardMain({ userId, userData }: DashboardMainProps) {
               </p>
             </div>
             <UserButton afterSignOutUrl="/" />
+          </div>
+          
+          {/* DNA Profile Link */}
+          <div className="mt-2">
+            <button
+              onClick={() => setActiveTab('dna-profile')}
+              className={`w-full flex items-center px-2 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                activeTab === 'dna-profile'
+                  ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300'
+                  : 'text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-700'
+              }`}
+            >
+              <Brain className="mr-2 h-3 w-3" />
+              DNA Profile
+            </button>
           </div>
         </div>
       </nav>

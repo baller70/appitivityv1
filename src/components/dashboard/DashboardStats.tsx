@@ -1,28 +1,47 @@
 import React from 'react'
+import type { BookmarkWithRelations } from '../../lib/services/bookmarks';
 
-export default function DashboardStats() {
+interface DashboardStatsProps {
+  bookmarks: BookmarkWithRelations[];
+}
+
+export default function DashboardStats({ bookmarks }: DashboardStatsProps) {
+  // Calculate real stats from bookmarks data
+  const totalBookmarks = bookmarks.length;
+  
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+  const thisMonthBookmarks = bookmarks.filter(bookmark => {
+    if (!bookmark.created_at) return false;
+    const bookmarkDate = new Date(bookmark.created_at);
+    return bookmarkDate.getMonth() === currentMonth && bookmarkDate.getFullYear() === currentYear;
+  }).length;
+  
+  const favoriteBookmarks = bookmarks.filter(bookmark => bookmark.is_favorite).length;
+  const totalVisits = bookmarks.reduce((sum, bookmark) => sum + (bookmark.visit_count || 0), 0);
+
   const stats = [
     {
       title: 'Total Bookmarks',
-      value: '6',
+      value: totalBookmarks.toString(),
       change: null,
       changeType: null
     },
     {
       title: 'This Month',
-      value: '+12',
+      value: `+${thisMonthBookmarks}`,
       change: null,
       changeType: 'positive'
     },
     {
       title: 'Total Visits',
-      value: '210',
+      value: totalVisits.toString(),
       change: null,
       changeType: null
     },
     {
       title: 'Favorites',
-      value: '3',
+      value: favoriteBookmarks.toString(),
       change: null,
       changeType: null
     }

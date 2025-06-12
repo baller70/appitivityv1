@@ -31,7 +31,8 @@ import {
   Globe,
   Upload,
   X,
-  RotateCcw
+  RotateCcw,
+  Target
 } from 'lucide-react';
 import { RichTextEditor } from '../ui/rich-text-editor';
 import { NotificationIframe } from '../notifications/notification-iframe';
@@ -521,41 +522,51 @@ export function BookmarkDetailModal({
                   <Card>
                     <CardContent className="p-4 text-center">
                       <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-2">
-                        {bookmark.visit_count || 45}
+                        {bookmark.visit_count || 0}
                       </div>
                       <div className="flex items-center justify-center gap-1 mb-1">
                         <Eye className="h-4 w-4 text-blue-500" />
                         <span className="text-sm font-medium">Total Visits</span>
                       </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">+12% from last week</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {(bookmark.visit_count || 0) > 0 ? '+12% from last week' : 'No visits yet'}
+                      </p>
                     </CardContent>
                   </Card>
 
                   <Card>
                     <CardContent className="p-4 text-center">
-                      <div className="text-2xl font-bold text-green-600 dark:text-green-400 mb-2">2h 30m</div>
+                      <div className="text-2xl font-bold text-green-600 dark:text-green-400 mb-2">
+                        {(bookmark.visit_count || 0) > 0 ? '0m' : '0m'}
+                      </div>
                       <div className="flex items-center justify-center gap-1 mb-1">
                         <Clock className="h-4 w-4 text-green-500" />
                         <span className="text-sm font-medium">Time Spent</span>
                       </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Average 3m per visit</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {(bookmark.visit_count || 0) > 0 ? 'Average 0m per visit' : 'No time tracked yet'}
+                      </p>
                     </CardContent>
                   </Card>
 
                   <Card>
                     <CardContent className="p-4 text-center">
-                      <div className="text-2xl font-bold text-purple-600 dark:text-purple-400 mb-2">45</div>
+                      <div className="text-2xl font-bold text-purple-600 dark:text-purple-400 mb-2">
+                        {bookmark.visit_count || 0}
+                      </div>
                       <div className="flex items-center justify-center gap-1 mb-1">
                         <TrendingUp className="h-4 w-4 text-purple-500" />
                         <span className="text-sm font-medium">This Week</span>
                       </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Most active day: Mon</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {(bookmark.visit_count || 0) > 0 ? 'Most active day: Mon' : 'No activity yet'}
+                      </p>
                     </CardContent>
                   </Card>
 
                   <Card>
                     <CardContent className="p-4 text-center">
-                      <div className="text-2xl font-bold text-orange-600 dark:text-orange-400 mb-2">98%</div>
+                      <div className="text-2xl font-bold text-orange-600 dark:text-orange-400 mb-2">100%</div>
                       <div className="flex items-center justify-center gap-1 mb-1">
                         <Globe className="h-4 w-4 text-orange-500" />
                         <span className="text-sm font-medium">Uptime</span>
@@ -563,6 +574,20 @@ export function BookmarkDetailModal({
                       <p className="text-xs text-green-600 dark:text-green-400">Site Health: Excellent</p>
                     </CardContent>
                   </Card>
+                </div>
+                
+                {/* View Full Analytics Button */}
+                <div className="flex justify-center mt-4">
+                  <Button
+                    onClick={() => {
+                      window.open(`/analytics?bookmark=${bookmark.id}`, '_blank');
+                    }}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    <BarChart3 className="h-4 w-4" />
+                    View Full Analytics
+                  </Button>
                 </div>
               </div>
 
@@ -757,6 +782,228 @@ export function BookmarkDetailModal({
                     dangerouslySetInnerHTML={{ __html: notes || '<div class="text-center text-gray-500 dark:text-gray-400 py-8"><p class="text-lg mb-2">📝 Click to add notes</p><p class="text-sm">Use rich text formatting to organize your thoughts, add documentation, or create detailed annotations for this bookmark.</p></div>' }}
                   />
                 )}
+              </div>
+
+              {/* Deadline & Goals Section */}
+              <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                        <Target className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Goals & Deadlines</h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Track objectives and manage timelines</p>
+                      </div>
+                    </div>
+                    
+                    {/* Progress Indicator */}
+                    {bookmark.goal_progress !== null && bookmark.goal_progress !== undefined && (
+                      <div className="flex items-center gap-3">
+                        <div className="text-right">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">{bookmark.goal_progress}%</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">Complete</div>
+                        </div>
+                        <div className="w-16 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-gray-900 dark:bg-gray-100 transition-all duration-300"
+                            style={{ width: `${bookmark.goal_progress}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Content Grid */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    
+                    {/* Left Column - Goal Information */}
+                    <div className="space-y-4">
+                      
+                      {/* Goal Description */}
+                      <div>
+                        <Label htmlFor="bookmark-goal-description" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+                          Goal Description
+                        </Label>
+                        <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md p-3">
+                          <Textarea
+                            id="bookmark-goal-description"
+                            className="w-full border-0 bg-transparent resize-none focus:ring-0 text-gray-900 dark:text-gray-100 text-sm"
+                            value={bookmark.goal_description || 'No goal description set'}
+                            placeholder="Describe what you want to achieve..."
+                            readOnly
+                            rows={3}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Goal Type & Priority */}
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* Goal Type */}
+                        <div>
+                          <Label htmlFor="bookmark-goal-type" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+                            Type
+                          </Label>
+                          <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md">
+                            <select
+                              id="bookmark-goal-type"
+                              className="w-full p-3 border-0 bg-transparent focus:ring-0 text-gray-900 dark:text-gray-100 text-sm"
+                              value={bookmark.goal_type || ''}
+                              disabled
+                            >
+                              <option value="">Select type</option>
+                              <option value="read">Read</option>
+                              <option value="review">Review</option>
+                              <option value="complete">Complete</option>
+                              <option value="learn">Learn</option>
+                              <option value="research">Research</option>
+                              <option value="custom">Custom</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* Goal Priority */}
+                        <div>
+                          <Label htmlFor="bookmark-goal-priority" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+                            Priority
+                          </Label>
+                          <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md">
+                            <select
+                              id="bookmark-goal-priority"
+                              className="w-full p-3 border-0 bg-transparent focus:ring-0 text-gray-900 dark:text-gray-100 text-sm"
+                              value={bookmark.goal_priority || ''}
+                              disabled
+                            >
+                              <option value="low">Low</option>
+                              <option value="medium">Medium</option>
+                              <option value="high">High</option>
+                              <option value="urgent">Urgent</option>
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Goal Notes */}
+                      <div>
+                        <Label htmlFor="bookmark-goal-notes" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+                          Notes
+                        </Label>
+                        <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md p-3">
+                          <Textarea
+                            id="bookmark-goal-notes"
+                            className="w-full border-0 bg-transparent resize-none focus:ring-0 text-gray-900 dark:text-gray-100 text-sm"
+                            value={bookmark.goal_notes || 'No additional notes'}
+                            placeholder="Add notes about your goal strategy..."
+                            readOnly
+                            rows={3}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right Column - Deadline & Status */}
+                    <div className="space-y-4">
+                      
+                      {/* Deadline */}
+                      <div>
+                        <Label htmlFor="bookmark-deadline-date" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+                          Deadline
+                        </Label>
+                        
+                        {bookmark.deadline_date ? (
+                          <div className="space-y-3">
+                            <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md p-3">
+                              <input
+                                id="bookmark-deadline-date"
+                                type="date"
+                                className="w-full border-0 bg-transparent focus:ring-0 text-gray-900 dark:text-gray-100 text-sm font-medium"
+                                value={new Date(bookmark.deadline_date).toISOString().split('T')[0]}
+                                readOnly
+                              />
+                            </div>
+                            
+                            {/* Time Remaining */}
+                            <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md p-3">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-gray-600 dark:text-gray-400">Time Remaining</span>
+                                <div className="flex items-center gap-2">
+                                  <Clock className="h-4 w-4 text-gray-500" />
+                                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    {(() => {
+                                      const deadline = new Date(bookmark.deadline_date);
+                                      const now = new Date();
+                                      const diffTime = deadline.getTime() - now.getTime();
+                                      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                                      
+                                      if (diffDays < 0) return `${Math.abs(diffDays)} days overdue`;
+                                      if (diffDays === 0) return 'Due today';
+                                      if (diffDays === 1) return '1 day left';
+                                      return `${diffDays} days left`;
+                                    })()}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md p-6 text-center">
+                            <Calendar className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                            <p className="text-sm text-gray-500 dark:text-gray-400">No deadline set</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Goal Status */}
+                      <div>
+                        <Label htmlFor="bookmark-goal-status" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+                          Status
+                        </Label>
+                        <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md">
+                          <select
+                            id="bookmark-goal-status"
+                            className="w-full p-3 border-0 bg-transparent focus:ring-0 text-gray-900 dark:text-gray-100 text-sm"
+                            value={bookmark.goal_status || 'pending'}
+                            disabled
+                          >
+                            <option value="pending">Pending</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="completed">Completed</option>
+                            <option value="overdue">Overdue</option>
+                            <option value="cancelled">Cancelled</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Progress Tracker */}
+                      <div>
+                        <Label htmlFor="bookmark-goal-progress" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+                          Progress
+                        </Label>
+                        <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">Completion</span>
+                            <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                              {bookmark.goal_progress ?? 0}%
+                            </span>
+                          </div>
+                          
+                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-2">
+                            <div 
+                              className="h-2 bg-gray-900 dark:bg-gray-100 rounded-full transition-all duration-300"
+                              style={{ width: `${bookmark.goal_progress ?? 0}%` }}
+                            ></div>
+                          </div>
+                          
+                          <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                            <span>0%</span>
+                            <span>100%</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Action Buttons */}

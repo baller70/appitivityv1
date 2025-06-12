@@ -7,14 +7,18 @@ import { BookmarkService, type BookmarkWithRelations } from '../../lib/services/
 import { Button } from '../ui/button';
 import { BookmarkCard } from '../bookmarks/bookmark-card';
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../ui/dialog';
 import { apiClient } from '../../lib/api/client';
 import type { Folder, Tag } from '../../types/supabase';
 import { 
   Plus, 
   Search, 
-  Grid3X3, 
+  LayoutGrid, 
   List, 
+  AlignJustify,
+  Kanban,
+  Clock,
+  FolderTree,
   Star,
   Calendar,
   BarChart3,
@@ -28,9 +32,14 @@ import {
   Trello,
   ExternalLink,
   Folder as FolderIcon,
-  CheckSquare
+  CheckSquare,
+  Target,
+  Link as LinkIcon,
+  Columns,
+  X
 } from 'lucide-react';
 import { BookmarkValidationModal } from '../bookmarks/bookmark-validation-modal';
+import { BookmarkImportModal } from '../bookmarks/bookmark-import-modal';
 import { SelectionProvider, useSelection } from '../../contexts/SelectionContext';
 import { MassActionsToolbar } from './MassActionsToolbar';
 import { toast } from 'sonner';
@@ -46,6 +55,8 @@ import { FolderGridView } from '../folders/folder-grid-view';
 import { FolderOrgChartView } from '../folders/folder-org-chart-view';
 import { FolderFormDialog } from '../folders/folder-form-dialog';
 import { FilterPopover } from '../ui/filter-popover';
+import { ProductivityDashboard } from '../productivity/productivity-dashboard';
+import { EnhancedSidebar } from '../layout/enhanced-sidebar';
 
 
 interface BookmarkHubDashboardProps {
@@ -55,11 +66,12 @@ interface BookmarkHubDashboardProps {
     firstName: string | null;
     email: string | undefined;
   };
+  onNavigate?: (path: string) => void;
 }
 
-type ViewMode = 'grid' | 'list' | 'compact' | 'kanban' | 'timeline' | 'folder' | 'org-chart';
+type ViewMode = 'grid' | 'list' | 'compact' | 'kanban' | 'timeline' | 'folder' | 'hierarchy' | 'productivity';
 
-function BookmarkHubDashboardContent({ userId, userData }: BookmarkHubDashboardProps) {
+function BookmarkHubDashboardContent({ userId, userData, onNavigate }: BookmarkHubDashboardProps) {
   const { enterSelectionMode, isSelectionMode } = useSelection();
   const [bookmarks, setBookmarks] = useState<BookmarkWithRelations[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
@@ -72,8 +84,9 @@ function BookmarkHubDashboardContent({ userId, userData }: BookmarkHubDashboardP
   const [searchTerm, setSearchTerm] = useState('');
 
   const [showBulkImport, setShowBulkImport] = useState(false);
+  const [showImportUrlChecker, setShowImportUrlChecker] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [viewMode, setViewMode] = useState<ViewMode>('folder');
   const [selectedBookmark, setSelectedBookmark] = useState<BookmarkWithRelations | null>(null);
   const [showBookmarkDetail, setShowBookmarkDetail] = useState(false);
   const [showEnhancedDialog, setShowEnhancedDialog] = useState(false);
@@ -96,7 +109,7 @@ function BookmarkHubDashboardContent({ userId, userData }: BookmarkHubDashboardP
       setLoading(true);
       setError(null);
       
-      await apiClient.ensureUserProfile('user@example.com', 'User');
+      await apiClient.ensureUserProfile(userId, userData.email || 'user@example.com', userData.firstName || 'User');
       
       const [bookmarksData, foldersData, tagsData] = await Promise.all([
         apiClient.getBookmarks(),
@@ -108,11 +121,36 @@ function BookmarkHubDashboardContent({ userId, userData }: BookmarkHubDashboardP
       let finalFoldersData = foldersData;
       if (foldersData.length === 0) {
             const defaultFolders = [
-      { name: 'DEVELOPMENT', description: 'Development tools and resources', color: '#3b82f6', parent_id: null },
-      { name: 'DESIGN', description: 'Design inspiration and tools', color: '#8b5cf6', parent_id: null },
-      { name: 'PRODUCTIVITY', description: 'Productivity apps and workflows', color: '#10b981', parent_id: null },
-      { name: 'LEARNING', description: 'Educational content and courses', color: '#f59e0b', parent_id: null },
-      { name: 'ENTERTAINMENT', description: 'Entertainment and leisure content', color: '#ef4444', parent_id: null }
+      { 
+        name: 'DEVELOPMENT', 
+        description: 'Development tools and resources', 
+        color: '#3b82f6', 
+        parent_id: null
+      },
+      { 
+        name: 'DESIGN', 
+        description: 'Design inspiration and tools', 
+        color: '#8b5cf6', 
+        parent_id: null
+      },
+      { 
+        name: 'PRODUCTIVITY', 
+        description: 'Productivity apps and workflows', 
+        color: '#10b981', 
+        parent_id: null
+      },
+      { 
+        name: 'LEARNING', 
+        description: 'Educational content and courses', 
+        color: '#f59e0b', 
+        parent_id: null
+      },
+      { 
+        name: 'ENTERTAINMENT', 
+        description: 'Entertainment and leisure content', 
+        color: '#ef4444', 
+        parent_id: null
+      }
     ];
 
         const createdFolders: Folder[] = [];
@@ -157,12 +195,12 @@ function BookmarkHubDashboardContent({ userId, userData }: BookmarkHubDashboardP
         if (!defaultFolder) {
           // Create the default folder
           try {
-            defaultFolder = await apiClient.createFolder({
-              name: 'Uncategorized',
-              description: 'Default folder for bookmarks without a category',
-              color: '#6b7280', // Gray color
-              parent_id: null
-            });
+                      defaultFolder = await apiClient.createFolder({
+            name: 'Uncategorized',
+            description: 'Default folder for bookmarks without a category',
+            color: '#6b7280', // Gray color
+            parent_id: null
+          });
             setFolders(prev => [...prev, defaultFolder!]);
             toast.success('Created default "Uncategorized" folder');
           } catch (error) {
@@ -225,57 +263,71 @@ function BookmarkHubDashboardContent({ userId, userData }: BookmarkHubDashboardP
 
   const handleBulkImport = async (bookmarks: { url: string; title?: string; description?: string; folderId?: string; tagIds?: string[]; favicon?: string; }[]) => {
     try {
-      // Ensure default folder exists for bulk import
-      let defaultFolder = folders.find(f => f.name.toLowerCase() === 'uncategorized');
-      if (!defaultFolder) {
+      const results = [];
+      for (const bookmarkData of bookmarks) {
         try {
-          defaultFolder = await apiClient.createFolder({
-            name: 'Uncategorized',
-            description: 'Default folder for bookmarks without a category',
-            color: '#6b7280', // Gray color
-            parent_id: null
+          const result = await apiClient.createBookmark({
+            url: bookmarkData.url,
+            title: bookmarkData.title || bookmarkData.url,
+            description: bookmarkData.description ?? null,
+            folder_id: bookmarkData.folderId || null,
+            favicon_url: bookmarkData.favicon || null,
+            screenshot_url: null,
+            is_archived: false,
+            is_favorite: false,
+            last_visited_at: null,
+            visit_count: 0
           });
-          setFolders(prev => [...prev, defaultFolder!]);
+          results.push(result);
         } catch (error) {
-          console.error('Failed to create default folder:', error);
+          console.error(`Failed to import bookmark ${bookmarkData.url}:`, error);
         }
       }
-
-      for (const bookmark of bookmarks) {
-        let folderId = bookmark.folderId;
-        
-        // If no folder specified, use default folder
-        if (!folderId && defaultFolder) {
-          folderId = defaultFolder.id;
-        }
-
-        const response = await fetch('/api/bookmarks', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            url: bookmark.url,
-            title: bookmark.title || bookmark.url,
-            description: bookmark.description || '',
-            folder_id: folderId || null,
-            favicon_url: bookmark.favicon || null,
-            tagIds: bookmark.tagIds || []
-          }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || `Failed to import bookmark: ${bookmark.url}`);
-        }
+      
+      if (results.length > 0) {
+        await loadData(); // Refresh the data
+        toast.success(`Successfully imported ${results.length} bookmarks!`);
       }
-      await loadData();
+      
       setShowBulkImport(false);
-      toast.success(`Successfully imported ${bookmarks.length} bookmarks`);
     } catch (error) {
       console.error('Bulk import failed:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to import bookmarks');
-      throw error;
+      toast.error('Failed to import bookmarks');
+    }
+  };
+
+  const handleImportUrl = async (bookmarks: { title: string; url: string; description?: string; folder?: string; tags?: string[]; is_favorite?: boolean; }[]) => {
+    try {
+      const results = [];
+      for (const bookmarkData of bookmarks) {
+        try {
+          const result = await apiClient.createBookmark({
+            url: bookmarkData.url,
+            title: bookmarkData.title,
+            description: bookmarkData.description ?? null,
+            folder_id: null, // Will be handled by the modal if needed
+            favicon_url: null,
+            screenshot_url: null,
+            is_archived: false,
+            is_favorite: bookmarkData.is_favorite || false,
+            last_visited_at: null,
+            visit_count: 0
+          });
+          results.push(result);
+        } catch (error) {
+          console.error(`Failed to import bookmark ${bookmarkData.url}:`, error);
+        }
+      }
+      
+      if (results.length > 0) {
+        await loadData(); // Refresh the data
+        toast.success(`Successfully imported ${results.length} bookmarks!`);
+      }
+      
+      setShowImportUrlChecker(false);
+    } catch (error) {
+      console.error('URL import failed:', error);
+      toast.error('Failed to import URLs');
     }
   };
 
@@ -535,6 +587,34 @@ function BookmarkHubDashboardContent({ userId, userData }: BookmarkHubDashboardP
       }));
   };
 
+  // --- UPCOMING DEADLINES & ACTIVE GOALS PANEL ---
+  const now = new Date();
+  const upcomingItems = [
+    ...bookmarks
+      .filter(b => b.created_at)
+      .map(b => ({
+        id: b.id,
+        name: b.title,
+        type: 'Bookmark',
+        deadline: b.created_at,
+        goal: b.description || '',
+        status: 'active',
+        progress: 0,
+      })),
+    ...folders
+      .map(f => ({
+        id: f.id,
+        name: f.name,
+        type: 'Folder',
+        deadline: f.created_at,
+        goal: f.description || '',
+        status: 'active',
+        progress: 0,
+      })),
+  ]
+    .sort((a, b) => new Date(b.deadline || new Date()).getTime() - new Date(a.deadline || new Date()).getTime())
+    .slice(0, 5);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
@@ -563,200 +643,24 @@ function BookmarkHubDashboardContent({ userId, userData }: BookmarkHubDashboardP
   return (
     <>
       <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
-        {/* Sidebar */}
-        <div className={`${sidebarCollapsed ? 'w-16' : 'w-64'} bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 flex flex-col`}>
-          {/* Sidebar Header */}
-          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              {!sidebarCollapsed && (
-                <NextLink href="/dashboard">
-                  <h1 className="text-xl font-bold text-gray-900 dark:text-white cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                    BOOKMARKHUB
-                  </h1>
-                </NextLink>
-              )}
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              >
-                <Menu className="h-4 w-4" />
-              </Button>
-            </div>
-            {!sidebarCollapsed && (
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                Your digital workspace
-              </p>
-            )}
-          </div>
-
-          {/* Navigation */}
-          {!sidebarCollapsed && (
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
-                NAVIGATION
-              </h3>
-              <nav className="space-y-1">
-                <button 
-                  onClick={() => setSelectedCategory('all')}
-                  className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    selectedCategory === 'all' 
-                      ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300' 
-                      : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  <BarChart3 className="mr-3 h-4 w-4" />
-                  Dashboard
-                </button>
-                <button 
-                  onClick={() => window.location.href = '/analytics'}
-                  className="w-full flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                >
-                  <BarChart3 className="mr-3 h-4 w-4" />
-                  Analytics
-                </button>
-                <button 
-                  onClick={() => window.location.href = '/favorites'}
-                  className="w-full flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                >
-                  <Star className="mr-3 h-4 w-4" />
-                  Favorites
-                  <span className="ml-auto bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 text-xs rounded-full px-2 py-0.5">
-                    {favoriteBookmarks}
-                  </span>
-                </button>
-                <button 
-                  onClick={() => window.location.href = '/settings'}
-                  className="w-full flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                >
-                  <Settings className="mr-3 h-4 w-4" />
-                  Settings
-                </button>
-              </nav>
-            </div>
-          )}
-
-          {/* Categories */}
-          {!sidebarCollapsed && (
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
-                CATEGORIES
-              </h3>
-              <nav className="space-y-1">
-                {/* All Categories */}
-                <NextLink
-                  href="/category/all"
-                  className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-lg transition-colors text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
-                >
-                  <span>All</span>
-                  <span className="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 text-xs rounded-full px-2 py-0.5">
-                    {bookmarks.length}
-                  </span>
-                </NextLink>
-
-                {/* Development */}
-                <NextLink
-                  href="/category/development"
-                  className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-lg transition-colors text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
-                >
-                  <span>Development</span>
-                  <span className="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 text-xs rounded-full px-2 py-0.5">
-                    {bookmarks.filter(b => b.folder?.name?.toLowerCase() === 'development').length}
-                  </span>
-                </NextLink>
-
-                {/* Design */}
-                <NextLink
-                  href="/category/design"
-                  className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-lg transition-colors text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
-                >
-                  <span>Design</span>
-                  <span className="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 text-xs rounded-full px-2 py-0.5">
-                    {bookmarks.filter(b => b.folder?.name?.toLowerCase() === 'design').length}
-                  </span>
-                </NextLink>
-
-                {/* Productivity */}
-                <NextLink
-                  href="/category/productivity"
-                  className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-lg transition-colors text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
-                >
-                  <span>Productivity</span>
-                  <span className="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 text-xs rounded-full px-2 py-0.5">
-                    {bookmarks.filter(b => b.folder?.name?.toLowerCase() === 'productivity').length}
-                  </span>
-                </NextLink>
-
-                {/* Learning */}
-                <NextLink
-                  href="/category/learning"
-                  className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-lg transition-colors text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
-                >
-                  <span>Learning</span>
-                  <span className="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 text-xs rounded-full px-2 py-0.5">
-                    {bookmarks.filter(b => b.folder?.name?.toLowerCase() === 'learning').length}
-                  </span>
-                </NextLink>
-
-                {/* Entertainment */}
-                <NextLink
-                  href="/category/entertainment"
-                  className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-lg transition-colors text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
-                >
-                  <span>Entertainment</span>
-                  <span className="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 text-xs rounded-full px-2 py-0.5">
-                    {bookmarks.filter(b => b.folder?.name?.toLowerCase() === 'entertainment').length}
-                  </span>
-                </NextLink>
-
-                {/* Favorites */}
-                <NextLink
-                  href="/category/favorites"
-                  className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-lg transition-colors text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
-                >
-                  <span>Favorites</span>
-                  <span className="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 text-xs rounded-full px-2 py-0.5">
-                    {bookmarks.filter(b => b.is_favorite).length}
-                  </span>
-                </NextLink>
-              </nav>
-            </div>
-          )}
-
-          {/* Stats */}
-          {!sidebarCollapsed && (
-            <div className="p-4 flex-1">
-              <div className="space-y-3">
-                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
-                  <div className="text-xs text-gray-500 dark:text-gray-400">Total Bookmarks</div>
-                  <div className="text-lg font-semibold text-gray-900 dark:text-white">{totalBookmarks}</div>
-                </div>
-                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
-                  <div className="text-xs text-gray-500 dark:text-gray-400">This Month</div>
-                  <div className="text-lg font-semibold text-green-600 dark:text-green-400">+{thisMonthBookmarks}</div>
-                </div>
-                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
-                  <div className="text-xs text-gray-500 dark:text-gray-400">Favorites</div>
-                  <div className="text-lg font-semibold text-yellow-600 dark:text-yellow-400">{favoriteBookmarks}</div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Toggle Sidebar Button for collapsed state */}
-          {sidebarCollapsed && (
-            <div className="p-2">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="w-full"
-                onClick={() => setSidebarCollapsed(false)}
-              >
-                <Menu className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
-        </div>
+        {/* Enhanced Sidebar */}
+        <EnhancedSidebar
+          isCollapsed={sidebarCollapsed}
+          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+          bookmarks={bookmarks}
+          folders={folders}
+          tags={tags}
+          onNavigate={(path) => {
+            if (path === 'dna-profile' && onNavigate) {
+              // Use parent navigation handler if available
+              onNavigate(path);
+            } else {
+              window.location.href = path;
+            }
+          }}
+          currentPath={window.location.pathname}
+          onAddBookmark={() => setShowEnhancedDialog(true)}
+        />
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col">
@@ -789,9 +693,10 @@ function BookmarkHubDashboardContent({ userId, userData }: BookmarkHubDashboardP
 
           {/* Content Area */}
           <main className="flex-1 p-6 overflow-auto">
-            {/* Search and Actions Bar */}
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center space-x-3 flex-1">
+            {/* Actions Bar */}
+            <div className="flex items-center justify-between space-x-4 mb-8 px-2">
+              {/* Left Section - Menu Button */}
+              <div className="flex items-center">
                 <Button
                   variant="outline"
                   size="sm"
@@ -800,128 +705,118 @@ function BookmarkHubDashboardContent({ userId, userData }: BookmarkHubDashboardP
                 >
                   <Menu className="h-4 w-4" />
                 </Button>
-                
-                {/* Search Bar */}
-                <div className="relative flex-1 max-w-md">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <input
-                    type="text"
-                    placeholder="Search bookmarks, tags, notes..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                {/* Modern Filter Popover */}
-                <FilterPopover
-                  filters={filters}
-                  onFiltersChange={setFilters}
-                />
               </div>
 
-              <div className="flex items-center space-x-2">
-                {/* View Mode Navigation Buttons */}
-                <div className="flex items-center border border-gray-300 dark:border-gray-600 rounded-lg">
-                  {/* Grid View */}
-                  <Button
-                    variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setViewMode('grid')}
-                    className="p-2 rounded-r-none border-r border-gray-300 dark:border-gray-600"
-                    title="Grid View"
-                  >
-                    <Grid3X3 className="h-4 w-4" />
-                  </Button>
-
-                  {/* List View */}
-                  <Button
-                    variant={viewMode === 'list' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setViewMode('list')}
-                    className="p-2 rounded-none border-r border-gray-300 dark:border-gray-600"
-                    title="List View"
-                  >
-                    <List className="h-4 w-4" />
-                  </Button>
-
-                  {/* Folder View */}
-                  <Button
-                    variant={viewMode === 'folder' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setViewMode('folder')}
-                    className="p-2 rounded-none border-r border-gray-300 dark:border-gray-600"
-                    title="Folder View"
-                  >
-                    <FolderIcon className="h-4 w-4" />
-                  </Button>
-
-                  {/* Org Chart View */}
-                  <Button
-                    variant={viewMode === 'org-chart' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setViewMode('org-chart')}
-                    className="p-2 rounded-none border-r border-gray-300 dark:border-gray-600"
-                    title="Organizational Chart View"
-                  >
-                    <BarChart3 className="h-4 w-4" />
-                  </Button>
-
-                  {/* Compact View */}
-                  <Button
-                    variant={viewMode === 'compact' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setViewMode('compact')}
-                    className="p-2 rounded-none border-r border-gray-300 dark:border-gray-600"
-                    title="Compact View"
-                  >
-                    <Rows3 className="h-4 w-4" />
-                  </Button>
-
-                  {/* Kanban View */}
-                  <Button
-                    variant={viewMode === 'kanban' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setViewMode('kanban')}
-                    className="p-2 rounded-none border-r border-gray-300 dark:border-gray-600"
-                    title="Kanban View"
-                  >
-                    <Trello className="h-4 w-4" />
-                  </Button>
-
-                  {/* Timeline View */}
-                  <Button
-                    variant={viewMode === 'timeline' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setViewMode('timeline')}
-                    className="p-2 rounded-l-none"
-                    title="Timeline View"
-                  >
-                    <Calendar className="h-4 w-4" />
-                  </Button>
+              {/* Center Section - Search Bar + View Mode Selector */}
+              <div className="flex items-center space-x-4 flex-1 max-w-4xl">
+                {/* Search Bar */}
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search bookmarks..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm('')}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
 
-                <Button onClick={() => setShowEnhancedDialog(true)} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-black">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Bookmark
-                </Button>
+                {/* View Mode Selector */}
+                <div className="flex items-center border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm">
+                  <Button
+                    variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                    size="lg"
+                    onClick={() => setViewMode('grid')}
+                    className="p-4 rounded-r-none border-r border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    title="Grid View"
+                  >
+                    <LayoutGrid className="h-6 w-6" />
+                  </Button>
+                  <Button
+                    variant={viewMode === 'list' ? 'default' : 'ghost'}
+                    size="lg"
+                    onClick={() => setViewMode('list')}
+                    className="p-4 rounded-none border-r border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    title="List View"
+                  >
+                    <List className="h-6 w-6" />
+                  </Button>
+                  <Button
+                    variant={viewMode === 'compact' ? 'default' : 'ghost'}
+                    size="lg"
+                    onClick={() => setViewMode('compact')}
+                    className="p-4 rounded-none border-r border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    title="Compact View"
+                  >
+                    <AlignJustify className="h-6 w-6" />
+                  </Button>
+                  <Button
+                    variant={viewMode === 'kanban' ? 'default' : 'ghost'}
+                    size="lg"
+                    onClick={() => setViewMode('kanban')}
+                    className="p-4 rounded-none border-r border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    title="Kanban View"
+                  >
+                    <Kanban className="h-6 w-6" />
+                  </Button>
+                  <Button
+                    variant={viewMode === 'timeline' ? 'default' : 'ghost'}
+                    size="lg"
+                    onClick={() => setViewMode('timeline')}
+                    className="p-4 rounded-none border-r border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    title="Timeline View"
+                  >
+                    <Clock className="h-6 w-6" />
+                  </Button>
+                  <Button
+                    variant={viewMode === 'hierarchy' ? 'default' : 'ghost'}
+                    size="lg"
+                    onClick={() => setViewMode('hierarchy')}
+                    className="p-4 rounded-none border-r border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    title="Hierarchy View"
+                  >
+                    <FolderTree className="h-6 w-6" />
+                  </Button>
+                  <Button
+                    variant={viewMode === 'productivity' ? 'default' : 'ghost'}
+                    size="lg"
+                    onClick={() => setViewMode('productivity')}
+                    className="p-4 rounded-l-none hover:bg-gray-50 dark:hover:bg-gray-700"
+                    title="Productivity Goals"
+                  >
+                    <Target className="h-6 w-6" />
+                  </Button>
+                </div>
+              </div>
 
+              {/* Right Section - Action Buttons */}
+              <div className="flex items-center space-x-2">
                 <Button 
-                  variant="outline" 
-                  onClick={enterSelectionMode}
-                  className="border-blue-500 text-blue-600 hover:bg-blue-50"
-                  disabled={isSelectionMode}
-                  title={isSelectionMode ? 'Selection mode is active' : 'Enter selection mode to bulk delete, move, or manage bookmarks'}
+                  onClick={() => setShowEnhancedDialog(true)} 
+                  size="sm"
+                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold px-4 py-2 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 border-0"
                 >
-                  <CheckSquare className="h-4 w-4 mr-2" />
-                  {isSelectionMode ? 'Selection Active' : 'Select'}
+                  <Plus className="h-4 w-4 mr-2" />
+                  ADD BOOKMARK
                 </Button>
 
                 <Dialog open={showBulkImport} onOpenChange={setShowBulkImport}>
                   <DialogTrigger asChild>
-                    <Button variant="outline">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="bg-gradient-to-r from-emerald-50 to-emerald-100 hover:from-emerald-100 hover:to-emerald-200 text-emerald-700 font-semibold px-4 py-2 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 border-2 border-emerald-300 hover:border-emerald-400"
+                    >
                       <Upload className="h-4 w-4 mr-2" />
-                      Import URLs
+                      IMPORT URLS
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-4xl max-h-[80vh]">
@@ -933,6 +828,7 @@ function BookmarkHubDashboardContent({ userId, userData }: BookmarkHubDashboardP
                       onImport={handleBulkImport}
                       folders={folders}
                       tags={tags}
+                      existingBookmarks={bookmarks.map(b => ({ url: b.url, id: b.id, title: b.title }))}
                       onClose={() => setShowBulkImport(false)}
                     />
                   </DialogContent>
@@ -941,14 +837,37 @@ function BookmarkHubDashboardContent({ userId, userData }: BookmarkHubDashboardP
                 <BookmarkValidationModal
                   bookmarks={filteredAndSortedBookmarks}
                   trigger={
-                    <Button variant="outline">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="bg-gradient-to-r from-amber-50 to-amber-100 hover:from-amber-100 hover:to-amber-200 text-amber-700 font-semibold px-4 py-2 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 border-2 border-amber-300 hover:border-amber-400"
+                    >
                       <Shield className="h-4 w-4 mr-2" />
-                      Check Links
+                      CHECK LINKS
                     </Button>
                   }
                 />
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={enterSelectionMode}
+                  className="bg-gradient-to-r from-purple-50 to-purple-100 hover:from-purple-100 hover:to-purple-200 text-purple-700 font-semibold px-4 py-2 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 border-2 border-purple-300 hover:border-purple-400 flex items-center space-x-2"
+                >
+                  <CheckSquare className="h-4 w-4" />
+                  <span>BULK SELECT</span>
+                </Button>
               </div>
             </div>
+
+            {/* Enhanced Dialog Component */}
+            <EnhancedBookmarkDialog
+              open={showEnhancedDialog}
+              onOpenChange={setShowEnhancedDialog}
+              onSubmit={handleEnhancedBookmarkSubmit}
+              folders={folders}
+              tags={tags}
+            />
 
             <MassActionsToolbar 
               bookmarks={filteredAndSortedBookmarks}
@@ -975,8 +894,8 @@ function BookmarkHubDashboardContent({ userId, userData }: BookmarkHubDashboardP
                 currentFolderId={currentFolderId}
                 onFolderNavigate={setCurrentFolderId}
               />
-            ) : viewMode === 'org-chart' ? (
-              // Organizational Chart View Mode - folder hierarchy visualization
+            ) : viewMode === 'hierarchy' ? (
+              // Hierarchy View Mode - folder hierarchy visualization
               <FolderOrgChartView
                 folders={folders}
                 bookmarks={bookmarks}
@@ -1001,6 +920,8 @@ function BookmarkHubDashboardContent({ userId, userData }: BookmarkHubDashboardP
                 }}
                 loading={loading}
               />
+            ) : viewMode === 'productivity' ? (
+              <ProductivityDashboard userId={userId} />
             ) : viewMode === 'kanban' ? (
               <KanbanView
                 bookmarks={filteredAndSortedBookmarks}
@@ -1059,6 +980,45 @@ function BookmarkHubDashboardContent({ userId, userData }: BookmarkHubDashboardP
                 })}
               </div>
             )}
+
+            {/* Upcoming Deadlines & Active Goals Section - Add more spacing */}
+            <div className="mt-12 mb-8">
+              {upcomingItems.length > 0 && (
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">UPCOMING DEADLINES & ACTIVE GOALS</h2>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full rounded-lg">
+                      <thead>
+                        <tr className="border-b border-gray-200 dark:border-gray-700">
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Type</th>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Name</th>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Deadline</th>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Goal</th>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Status</th>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Progress</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {upcomingItems.map(item => (
+                          <tr key={item.type + '-' + item.id} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                            <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">{item.type}</td>
+                            <td className="px-4 py-3 text-gray-900 dark:text-gray-100">{item.name}</td>
+                            <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{item.deadline ? new Date(item.deadline).toLocaleDateString() : '-'}</td>
+                            <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{item.goal || '-'}</td>
+                            <td className="px-4 py-3">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                {item.status || 'active'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{typeof item.progress === 'number' ? `${item.progress}%` : '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
           </main>
         </div>
       </div>
@@ -1074,6 +1034,12 @@ function BookmarkHubDashboardContent({ userId, userData }: BookmarkHubDashboardP
           setSelectedBookmark(null);
         }}
         onUpdated={handleBookmarkUpdated}
+      />
+
+      <BookmarkImportModal
+        isOpen={showImportUrlChecker}
+        onClose={() => setShowImportUrlChecker(false)}
+        onImport={handleImportUrl}
       />
 
       <EnhancedBookmarkDialog
@@ -1094,10 +1060,10 @@ function BookmarkHubDashboardContent({ userId, userData }: BookmarkHubDashboardP
   );
 }
 
-export function BookmarkHubDashboard({ userId, userData }: BookmarkHubDashboardProps) {
+export function BookmarkHubDashboard({ userId, userData, onNavigate }: BookmarkHubDashboardProps) {
   return (
     <SelectionProvider>
-      <BookmarkHubDashboardContent userId={userId} userData={userData} />
+      <BookmarkHubDashboardContent userId={userId} userData={userData} onNavigate={onNavigate} />
     </SelectionProvider>
   );
 }

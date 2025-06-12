@@ -13,6 +13,16 @@ export interface BookmarkWithRelations extends Bookmark {
   folder?: Folder | null
   tags?: Tag[]
   preview_image?: string | null
+  deadline_date?: string | null
+  goal_description?: string | null
+  goal_type?: string | null
+  goal_status?: string | null
+  goal_priority?: string | null
+  goal_progress?: number | null
+  goal_notes?: string | null
+  goal_created_at?: string | null
+  goal_completed_at?: string | null
+  reminder_at?: string | null
 }
 
 export class BookmarkService {
@@ -21,9 +31,10 @@ export class BookmarkService {
   private originalUserId: string
 
   constructor(userId: string) {
-    // Store both original and normalized user IDs for debugging
+    // Store the original user ID and normalize it for database operations
     this.originalUserId = userId
-    this.userId = normalizeUserId(userId)
+    // Only normalize if it's not already a UUID (i.e., if it's a Clerk user ID)
+    this.userId = userId.startsWith('user_') ? normalizeUserId(userId) : userId
     
     // Use admin client on server side, or regular client with user context on client side
     const isServer = typeof window === 'undefined'
@@ -90,7 +101,9 @@ export class BookmarkService {
     // Transform the data to include tags properly
     return data?.map(bookmark => ({
       ...bookmark,
-      tags: bookmark.tags?.map((bt: unknown) => (bt as { tag: Tag }).tag).filter(Boolean) || []
+      tags: bookmark.tags?.map((bt: unknown) => (bt as { tag: Tag }).tag).filter(Boolean) || [],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      reminder_at: (bookmark as any).reminder_at || null
     })) || []
   }
 
@@ -121,7 +134,9 @@ export class BookmarkService {
     console.log('Successfully fetched bookmark:', id)
     return {
       ...data,
-      tags: data.tags?.map((bt: unknown) => (bt as { tag: Tag }).tag).filter(Boolean) || []
+      tags: data.tags?.map((bt: unknown) => (bt as { tag: Tag }).tag).filter(Boolean) || [],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      reminder_at: (data as any).reminder_at || null
     }
   }
 

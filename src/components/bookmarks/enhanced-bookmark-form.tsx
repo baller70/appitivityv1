@@ -135,7 +135,8 @@ export function EnhancedBookmarkForm({ bookmark, folders, tags, onSubmit, onCanc
             user_id: '',
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
-          }))
+          })),
+          reminder_at: null
         } as BookmarkWithRelations;
         onSubmit(newBookmark);
       }
@@ -208,6 +209,11 @@ export function EnhancedBookmarkForm({ bookmark, folders, tags, onSubmit, onCanc
                 <Label htmlFor="category" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   Category
                 </Label>
+                {folders.length === 0 && (
+                  <div className="text-xs text-red-600 dark:text-red-400 mb-2">
+                    No categories/folders available. Please create a folder first.
+                  </div>
+                )}
                 <Select
                   value={formData.folder_id}
                   onValueChange={(value) => setFormData(prev => ({ ...prev, folder_id: value }))}

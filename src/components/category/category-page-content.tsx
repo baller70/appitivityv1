@@ -575,8 +575,11 @@ export function CategoryPageContent({ categorySlug }: CategoryPageContentProps) 
             ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
             : "space-y-3"
           }>
-            {filteredBookmarks.map((bookmark) => (
-              viewMode === 'list' ? (
+            {filteredBookmarks.map((bookmark) => {
+              // Calculate total visits for percentage calculation
+              const totalVisits = bookmarks.reduce((sum, b) => sum + (b.visit_count || 0), 0);
+              
+              return viewMode === 'list' ? (
                 <BookmarkListItem
                   key={bookmark.id}
                   bookmark={bookmark}
@@ -593,9 +596,10 @@ export function CategoryPageContent({ categorySlug }: CategoryPageContentProps) 
                   onUpdated={handleBookmarkUpdated}
                   onDeleted={() => handleBookmarkDeleted(bookmark.id)}
                   onOpenDetail={() => handleOpenDetail(bookmark)}
+                  totalBookmarkVisits={totalVisits}
                 />
-              )
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

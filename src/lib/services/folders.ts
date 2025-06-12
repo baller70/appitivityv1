@@ -87,8 +87,12 @@ export class FolderService {
 
   // Create a new folder
   async createFolder(folder: Omit<FolderInsert, 'user_id'>): Promise<Folder> {
+    // Only include fields that exist in the current database schema
     const folderData = {
-      ...folder,
+      name: folder.name,
+      description: folder.description,
+      color: folder.color,
+      parent_id: folder.parent_id,
       user_id: this.userId
     }
     

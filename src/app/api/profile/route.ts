@@ -14,16 +14,20 @@ export async function POST(request: NextRequest) {
     }
 
     const { email, fullName } = await request.json()
-    const success = await ensureUserProfile(effectiveUserId, email, fullName)
+    const result = await ensureUserProfile(effectiveUserId, email, fullName)
     
-    if (!success) {
+    if (!result.success) {
       return NextResponse.json(
-        { error: 'Failed to create user profile' }, 
+        { error: result.error || 'Failed to create user profile' }, 
         { status: 500 }
       )
     }
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ 
+      success: true,
+      profile: result.profile,
+      userId: result.userId
+    })
   } catch (error) {
     console.error('Error ensuring user profile:', error)
     return NextResponse.json(

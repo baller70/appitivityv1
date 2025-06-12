@@ -2,6 +2,13 @@
 
 import { useEffect, useState } from 'react';
 
+// DISABLED: StagewiseToolbar temporarily disabled due to fetch errors
+export default function StagewiseToolbarWrapper() {
+  return <></>;
+}
+
+/*
+// Original implementation below (disabled)
 const StagewiseToolbarWrapper = () => {
   const [isClient, setIsClient] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'failed'>('connecting');
@@ -67,6 +74,7 @@ const StagewiseToolbarWrapper = () => {
 
   return <StagewiseClientOnly connectionStatus={connectionStatus} />;
 };
+*/
 
 // Separate component that loads Stagewise
 const StagewiseClientOnly = ({ connectionStatus }: { connectionStatus: string }) => {
@@ -145,6 +153,4 @@ const StagewiseClientOnly = ({ connectionStatus }: { connectionStatus: string })
   }, [connectionStatus]);
 
   return null;
-};
-
-export default StagewiseToolbarWrapper; 
+}; 

@@ -32,17 +32,34 @@ export function EnhancedSearchDashboard({ userId }: EnhancedSearchDashboardProps
   const [tags, setTags] = useState<TagType[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
+  const [useAI, setUseAI] = useState(true);
+  const [searchResults, setSearchResults] = useState<any>(null);
+  const [selectedIntent, setSelectedIntent] = useState<string>('find');
+  const [selectedTimeframe, setSelectedTimeframe] = useState<string>('all');
+  const [selectedContentType, setSelectedContentType] = useState<string>('all');
 
   const performSearch = useCallback(async (query: string) => {
     if (!query.trim()) {
       setBookmarks([]);
+      setSearchResults(null);
       return;
     }
 
     setIsLoading(true);
     try {
-      const results = await apiClient.searchBookmarks(query);
-      setBookmarks(results);
+      if (useAI) {
+        const results = await apiClient.aiSearchBookmarks(query, {
+          intent: selectedIntent,
+          timeframe: selectedTimeframe,
+          contentType: selectedContentType
+        });
+        setSearchResults(results);
+        setBookmarks(results.bookmarks || []);
+      } else {
+        const results = await apiClient.searchBookmarks(query);
+        setBookmarks(results);
+        setSearchResults(null);
+      }
       
       // Add to search history
       if (!searchHistory.includes(query)) {
@@ -54,7 +71,7 @@ export function EnhancedSearchDashboard({ userId }: EnhancedSearchDashboardProps
     } finally {
       setIsLoading(false);
     }
-  }, [userId, searchHistory]);
+  }, [useAI, selectedIntent, selectedTimeframe, selectedContentType, searchHistory]);
 
   useEffect(() => {
     if (searchQuery) {
@@ -114,6 +131,59 @@ export function EnhancedSearchDashboard({ userId }: EnhancedSearchDashboardProps
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 text-lg"
               />
+            </div>
+
+            {/* AI Toggle */}
+            <div className="flex items-center gap-4 mb-4">
+              <Button
+                variant={useAI ? "default" : "outline"}
+                size="sm"
+                onClick={() => setUseAI(!useAI)}
+                className="flex items-center gap-2"
+              >
+                <Sparkles className="h-4 w-4" />
+                AI Search
+              </Button>
+              
+              {useAI && (
+                <div className="flex gap-2">
+                  <select 
+                    value={selectedIntent} 
+                    onChange={(e) => setSelectedIntent(e.target.value)}
+                    className="px-3 py-1 border rounded text-sm"
+                  >
+                    <option value="find">Find</option>
+                    <option value="discover">Discover</option>
+                    <option value="research">Research</option>
+                    <option value="work">Work</option>
+                    <option value="learn">Learn</option>
+                  </select>
+                  
+                  <select 
+                    value={selectedTimeframe} 
+                    onChange={(e) => setSelectedTimeframe(e.target.value)}
+                    className="px-3 py-1 border rounded text-sm"
+                  >
+                    <option value="all">All Time</option>
+                    <option value="recent">Recent</option>
+                    <option value="week">This Week</option>
+                    <option value="month">This Month</option>
+                    <option value="year">This Year</option>
+                  </select>
+                  
+                  <select 
+                    value={selectedContentType} 
+                    onChange={(e) => setSelectedContentType(e.target.value)}
+                    className="px-3 py-1 border rounded text-sm"
+                  >
+                    <option value="all">All Content</option>
+                    <option value="articles">Articles</option>
+                    <option value="tools">Tools</option>
+                    <option value="documentation">Documentation</option>
+                    <option value="videos">Videos</option>
+                  </select>
+                </div>
+              )}
             </div>
 
             {/* Filters */}
@@ -191,6 +261,11 @@ export function EnhancedSearchDashboard({ userId }: EnhancedSearchDashboardProps
                     ({bookmarks.length} found)
                   </span>
                 )}
+                {useAI && searchResults && (
+                  <span className="ml-2 text-sm font-normal text-blue-600">
+                    Relevance: {Math.round(searchResults.relevanceScore * 100)}%
+                  </span>
+                )}
               </h2>
               
               {bookmarks.length > 0 && (
@@ -202,6 +277,71 @@ export function EnhancedSearchDashboard({ userId }: EnhancedSearchDashboardProps
                 </div>
               )}
             </div>
+
+            {/* AI Insights */}
+            {useAI && searchResults && (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-6">
+                {searchResults.suggestions.length > 0 && (
+                  <Card>
+                    <CardContent className="p-4">
+                      <h3 className="font-medium text-gray-900 dark:text-white mb-2">Suggestions</h3>
+                      <div className="space-y-1">
+                        {searchResults.suggestions.slice(0, 3).map((suggestion: string, index: number) => (
+                          <Button
+                            key={index}
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSearchQuery(suggestion)}
+                            className="text-xs justify-start p-1 h-auto"
+                          >
+                            {suggestion}
+                          </Button>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+                
+                {searchResults.relatedQueries.length > 0 && (
+                  <Card>
+                    <CardContent className="p-4">
+                      <h3 className="font-medium text-gray-900 dark:text-white mb-2">Related</h3>
+                      <div className="space-y-1">
+                        {searchResults.relatedQueries.slice(0, 3).map((query: string, index: number) => (
+                          <Button
+                            key={index}
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSearchQuery(query)}
+                            className="text-xs justify-start p-1 h-auto"
+                          >
+                            {query}
+                          </Button>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+                
+                {searchResults.contextMatches.length > 0 && (
+                  <Card>
+                    <CardContent className="p-4">
+                      <h3 className="font-medium text-gray-900 dark:text-white mb-2">Context</h3>
+                      <div className="flex flex-wrap gap-1">
+                        {searchResults.contextMatches.map((context: string, index: number) => (
+                          <span
+                            key={index}
+                            className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded"
+                          >
+                            {context}
+                          </span>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
 
             {/* Loading State */}
             {isLoading && (
@@ -216,19 +356,25 @@ export function EnhancedSearchDashboard({ userId }: EnhancedSearchDashboardProps
             {/* Results Grid */}
             {!isLoading && bookmarks.length > 0 && (
               <div className="grid gap-4">
-                {bookmarks.map((bookmark) => (
-                  <BookmarkCard
-                    key={bookmark.id}
-                    bookmark={bookmark}
-                    folders={folders}
-                    onUpdated={(updatedBookmark) => {
-                      setBookmarks(prev => prev.map(b => b.id === updatedBookmark.id ? updatedBookmark : b));
-                    }}
-                    onDeleted={() => {
-                      setBookmarks(prev => prev.filter(b => b.id !== bookmark.id));
-                    }}
-                  />
-                ))}
+                {bookmarks.map((bookmark) => {
+                  // Calculate total visits for percentage calculation
+                  const totalVisits = bookmarks.reduce((sum, b) => sum + (b.visit_count || 0), 0);
+                  
+                  return (
+                    <BookmarkCard
+                      key={bookmark.id}
+                      bookmark={bookmark}
+                      folders={folders}
+                      onUpdated={(updatedBookmark) => {
+                        setBookmarks(prev => prev.map(b => b.id === updatedBookmark.id ? updatedBookmark : b));
+                      }}
+                      onDeleted={() => {
+                        setBookmarks(prev => prev.filter(b => b.id !== bookmark.id));
+                      }}
+                      totalBookmarkVisits={totalVisits}
+                    />
+                  );
+                })}
               </div>
             )}
 

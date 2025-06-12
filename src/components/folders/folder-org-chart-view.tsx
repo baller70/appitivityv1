@@ -287,6 +287,26 @@ export function FolderOrgChartView({
     return Math.ceil(bookmarksCount / BOOKMARKS_PER_PAGE);
   };
 
+  // Calculate stats for the hierarchy levels
+  const stats = useMemo(() => {
+    const assignments = getHierarchyAssignments();
+    const assignmentMap = new Map(assignments.map((a: {folderId: string, levelId: string}) => [a.folderId, a.levelId]));
+    
+    const directorFolders = folders.filter(f => assignmentMap.get(f.id) === 'director').length;
+    const teamsFolders = folders.filter(f => assignmentMap.get(f.id) === 'teams').length;
+    const collaboratorsFolders = folders.filter(f => assignmentMap.get(f.id) === 'collaborators').length;
+    const unassignedFolders = folders.filter(f => !assignmentMap.has(f.id)).length;
+    const totalBookmarks = bookmarks.length;
+    
+    return {
+      directorFolders,
+      teamsFolders,
+      collaboratorsFolders,
+      unassignedFolders,
+      totalBookmarks
+    };
+  }, [folders, bookmarks, hierarchyAssignments]);
+
   // Filter and sort folders based on current filters
   const filteredAndSortedFolders = useMemo(() => {
     let filtered = folders;
@@ -367,26 +387,7 @@ export function FolderOrgChartView({
     return filtered;
   }, [bookmarks, searchTerm]);
 
-  // Calculate stats
-  const stats = useMemo(() => {
-    const assignments = getHierarchyAssignments();
-    const assignmentMap = new Map(assignments.map((a: {folderId: string, levelId: string}) => [a.folderId, a.levelId]));
-    
-    const directorFolders = filteredAndSortedFolders.filter(f => assignmentMap.get(f.id) === 'director').length;
-    const teamsFolders = filteredAndSortedFolders.filter(f => assignmentMap.get(f.id) === 'teams').length;
-    const collaboratorsFolders = filteredAndSortedFolders.filter(f => assignmentMap.get(f.id) === 'collaborators').length;
-    const unassignedFolders = filteredAndSortedFolders.filter(f => !assignmentMap.has(f.id)).length;
-    const totalBookmarks = filteredBookmarks.length;
 
-    return {
-      directorFolders,
-      teamsFolders,
-      collaboratorsFolders,
-      unassignedFolders,
-      totalFolders: filteredAndSortedFolders.length,
-      totalBookmarks
-    };
-  }, [filteredAndSortedFolders, filteredBookmarks, hierarchyAssignments]);
 
   return (
     <>
@@ -416,134 +417,36 @@ export function FolderOrgChartView({
 
           {/* Filtering and Controls Section */}
           <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-gray-200/60 dark:border-gray-700/60 p-6 mb-8 shadow-lg">
-            {/* Header with Stats */}
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                  HIERARCHY MANAGEMENT
-                </h2>
-                <p className="text-gray-600 dark:text-gray-400 mt-1">
-                  Filter and organize your folders across organizational levels
-                </p>
+            {/* Stats Overview */}
+            <div className="flex items-center space-x-4 text-sm">
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                <span className="text-gray-600 dark:text-gray-400">
+                  <span className="font-semibold text-gray-900 dark:text-white">{stats.totalFolders}</span> folders
+                </span>
               </div>
-
-              {/* Stats Overview */}
-              <div className="flex items-center space-x-4 text-sm">
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-                  <span className="text-gray-600 dark:text-gray-400">
-                    <span className="font-semibold text-gray-900 dark:text-white">{stats.directorFolders}</span> director
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
-                  <span className="text-gray-600 dark:text-gray-400">
-                    <span className="font-semibold text-gray-900 dark:text-white">{stats.teamsFolders}</span> teams
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                  <span className="text-gray-600 dark:text-gray-400">
-                    <span className="font-semibold text-gray-900 dark:text-white">{stats.collaboratorsFolders}</span> collaborators
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
-                  <span className="text-gray-600 dark:text-gray-400">
-                    <span className="font-semibold text-gray-900 dark:text-white">{stats.unassignedFolders}</span> unassigned
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                  <span className="text-gray-600 dark:text-gray-400">
-                    <span className="font-semibold text-gray-900 dark:text-white">{stats.totalBookmarks}</span> bookmarks
-                  </span>
-                </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
+                <span className="text-gray-600 dark:text-gray-400">
+                  <span className="font-semibold text-gray-900 dark:text-white">{stats.assignedFolders}</span> assigned
+                </span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
+                <span className="text-gray-600 dark:text-gray-400">
+                  <span className="font-semibold text-gray-900 dark:text-white">{stats.unassignedFolders}</span> unassigned
+                </span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                <span className="text-gray-600 dark:text-gray-400">
+                  <span className="font-semibold text-gray-900 dark:text-white">{stats.totalBookmarks}</span> bookmarks
+                </span>
               </div>
             </div>
 
-            {/* Search and Filter Controls */}
-            <div className="flex flex-col lg:flex-row gap-4">
-              {/* Search */}
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Search folders and bookmarks..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-
-              {/* Hierarchy Filter */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="min-w-40">
-                    <Filter className="h-4 w-4 mr-2" />
-                    {hierarchyFilter === 'all' ? 'All Levels' : 
-                     hierarchyFilter === 'unassigned' ? 'Unassigned' :
-                     hierarchySections.find(l => l.id === hierarchyFilter)?.title || 'Filter'}
-                    <ChevronDown className="h-4 w-4 ml-2" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuCheckboxItem
-                    checked={hierarchyFilter === 'all'}
-                    onCheckedChange={() => setHierarchyFilter('all')}
-                  >
-                    All Levels
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuSeparator />
-                  {hierarchySections.map((level) => (
-                    <DropdownMenuCheckboxItem
-                      key={level.id}
-                      checked={hierarchyFilter === level.id}
-                      onCheckedChange={() => setHierarchyFilter(level.id as any)}
-                    >
-                      {React.createElement(getIconForSection(level.iconName), { className: "h-4 w-4 mr-2" })}
-                      {level.title}
-                    </DropdownMenuCheckboxItem>
-                  ))}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuCheckboxItem
-                    checked={hierarchyFilter === 'unassigned'}
-                    onCheckedChange={() => setHierarchyFilter('unassigned')}
-                  >
-                    Unassigned
-                  </DropdownMenuCheckboxItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              {/* Sort Options */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="min-w-40">
-                    {sortOrder === 'asc' ? <SortAsc className="h-4 w-4 mr-2" /> : <SortDesc className="h-4 w-4 mr-2" />}
-                    Sort by {sortBy === 'name' ? 'Name' : sortBy === 'bookmarks' ? 'Bookmarks' : sortBy === 'recent' ? 'Recent' : 'Alphabetical'}
-                    <ChevronDown className="h-4 w-4 ml-2" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={() => setSortBy('name')}>
-                    Sort by Name
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSortBy('bookmarks')}>
-                    Sort by Bookmark Count
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSortBy('recent')}>
-                    Sort by Recent
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSortBy('alphabetical')}>
-                    Sort Alphabetically
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}>
-                    {sortOrder === 'asc' ? 'Descending' : 'Ascending'}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              {/* Manage Hierarchy Button */}
+            {/* Manage Hierarchy Button */}
+            <div className="flex justify-end">
               <Button
                 onClick={() => setIsHierarchyManagerOpen(true)}
                 className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"

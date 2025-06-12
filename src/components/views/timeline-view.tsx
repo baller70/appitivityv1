@@ -132,10 +132,10 @@ function CompactBookmarkCard({ bookmark, onFavorite, onClick, index }: CompactBo
     >
       <div 
         onClick={() => onClick?.(bookmark)}
-        className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-all duration-200 border border-transparent hover:border-gray-200 dark:hover:border-gray-700"
+        className="flex items-center space-x-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 cursor-pointer transition-all duration-200 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm"
       >
         {/* Favicon */}
-        <div className="w-6 h-6 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded flex-shrink-0">
+        <div className="w-7 h-7 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-md flex-shrink-0 border border-gray-200 dark:border-gray-600">
           <img 
             src={getFaviconUrl(bookmark.url)} 
             alt=""
@@ -151,8 +151,10 @@ function CompactBookmarkCard({ bookmark, onFavorite, onClick, index }: CompactBo
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between">
-            <h4 className="font-medium text-sm text-gray-900 dark:text-white truncate pr-2">
-              {bookmark.title}
+            <h4 className="font-semibold text-sm text-gray-900 dark:text-white truncate pr-2 leading-tight">
+              {bookmark.title.split(' ').map(word => 
+                word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+              ).join(' ')}
             </h4>
             <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
               <Button
@@ -162,10 +164,10 @@ function CompactBookmarkCard({ bookmark, onFavorite, onClick, index }: CompactBo
                   e.stopPropagation();
                   onFavorite?.(bookmark);
                 }}
-                className={`h-5 w-5 p-0 ${
+                className={`h-6 w-6 p-0 rounded-md ${
                   bookmark.is_favorite 
-                    ? 'text-red-500' 
-                    : 'text-gray-400 hover:text-red-500'
+                    ? 'text-red-500 bg-red-50 dark:bg-red-900/20' 
+                    : 'text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'
                 }`}
               >
                 <Heart className={`h-3 w-3 ${bookmark.is_favorite ? 'fill-current' : ''}`} />
@@ -177,13 +179,13 @@ function CompactBookmarkCard({ bookmark, onFavorite, onClick, index }: CompactBo
                   e.stopPropagation();
                   window.open(bookmark.url, '_blank');
                 }}
-                className="h-5 w-5 p-0 text-gray-400 hover:text-blue-500"
+                className="h-6 w-6 p-0 rounded-md text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20"
               >
-                <ExternalLink className="h-2.5 w-2.5" />
+                <ExternalLink className="h-3 w-3" />
               </Button>
             </div>
           </div>
-          <p className="text-xs text-gray-500 truncate">
+          <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
             {getDomainFromUrl(bookmark.url)}
           </p>
         </div>
@@ -309,6 +311,8 @@ function BookmarkAssignmentDialog({
   onRemoveBookmark 
 }: BookmarkAssignmentDialogProps) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedBookmarks, setSelectedBookmarks] = useState<Set<string>>(new Set());
+  const [filterSegment, setFilterSegment] = useState<string>('all');
 
   const getBookmarkSegment = (bookmarkId: string) => {
     return segments.find(segment => segment.bookmarkIds.includes(bookmarkId));
@@ -328,38 +332,155 @@ function BookmarkAssignmentDialog({
   };
 
   const filteredBookmarks = useMemo(() => {
-    return bookmarks.filter(bookmark =>
-      bookmark.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      bookmark.url.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (bookmark.description && bookmark.description.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
-  }, [bookmarks, searchTerm]);
+    return bookmarks.filter(bookmark => {
+      const matchesSearch = bookmark.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           bookmark.url.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (bookmark.description && bookmark.description.toLowerCase().includes(searchTerm.toLowerCase()));
+      
+      const currentSegment = getBookmarkSegment(bookmark.id);
+      const matchesFilter = filterSegment === 'all' || 
+                           (filterSegment === 'unassigned' && !currentSegment) ||
+                           (currentSegment && currentSegment.id === filterSegment);
+      
+      return matchesSearch && matchesFilter;
+    });
+  }, [bookmarks, searchTerm, filterSegment, segments]);
+
+  const handleSelectAll = () => {
+    if (selectedBookmarks.size === filteredBookmarks.length) {
+      setSelectedBookmarks(new Set());
+    } else {
+      setSelectedBookmarks(new Set(filteredBookmarks.map(b => b.id)));
+    }
+  };
+
+  const handleBulkAssign = (segmentId: string) => {
+    selectedBookmarks.forEach(bookmarkId => {
+      const currentSegment = getBookmarkSegment(bookmarkId);
+      if (currentSegment) {
+        onRemoveBookmark(bookmarkId, currentSegment.id);
+      }
+      if (segmentId) {
+        onAssignBookmark(bookmarkId, segmentId);
+      }
+    });
+    setSelectedBookmarks(new Set());
+  };
+
+  const toggleBookmarkSelection = (bookmarkId: string) => {
+    const newSelection = new Set(selectedBookmarks);
+    if (newSelection.has(bookmarkId)) {
+      newSelection.delete(bookmarkId);
+    } else {
+      newSelection.add(bookmarkId);
+    }
+    setSelectedBookmarks(newSelection);
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-4xl max-h-[80vh] overflow-hidden">
+      <DialogContent className="sm:max-w-5xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Manage Timeline Assignments</DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <Input
-              placeholder="Search bookmarks..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9"
-            />
+        <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
+          {/* Search and Filter Controls */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Search bookmarks..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            
+            <select
+              value={filterSegment}
+              onChange={(e) => setFilterSegment(e.target.value)}
+              className="px-3 py-2 border rounded-md bg-white dark:bg-gray-800 text-sm"
+            >
+              <option value="all">All Bookmarks</option>
+              <option value="unassigned">Unassigned</option>
+              {segments.map((segment) => (
+                <option key={segment.id} value={segment.id}>
+                  {segment.name}
+                </option>
+              ))}
+            </select>
           </div>
 
-          <div className="overflow-y-auto max-h-96 space-y-2">
+          {/* Bulk Actions */}
+          {selectedBookmarks.size > 0 && (
+            <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                {selectedBookmarks.size} bookmark{selectedBookmarks.size > 1 ? 's' : ''} selected
+              </span>
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-blue-700 dark:text-blue-300">Assign to:</span>
+                {segments.map((segment) => (
+                  <Button
+                    key={segment.id}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleBulkAssign(segment.id)}
+                    className="text-xs"
+                  >
+                    {segment.name}
+                  </Button>
+                ))}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleBulkAssign('')}
+                  className="text-xs"
+                >
+                  Unassign
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Bookmarks List */}
+          <div className="flex-1 overflow-y-auto space-y-2">
+            {/* Select All Header */}
+            <div className="flex items-center justify-between p-3 border-b">
+              <div className="flex items-center space-x-3">
+                <input
+                  type="checkbox"
+                  checked={selectedBookmarks.size === filteredBookmarks.length && filteredBookmarks.length > 0}
+                  onChange={handleSelectAll}
+                  className="rounded"
+                />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Select All ({filteredBookmarks.length})
+                </span>
+              </div>
+              <span className="text-xs text-gray-500">
+                {selectedBookmarks.size} selected
+              </span>
+            </div>
+
             {filteredBookmarks.map((bookmark) => {
               const currentSegment = getBookmarkSegment(bookmark.id);
+              const isSelected = selectedBookmarks.has(bookmark.id);
               
               return (
-                <div key={bookmark.id} className="flex items-center justify-between p-3 border rounded-lg">
+                <div 
+                  key={bookmark.id} 
+                  className={`flex items-center justify-between p-3 border rounded-lg transition-colors ${
+                    isSelected ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700' : ''
+                  }`}
+                >
                   <div className="flex items-center space-x-3 flex-1 min-w-0">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => toggleBookmarkSelection(bookmark.id)}
+                      className="rounded"
+                    />
                     <div className="w-8 h-8 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded">
                       <img 
                         src={getFaviconUrl(bookmark.url)} 
@@ -374,7 +495,9 @@ function BookmarkAssignmentDialog({
                     </div>
                     <div className="flex-1 min-w-0">
                       <h4 className="font-medium text-sm text-gray-900 dark:text-white truncate">
-                        {bookmark.title}
+                        {bookmark.title.split(' ').map(word => 
+                          word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+                        ).join(' ')}
                       </h4>
                       <p className="text-xs text-gray-500 truncate">
                         {getDomainFromUrl(bookmark.url)}
@@ -400,7 +523,7 @@ function BookmarkAssignmentDialog({
                           onAssignBookmark(bookmark.id, segmentId);
                         }
                       }}
-                      className="text-sm border rounded px-2 py-1 bg-white dark:bg-gray-800"
+                      className="text-sm border rounded px-2 py-1 bg-white dark:bg-gray-800 min-w-[120px]"
                     >
                       <option value="">Unassigned</option>
                       {segments.map((segment) => (
@@ -413,9 +536,17 @@ function BookmarkAssignmentDialog({
                 </div>
               );
             })}
+
+            {filteredBookmarks.length === 0 && (
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No bookmarks found</p>
+                <p className="text-xs">Try adjusting your search or filter</p>
+              </div>
+            )}
           </div>
 
-          <div className="flex justify-end pt-4">
+          <div className="flex justify-end pt-4 border-t">
             <Button onClick={onClose}>
               Done
             </Button>
@@ -691,39 +822,41 @@ export function TimelineView({
                   <p className="text-xs">Use "Manage Timeline" to add bookmarks</p>
                 </div>
               ) : (
-                <div className="space-y-1">
-                  <AnimatePresence>
-                    {displayBookmarks.map((bookmark, index) => (
-                      <CompactBookmarkCard
-                        key={bookmark.id}
-                        bookmark={bookmark}
-                        onFavorite={onFavorite}
-                        onClick={handleBookmarkClick}
-                        index={index}
-                      />
-                    ))}
-                  </AnimatePresence>
-                  
-                  {hasMore && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => toggleSegmentExpansion(segment.id)}
-                      className="w-full mt-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
-                    >
-                      {isExpanded ? (
-                        <>
-                          <ChevronUp className="h-4 w-4 mr-1" />
-                          Show Less
-                        </>
-                      ) : (
-                        <>
-                          <ChevronDown className="h-4 w-4 mr-1" />
-                          Show {segmentBookmarks.length - maxDisplay} More
-                        </>
-                      )}
-                    </Button>
-                  )}
+                <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 bg-gray-50/30 dark:bg-slate-800/30">
+                  <div className="space-y-1">
+                    <AnimatePresence>
+                      {displayBookmarks.map((bookmark, index) => (
+                        <CompactBookmarkCard
+                          key={bookmark.id}
+                          bookmark={bookmark}
+                          onFavorite={onFavorite}
+                          onClick={handleBookmarkClick}
+                          index={index}
+                        />
+                      ))}
+                    </AnimatePresence>
+                    
+                    {hasMore && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleSegmentExpansion(segment.id)}
+                        className="w-full mt-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                      >
+                        {isExpanded ? (
+                          <>
+                            <ChevronUp className="h-4 w-4 mr-1" />
+                            Show Less
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown className="h-4 w-4 mr-1" />
+                            Show {segmentBookmarks.length - maxDisplay} More
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -860,7 +993,7 @@ export function TimelineView({
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="font-medium text-sm text-gray-900 dark:text-white truncate">
-                      {bookmark.title}
+                      {bookmark.title.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')}
                     </h4>
                     <p className="text-xs text-gray-500 truncate">
                       {getDomainFromUrl(bookmark.url)}

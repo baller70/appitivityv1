@@ -22,7 +22,8 @@ export function BookmarkForm({ bookmark, folders, onSubmit, onCancel }: Bookmark
     title: bookmark?.title || '',
     url: bookmark?.url || '',
     description: bookmark?.description || '',
-    folder_id: bookmark?.folder_id || 'no-folder'
+    folder_id: bookmark?.folder_id || 'no-folder',
+    reminder_at: bookmark?.reminder_at ? bookmark.reminder_at.split('T')[0] : ''
   });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -61,7 +62,8 @@ export function BookmarkForm({ bookmark, folders, onSubmit, onCancel }: Bookmark
         url: formData.url,
         description: formData.description.trim(),
         folder_id: formData.folder_id && formData.folder_id !== 'no-folder' ? formData.folder_id : null,
-        favicon_url: metadata?.favicon_url || null
+        favicon_url: metadata?.favicon_url || null,
+        reminder_at: formData.reminder_at ? new Date(formData.reminder_at).toISOString() : null
       };
 
       if (bookmark) {
@@ -73,7 +75,7 @@ export function BookmarkForm({ bookmark, folders, onSubmit, onCancel }: Bookmark
         const newBookmark = {
           id: Date.now().toString(), // Temporary ID
           ...bookmarkData,
-          user_id: '',
+          user_id: 'temp', // Placeholder, will be set by server
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           last_visited_at: null,
@@ -157,6 +159,16 @@ export function BookmarkForm({ bookmark, folders, onSubmit, onCancel }: Bookmark
             ))}
           </SelectContent>
         </Select>
+      </div>
+
+      <div>
+        <Label htmlFor="reminder_at">Reminder</Label>
+        <Input
+          id="reminder_at"
+          type="date"
+          value={formData.reminder_at}
+          onChange={e => setFormData(prev => ({ ...prev, reminder_at: e.target.value }))}
+        />
       </div>
 
       <div className="flex gap-2">

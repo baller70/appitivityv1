@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { BookmarkService } from '../../../lib/services/bookmarks'
 import { supabaseAdmin } from '../../../lib/supabase'
 import { normalizeUserId } from '../../../lib/uuid-compat'
+import { ensureUserProfile } from '../../../lib/fix-database'
 
 export async function GET() {
   try {
     const { userId } = await auth()
+    const user = await currentUser()
     
     // Handle both authenticated users and demo mode
     const effectiveUserId = userId || 'demo-user'
@@ -15,7 +17,34 @@ export async function GET() {
       return NextResponse.json({ error: 'No user session' }, { status: 401 })
     }
 
-    const bookmarkService = new BookmarkService(effectiveUserId)
+    // Ensure user profile exists and get the actual profile ID
+    let actualUserId = effectiveUserId
+    if (user) {
+      const email = user.emailAddresses?.[0]?.emailAddress || ''
+      const fullName = user.firstName || ''
+      const profileResult = await ensureUserProfile(effectiveUserId, email, fullName)
+      
+      if (!profileResult.success) {
+        return NextResponse.json(
+          { error: 'Failed to ensure user profile', details: profileResult.error }, 
+          { status: 500 }
+        )
+      }
+      
+      // Use the actual profile ID from the database
+      if (profileResult.userId) {
+        actualUserId = profileResult.userId
+      }
+    } else {
+      // For demo mode, still need to ensure we have the right user ID
+      const profileResult = await ensureUserProfile(effectiveUserId, '', '')
+      if (profileResult.success && profileResult.userId) {
+        actualUserId = profileResult.userId
+      }
+    }
+
+    console.log('GET bookmarks - using actualUserId:', actualUserId)
+    const bookmarkService = new BookmarkService(actualUserId)
     const bookmarks = await bookmarkService.getBookmarks()
     
     return NextResponse.json(bookmarks)
@@ -31,6 +60,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const { userId } = await auth()
+    const user = await currentUser()
     
     // Handle both authenticated users and demo mode
     const effectiveUserId = userId || 'demo-user'
@@ -40,58 +70,45 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await request.json()
-    const normalizedUserId = normalizeUserId(effectiveUserId)
     
-    // Extract tagIds from data since it's not a bookmarks table column
+    // Extract tagIds from data since it's a separate parameter in createBookmark
     const { tagIds, ...bookmarkData } = data
     
-    if (!supabaseAdmin) {
-      return NextResponse.json(
-        { error: 'Database connection not available' }, 
-        { status: 500 }
-      )
-    }
-    
-    // Use direct database insert with admin client to bypass RLS
-    const { data: bookmark, error } = await supabaseAdmin
-      .from('bookmarks')
-      .insert({
-        ...bookmarkData,
-        user_id: normalizedUserId
-      })
-      .select()
-      .single()
-
-    if (error) {
-      console.error('Database error:', error)
-      return NextResponse.json(
-        { error: `Failed to create bookmark: ${error.message}` }, 
-        { status: 500 }
-      )
-    }
-
-    // Add tags if provided
-    if (tagIds && tagIds.length > 0) {
-      const bookmarkTags = tagIds.map((tagId: string) => ({
-        bookmark_id: bookmark.id,
-        tag_id: tagId
-      }))
-
-      const { error: tagError } = await supabaseAdmin
-        .from('bookmark_tags')
-        .insert(bookmarkTags)
-
-      if (tagError) {
-        console.error('Tag error:', tagError)
-        // Don't fail the whole operation for tag errors
+    // Ensure user profile exists and get the actual profile ID
+    let actualUserId = effectiveUserId
+    if (user) {
+      const email = user.emailAddresses?.[0]?.emailAddress || ''
+      const fullName = user.firstName || ''
+      const profileResult = await ensureUserProfile(effectiveUserId, email, fullName)
+      
+      if (!profileResult.success) {
+        return NextResponse.json(
+          { error: 'Failed to ensure user profile', details: profileResult.error }, 
+          { status: 500 }
+        )
+      }
+      
+      // Use the actual profile ID from the database
+      if (profileResult.userId) {
+        actualUserId = profileResult.userId
+      }
+    } else {
+      // For demo mode, still need to ensure we have the right user ID
+      const profileResult = await ensureUserProfile(effectiveUserId, '', '')
+      if (profileResult.success && profileResult.userId) {
+        actualUserId = profileResult.userId
       }
     }
     
+    console.log('POST bookmark - using actualUserId:', actualUserId)
+    const bookmarkService = new BookmarkService(actualUserId)
+    const bookmark = await bookmarkService.createBookmark(bookmarkData, tagIds)
+    
     return NextResponse.json(bookmark)
   } catch (error) {
-    console.error('Error creating bookmark:', error)
+    console.error('Database error:', error)
     return NextResponse.json(
-      { error: 'Failed to create bookmark' }, 
+      { error: `Failed to create bookmark: ${error instanceof Error ? error.message : 'Unknown error'}` }, 
       { status: 500 }
     )
   }
@@ -100,6 +117,7 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const { userId } = await auth()
+    const user = await currentUser()
     
     // Handle both authenticated users and demo mode
     const effectiveUserId = userId || 'demo-user'
@@ -115,41 +133,41 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Bookmark ID is required' }, { status: 400 })
     }
 
-    const normalizedUserId = normalizeUserId(effectiveUserId)
-    
-    if (!supabaseAdmin) {
-      return NextResponse.json(
-        { error: 'Database connection not available' }, 
-        { status: 500 }
-      )
+    // Ensure user profile exists and get the actual profile ID
+    let actualUserId = effectiveUserId
+    if (user) {
+      const email = user.emailAddresses?.[0]?.emailAddress || ''
+      const fullName = user.firstName || ''
+      const profileResult = await ensureUserProfile(effectiveUserId, email, fullName)
+      
+      if (!profileResult.success) {
+        return NextResponse.json(
+          { error: 'Failed to ensure user profile', details: profileResult.error }, 
+          { status: 500 }
+        )
+      }
+      
+      // Use the actual profile ID from the database - this is critical for bookmark operations
+      if (profileResult.userId) {
+        actualUserId = profileResult.userId
+      }
+    } else {
+      // For demo mode, still need to ensure we have the right user ID
+      const profileResult = await ensureUserProfile(effectiveUserId, '', '')
+      if (profileResult.success && profileResult.userId) {
+        actualUserId = profileResult.userId
+      }
     }
     
-    // Update bookmark using admin client to bypass RLS
-    const { data: bookmark, error } = await supabaseAdmin
-      .from('bookmarks')
-      .update(updateData)
-      .eq('id', id)
-      .eq('user_id', normalizedUserId)
-      .select()
-      .single()
-
-    if (error) {
-      console.error('Database error:', error)
-      return NextResponse.json(
-        { error: `Failed to update bookmark: ${error.message}` }, 
-        { status: 500 }
-      )
-    }
-
-    if (!bookmark) {
-      return NextResponse.json({ error: 'Bookmark not found' }, { status: 404 })
-    }
+    console.log('PUT bookmark - using actualUserId:', actualUserId, 'for bookmark:', id)
+    const bookmarkService = new BookmarkService(actualUserId)
+    const bookmark = await bookmarkService.updateBookmark(id, updateData)
     
     return NextResponse.json(bookmark)
   } catch (error) {
-    console.error('Error updating bookmark:', error)
+    console.error('Database error:', error)
     return NextResponse.json(
-      { error: 'Failed to update bookmark' }, 
+      { error: `Failed to update bookmark: ${error instanceof Error ? error.message : 'Unknown error'}` }, 
       { status: 500 }
     )
   }
@@ -158,6 +176,7 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const { userId } = await auth()
+    const user = await currentUser()
     
     // Handle both authenticated users and demo mode
     const effectiveUserId = userId || 'demo-user'
@@ -174,74 +193,51 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Bookmark ID or IDs are required' }, { status: 400 })
     }
 
-    const normalizedUserId = normalizeUserId(effectiveUserId)
-    
-    if (!supabaseAdmin) {
-      return NextResponse.json(
-        { error: 'Database connection not available' }, 
-        { status: 500 }
-      )
+    // Ensure user profile exists and get the actual profile ID
+    let actualUserId = effectiveUserId
+    if (user) {
+      const email = user.emailAddresses?.[0]?.emailAddress || ''
+      const fullName = user.firstName || ''
+      const profileResult = await ensureUserProfile(effectiveUserId, email, fullName)
+      
+      if (!profileResult.success) {
+        return NextResponse.json(
+          { error: 'Failed to ensure user profile', details: profileResult.error }, 
+          { status: 500 }
+        )
+      }
+      
+      // Use the actual profile ID from the database
+      if (profileResult.userId) {
+        actualUserId = profileResult.userId
+      }
+    } else {
+      // For demo mode, still need to ensure we have the right user ID
+      const profileResult = await ensureUserProfile(effectiveUserId, '', '')
+      if (profileResult.success && profileResult.userId) {
+        actualUserId = profileResult.userId
+      }
     }
+    
+    console.log('DELETE bookmark - using actualUserId:', actualUserId)
+    const bookmarkService = new BookmarkService(actualUserId)
     
     if (ids) {
       // Bulk delete
       const bookmarkIds = ids.split(',')
-      
-      // Delete bookmark_tags first (due to foreign key constraints)
-      await supabaseAdmin
-        .from('bookmark_tags')
-        .delete()
-        .in('bookmark_id', bookmarkIds)
-      
-      // Delete bookmarks
-      const { error } = await supabaseAdmin
-        .from('bookmarks')
-        .delete()
-        .in('id', bookmarkIds)
-        .eq('user_id', normalizedUserId)
-
-      if (error) {
-        console.error('Database error:', error)
-        return NextResponse.json(
-          { error: `Failed to delete bookmarks: ${error.message}` }, 
-          { status: 500 }
-        )
+      for (const bookmarkId of bookmarkIds) {
+        await bookmarkService.deleteBookmark(bookmarkId)
       }
-
-      return NextResponse.json({ 
-        message: `Successfully deleted ${bookmarkIds.length} bookmarks` 
-      })
-    } else {
+      return NextResponse.json({ success: true, deletedCount: bookmarkIds.length })
+    } else if (id) {
       // Single delete
-      // Delete bookmark_tags first (due to foreign key constraints)
-      await supabaseAdmin
-        .from('bookmark_tags')
-        .delete()
-        .eq('bookmark_id', id!)
-      
-      // Delete bookmark
-      const { error } = await supabaseAdmin
-        .from('bookmarks')
-        .delete()
-        .eq('id', id!)
-        .eq('user_id', normalizedUserId)
-
-      if (error) {
-        console.error('Database error:', error)
-        return NextResponse.json(
-          { error: `Failed to delete bookmark: ${error.message}` }, 
-          { status: 500 }
-        )
-      }
-
-      return NextResponse.json({ 
-        message: 'Bookmark deleted successfully' 
-      })
+      await bookmarkService.deleteBookmark(id)
+      return NextResponse.json({ success: true })
     }
   } catch (error) {
-    console.error('Error deleting bookmark(s):', error)
+    console.error('Database error:', error)
     return NextResponse.json(
-      { error: 'Failed to delete bookmark(s)' }, 
+      { error: `Failed to delete bookmark: ${error instanceof Error ? error.message : 'Unknown error'}` }, 
       { status: 500 }
     )
   }

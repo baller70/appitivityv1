@@ -19,29 +19,64 @@ const supabaseAdmin = createClient<Database>(
 )
 
 /**
- * Create a user profile if it doesn't exist
+ * Create a user profile if it doesn't exist and return the actual user ID to use
  */
-export async function ensureUserProfile(userId: string, email: string, fullName?: string) {
+export async function ensureUserProfile(userId: string, email: string, fullName?: string): Promise<{
+  success: boolean
+  profile?: { id: string; email: string }
+  userId?: string // The actual user ID to use for database operations
+  error?: string
+  details?: any
+}> {
   const normalizedUserId = normalizeUserId(userId)
-  console.log('Ensuring profile for user:', normalizedUserId, 'from Clerk ID:', userId)
+  console.log('Ensuring profile for user:', normalizedUserId, 'from Clerk ID:', userId, 'email:', email, 'fullName:', fullName)
   
   try {
-    // Check if profile exists
-    const { data: existingProfile, error: fetchError } = await supabaseAdmin
+    // First check if profile exists by email (most reliable identifier)
+    const { data: profileByEmail, error: fetchByEmailError } = await supabaseAdmin
       .from('profiles')
-      .select('id')
+      .select('id, email')
+      .eq('email', email)
+      .single()
+
+    if (fetchByEmailError && fetchByEmailError.code !== 'PGRST116') {
+      console.error('Error checking profile by email:', fetchByEmailError)
+      throw fetchByEmailError
+    }
+
+    if (profileByEmail) {
+      if (profileByEmail.id !== normalizedUserId) {
+        console.log('Found profile with same email but different ID. Expected:', normalizedUserId, 'Found:', profileByEmail.id)
+        console.log('Using existing profile ID:', profileByEmail.id)
+      } else {
+        console.log('Profile already exists for user ID:', normalizedUserId)
+      }
+      return { 
+        success: true, 
+        profile: profileByEmail,
+        userId: profileByEmail.id // Always use the existing profile ID
+      }
+    }
+
+    // Then check if profile exists by the normalized user ID
+    const { data: profileById, error: fetchByIdError } = await supabaseAdmin
+      .from('profiles')
+      .select('id, email')
       .eq('id', normalizedUserId)
       .single()
 
-    if (fetchError && fetchError.code !== 'PGRST116') {
-      // PGRST116 is "not found" error - that's expected for new users
-      console.error('Error checking profile:', fetchError)
-      throw fetchError
+    if (fetchByIdError && fetchByIdError.code !== 'PGRST116') {
+      console.error('Error checking profile by ID:', fetchByIdError)
+      throw fetchByIdError
     }
 
-    if (existingProfile) {
-      console.log('Profile already exists for user:', normalizedUserId)
-      return { success: true, profile: existingProfile }
+    if (profileById) {
+      console.log('Profile already exists for user ID:', normalizedUserId)
+      return { 
+        success: true, 
+        profile: profileById,
+        userId: profileById.id
+      }
     }
 
     // Create new profile
@@ -59,15 +94,39 @@ export async function ensureUserProfile(userId: string, email: string, fullName?
 
     if (createError) {
       console.error('Error creating profile:', createError)
+      
+      // If it's a duplicate key error, try to fetch the existing profile by email again
+      if (createError.code === '23505' && createError.message?.includes('email')) {
+        console.log('Profile creation failed due to duplicate email, fetching existing profile...')
+        const { data: existingProfile, error: refetchError } = await supabaseAdmin
+          .from('profiles')
+          .select('id, email')
+          .eq('email', email)
+          .single()
+        
+        if (!refetchError && existingProfile) {
+          console.log('Found existing profile after creation failure:', existingProfile.id)
+          return { 
+            success: true, 
+            profile: existingProfile,
+            userId: existingProfile.id
+          }
+        }
+      }
+      
       throw createError
     }
 
     console.log('Created new profile for user:', normalizedUserId)
-    return { success: true, profile: newProfile }
+    return { 
+      success: true, 
+      profile: newProfile,
+      userId: newProfile.id
+    }
 
   } catch (error) {
     console.error('Error ensuring user profile:', error)
-    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error', details: error }
   }
 }
 
