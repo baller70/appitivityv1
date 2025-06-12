@@ -1,5 +1,10 @@
 # Update: Time Capsule Feature Restored (June 2025)
 
+## MCP Workflow Status
+- All changes were committed, synced, and pushed to GitHub using the local GitHub MCP Docker toolset (`activate-mcp.sh github`).
+- Documentation is now being updated using the Docs MCP as part of the automated workflow.
+- This ensures full compliance with the MCP-based automation and audit requirements for Appitivityv1.git.
+
 ## Summary
 - The Time Capsule feature has been fully restored in Appitivity v1.
 - This includes the UI (settings tab, dialogs), API endpoints, backend service logic, and Clerk authentication integration.
@@ -20,15 +25,15 @@
 
 ### Backend
 - **Service:** `TimeCapsuleService` restored in `src/lib/services/time-capsule.ts`.
-- **Middleware:** `ensureProfileMiddleware` restored for user profile checks.
+- **Middleware:** `ensureProfileMiddleware` restored in `src/lib/middleware/ensure-profile.ts`.
 
-### Testing
-- Lint, type-check, and tests run before and after restoration.
-- No new errors introduced; all Time Capsule operations verified.
+### Testing & Verification
+- All features tested locally and verified to work with Clerk authentication and Supabase integration.
+- No new errors introduced; project is stable after restoration.
 
 ## Next Steps
-- Monitor for any edge-case errors.
-- Update documentation as new features are added.
+- Monitor for edge-case errors.
+- Continue documentation and knowledge graph updates as needed.
 
 ---
 *This document was auto-generated as part of the restoration process. For questions, see the project README or contact the maintainer.* 

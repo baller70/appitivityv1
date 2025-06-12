@@ -202,4 +202,77 @@ MAGIC_API_KEY=your_magic_key
 ---
 
 *Last Updated: $(date)*
-*Status: Active Integration* 
+*Status: Active Integration*
+
+# MCP Integrations for Appitivityv1
+
+## Current MCP Automation Workflow (June 2025)
+
+- **All MCPs (Managed Control Planes) are managed locally via Docker.**
+- Use the `activate-mcp.sh` script to activate any MCP by name (e.g., GitHub, Supabase, Kubernetes, etc.).
+- The script will:
+  1. Find the correct MCP Docker image (case-insensitive).
+  2. Start the container if it's not already running (auto-assigning ports).
+  3. Print the endpoint/connection info for immediate use.
+  4. If already running, it will just show you the endpoint.
+- This workflow is fully automated and MCP-compliant, ensuring all integrations are auditable and reproducible.
+
+### Example Usage
+```sh
+./activate-mcp.sh github
+./activate-mcp.sh supabase
+```
+
+### Available MCPs (Partial List)
+- mcp/github
+- mcp/supabase
+- mcp/kubernetes
+- mcp/playwright
+- mcp/node-code-sandbox
+- mcp/context7
+- mcp/desktop-commander
+- mcp/docker
+- mcp/tavily
+- mcp/stripe
+- mcp/firecrawl
+- mcp/dart
+- mcp/wikipedia-mcp
+- mcp/git
+- mcp/neo4j-cloud-aura-api
+- mcp/puppeteer
+- mcp/time
+- mcp/postgres
+- mcp/filesystem
+- mcp/fetch
+- mcp/brave-search
+- mcp/pulumi
+- mcp/perplexity-ask
+- mcp/duckduckgo
+- mcp/databutton
+- mcp/atlas-docs
+- mcp/youtube-transcript
+- mcp/sqlite
+- mcp/openapi-schema
+- mcp/neon
+- mcp/jetbrains
+- mcp/memory
+- ...and many more
+
+---
+
+## How to Use MCPs in Appitivityv1
+
+1. **Activate the MCP you need:**
+   - Run `./activate-mcp.sh <mcp-name>`
+   - The script will ensure the container is running and print the endpoint.
+2. **Integrate with your workflow:**
+   - Use the endpoint/connection info in your app, scripts, or integrations.
+3. **Audit and Compliance:**
+   - All MCP usage is local, automated, and can be tracked for compliance.
+
+---
+
+## Notes
+- This is the official, automated, and MCP-compliant workflow for Appitivityv1.git.
+- No manual Docker commands are needed—everything is handled by the script.
+- If you add new MCP images, they will be automatically available for activation. 
