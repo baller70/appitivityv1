@@ -13,42 +13,30 @@ The application was unstable and failed to load consistently. The development se
 -   False-positive "Duplicate export" errors for components with valid syntax.
 -   Miscellaneous syntax errors ("Expression expected") that were not present in the source code.
 
-These issues persisted despite standard cleanup measures like deleting the `.next` folder.
+These issues persisted despite multiple attempts to clean the environment by deleting the `.next` directory.
 
-### Root Cause
+### Resolution
 
-The root cause was determined to be a deeply corrupted development environment, where multiple layers of caching (Next.js build cache, npm cache) were returning stale or invalid data.
+A permanent fix was achieved by performing a more aggressive, multi-step environment purification process. This indicates the root cause was not an error in the application code, but a deeply corrupted state within the Next.js build and cache system.
 
-### Resolution Steps
+The following steps were taken:
 
-A systematic and aggressive cleanup of the entire development environment was required to resolve the issue. The following multi-stage process was successful:
-
-1.  **Halt All Processes:** Ensure no development servers or related processes are running. A `pkill -f "next"` command was used to terminate any stray processes.
-
-2.  **Aggressive Environment Purge:** All potentially corrupt local artifacts were deleted from the project root:
-    -   The `.next` build cache directory.
-    -   The `node_modules` directory.
-    -   The `package-lock.json` file.
-
-3.  **Global Cache Clearing:** The global npm cache was forcefully cleared to prevent the re-introduction of corrupted packages:
+1.  **Halt All Activity:** All running `next dev` processes were terminated to prevent further file system interference.
+2.  **Full Artifact Purge:** All local build artifacts and dependencies were deleted by running:
+    ```bash
+    rm -rf .next node_modules package-lock.json
+    ```
+3.  **Global Cache Clear:** The global npm cache was forcibly cleared to ensure no tainted packages would be reused:
     ```bash
     npm cache clean --force
     ```
-
-4.  **Clean Dependency Installation:** All project dependencies were reinstalled from scratch:
+4.  **Pristine Reinstall:** All project dependencies were reinstalled from scratch:
     ```bash
     npm install
     ```
-
-5.  **Production Build Verification:** A production build was executed to confirm the integrity of the source code against the clean environment. This step was crucial as it compiled the application without using the problematic development server cache.
+5.  **Production Build Validation:** A production build was executed to confirm the integrity of the source code in a clean environment. This step was critical as it successfully compiled the project, proving the errors were environmental.
     ```bash
     npm run build
     ```
-    The build completed successfully, confirming the source code was not the issue.
 
-6.  **Restart Development Server:** Finally, the development server was started, and it ran stably without any of the previous errors.
-    ```bash
-    npm run dev
-    ```
-
-This process restored the development environment to a pristine state and fully resolved the loading and compilation issues. 
+After these steps, the development server (`npm run dev`) was able to start and run stably without any of the previous errors. This process should be the first course of action if similar difficult-to-diagnose build failures occur in the future. 
