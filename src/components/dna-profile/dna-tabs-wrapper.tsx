@@ -8,6 +8,4 @@ const DnaTabs = dynamic(() => import('./dna-tabs'), {
 
 export default function DnaTabsWrapper() {
   return <DnaTabs />
-}
-
-export { DnaTabsWrapper } 
+} 

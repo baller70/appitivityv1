@@ -86,7 +86,7 @@ interface BookmarkHubDashboardProps {
   onNavigate?: (path: string) => void;
 }
 
-type ViewMode = 'grid' | 'list' | 'compact' | 'kanban' | 'timeline' | 'folder' | 'hierarchy' | 'productivity' | 'folder-grid' | 'detailed' | 'goals';
+type ViewMode = 'grid' | 'list' | 'compact' | 'kanban' | 'timeline' | 'folder-grid' | 'detailed' | 'goals';
 
 function BookmarkHubDashboardContent({ userId, userData, onNavigate }: BookmarkHubDashboardProps) {
   const { enterSelectionMode, isSelectionMode } = useSelection();
@@ -103,7 +103,7 @@ function BookmarkHubDashboardContent({ userId, userData, onNavigate }: BookmarkH
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [showImportUrlChecker, setShowImportUrlChecker] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>('folder');
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [selectedBookmark, setSelectedBookmark] = useState<BookmarkWithRelations | null>(null);
   const [showBookmarkDetail, setShowBookmarkDetail] = useState(false);
   const [showEnhancedDialog, setShowEnhancedDialog] = useState(false);
@@ -845,6 +845,21 @@ function BookmarkHubDashboardContent({ userId, userData, onNavigate }: BookmarkH
                       onDeleteFolder={handleDeleteFolder}
                       onAddBookmarkToFolder={handleAddBookmarkToFolder}
                     />
+                  ) : viewMode === 'folder-grid' ? (
+                    <FolderGridView
+                      folders={folders}
+                      bookmarks={bookmarks}
+                      onCreateFolder={handleCreateFolder}
+                      onEditFolder={handleEditFolder}
+                      onDeleteFolder={handleDeleteFolder}
+                      onAddBookmarkToFolder={handleAddBookmarkToFolder}
+                      onDropBookmarkToFolder={handleDropBookmarkToFolder}
+                      onBookmarkUpdated={handleBookmarkUpdated}
+                      onBookmarkDeleted={handleBookmarkDeleted}
+                      onOpenDetail={handleOpenDetail}
+                      currentFolderId={selectedFolder}
+                      onFolderNavigate={setSelectedFolder}
+                    />
                   ) : viewMode === 'detailed' ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {filteredAndSortedBookmarks.map((bookmark) => (
@@ -974,21 +989,11 @@ function BookmarkHubDashboardContent({ userId, userData, onNavigate }: BookmarkH
                         </div>
                       </div>
                     </div>
-                                     ) : (
-                     <FolderGridView
-                       folders={folders}
-                       bookmarks={bookmarks}
-                       onCreateFolder={() => {}}
-                       onEditFolder={() => {}}
-                       onDeleteFolder={() => {}}
-                       onAddBookmarkToFolder={() => {}}
-                       onDropBookmarkToFolder={() => {}}
-                       onBookmarkUpdated={handleBookmarkUpdated}
-                       onBookmarkDeleted={handleBookmarkDeleted}
-                       onOpenDetail={handleOpenDetail}
-                       currentFolderId={selectedFolder}
-                       onFolderNavigate={setSelectedFolder}
-                     />
+                  ) : (
+                    /* Default fallback view */
+                    <div className="text-center py-12">
+                      <p className="text-gray-500 dark:text-gray-400">Unknown view mode: {viewMode}</p>
+                    </div>
                   )}
                 </>
               )}

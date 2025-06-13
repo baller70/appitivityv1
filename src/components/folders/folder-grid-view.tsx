@@ -73,11 +73,11 @@ export function FolderGridView({
     if (!currentFolderId) return [];
     
     const breadcrumbs: Folder[] = [];
-    let folder = folders.find(f => f.id === currentFolderId);
+    let folder: Folder | undefined = folders.find(f => f.id === currentFolderId);
     
     while (folder) {
       breadcrumbs.unshift(folder);
-      folder = folder.parent_id ? folders.find(f => f.id === folder!.parent_id) : undefined;
+      folder = folder.parent_id ? folders.find(f => f.id === folder.parent_id) : undefined;
     }
     
     return breadcrumbs;
