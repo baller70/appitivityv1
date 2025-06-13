@@ -8,6 +8,4 @@ const AiCopilotTabs = dynamic(() => import('./ai-copilot-tabs').then(mod => ({ d
 
 export default function AiCopilotTabsWrapper() {
   return <AiCopilotTabs />
-}
-
-export { AiCopilotTabsWrapper } 
+} 
