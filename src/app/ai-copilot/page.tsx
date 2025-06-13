@@ -1,6 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
-import AiCopilotTabsWrapper from '@/components/ai/ai-copilot-tabs-wrapper';
+import AICopilotPage from '@/components/ai/ai-copilot-page';
 
 export default async function AICopilotRoute() {
   const { userId } = await auth();
@@ -9,9 +9,5 @@ export default async function AICopilotRoute() {
     redirect('/sign-in');
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <AiCopilotTabsWrapper />
-    </div>
-  );
+  return <AICopilotPage />;
 } 

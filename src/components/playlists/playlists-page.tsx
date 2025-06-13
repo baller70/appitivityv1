@@ -12,6 +12,7 @@ import { EditPlaylistDialog } from '@/components/playlists/edit-playlist-dialog'
 import { PlaylistAnalytics } from '@/components/playlists/playlist-analytics';
 import { Playlist } from '@/types/playlist';
 import { DnaPageHeader } from '@/components/dna-profile/dna-page-header';
+import DnaTabsWrapper from '@/components/dna-profile/dna-tabs-wrapper';
 
 interface PlaylistsPageProps {
   userId: string;
@@ -152,6 +153,7 @@ export function PlaylistsPage({ userId }: PlaylistsPageProps) {
 
   return (
     <div>
+      <DnaTabsWrapper />
       {/* Standardized Header */}
       <DnaPageHeader 
         title="PLAYLISTS"
