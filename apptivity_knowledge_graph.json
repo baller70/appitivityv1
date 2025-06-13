@@ -1,0 +1,331 @@
+{
+  "project": {
+    "name": "Apptivity Final v1",
+    "type": "NextJS Application",
+    "description": "Advanced bookmark and app organization tool with analytics and MCP integration",
+    "repository": "https://github.com/baller70/appitivityv1.git",
+    "status": "Active Development",
+    "version": "2.2.0",
+    "created_date": "2025-01-13T00:00:00Z",
+    "last_updated": "2025-01-13T00:00:00Z"
+  },
+  "technologies": [
+    {
+      "name": "Next.js 15.3.3",
+      "category": "Framework",
+      "type": "Frontend"
+    },
+    {
+      "name": "TypeScript",
+      "category": "Language",
+      "type": "Programming"
+    },
+    {
+      "name": "Clerk Auth",
+      "category": "Authentication",
+      "type": "Service"
+    },
+    {
+      "name": "Tailwind CSS",
+      "category": "Styling",
+      "type": "Framework"
+    },
+    {
+      "name": "Supabase",
+      "category": "Database",
+      "type": "Backend"
+    },
+    {
+      "name": "Neo4j",
+      "category": "Database",
+      "type": "Graph"
+    },
+    {
+      "name": "MCP Servers",
+      "category": "Integration",
+      "type": "Protocol"
+    }
+  ],
+  "features": [
+    {
+      "name": "Smart Bookmarks",
+      "category": "Core",
+      "status": "Active"
+    },
+    {
+      "name": "Powerful Tags",
+      "category": "Organization",
+      "status": "Active"
+    },
+    {
+      "name": "Quick Search",
+      "category": "Search",
+      "status": "Active"
+    },
+    {
+      "name": "User Authentication",
+      "category": "Security",
+      "status": "Active"
+    },
+    {
+      "name": "Dark Mode Support",
+      "category": "UI",
+      "status": "Active"
+    },
+    {
+      "name": "Voice Input",
+      "category": "Accessibility",
+      "status": "Active"
+    },
+    {
+      "name": "Analytics Dashboard",
+      "category": "Analytics",
+      "status": "Active"
+    },
+    {
+      "name": "Visit Tracking",
+      "category": "Analytics",
+      "status": "Active"
+    },
+    {
+      "name": "Folder Organization",
+      "category": "Organization",
+      "status": "Active"
+    },
+    {
+      "name": "Real-time Updates",
+      "category": "Performance",
+      "status": "Active"
+    },
+    {
+      "name": "Settings Management",
+      "category": "Configuration",
+      "status": "Active"
+    },
+    {
+      "name": "MCP Integration",
+      "category": "Integration",
+      "status": "Active"
+    },
+    {
+      "name": "Knowledge Graph Storage",
+      "category": "Data",
+      "status": "Active"
+    },
+    {
+      "name": "View Selector",
+      "category": "UI",
+      "status": "Fixed"
+    },
+    {
+      "name": "GitHub Integration",
+      "category": "Integration",
+      "status": "Active"
+    },
+    {
+      "name": "Documentation Generation",
+      "category": "Documentation",
+      "status": "Active"
+    }
+  ],
+  "components": [
+    {
+      "name": "BookmarkHubDashboard",
+      "type": "Page",
+      "category": "Core"
+    },
+    {
+      "name": "SettingsPage",
+      "type": "Page",
+      "category": "Configuration"
+    },
+    {
+      "name": "Analytics",
+      "type": "Component",
+      "category": "Analytics"
+    },
+    {
+      "name": "VoiceInput",
+      "type": "Component",
+      "category": "Input"
+    },
+    {
+      "name": "BookmarkCard",
+      "type": "Component",
+      "category": "Display"
+    },
+    {
+      "name": "FolderGridView",
+      "type": "Component",
+      "category": "Organization"
+    },
+    {
+      "name": "EnhancedSidebar",
+      "type": "Component",
+      "category": "Navigation"
+    },
+    {
+      "name": "TimeCapsulePage",
+      "type": "Page",
+      "category": "Feature"
+    },
+    {
+      "name": "ViewSelector",
+      "type": "Component",
+      "category": "UI"
+    },
+    {
+      "name": "MCPIntegration",
+      "type": "Service",
+      "category": "Integration"
+    }
+  ],
+  "recent_fixes": [
+    {
+      "name": "View Selector Visibility Fix",
+      "date": "2025-01-13",
+      "description": "Fixed view selector disappearing when folder-grid view is selected",
+      "impact": "High",
+      "status": "Completed"
+    },
+    {
+      "name": "MCP Supabase Integration",
+      "date": "2025-01-13",
+      "description": "Added Supabase MCP server to configuration",
+      "impact": "Medium",
+      "status": "Completed"
+    },
+    {
+      "name": "GitHub Documentation",
+      "date": "2025-01-13",
+      "description": "Created comprehensive documentation using GitHub MCP",
+      "impact": "Medium",
+      "status": "Completed"
+    },
+    {
+      "name": "Neo4j Knowledge Graph Setup",
+      "date": "2025-01-13",
+      "description": "Configured Neo4j for knowledge graph storage",
+      "impact": "High",
+      "status": "In Progress"
+    }
+  ],
+  "mcp_servers": [
+    {
+      "name": "Supabase MCP",
+      "type": "Database",
+      "status": "Active",
+      "purpose": "Database operations and management"
+    },
+    {
+      "name": "GitHub MCP",
+      "type": "Repository",
+      "status": "Active",
+      "purpose": "Repository management and documentation"
+    },
+    {
+      "name": "Firecrawl MCP",
+      "type": "Web Scraping",
+      "status": "Configured",
+      "purpose": "Web content extraction and analysis"
+    },
+    {
+      "name": "MCP-Knowledge-Graph",
+      "type": "Neo4j",
+      "status": "Active",
+      "purpose": "Knowledge graph storage and retrieval"
+    },
+    {
+      "name": "Web-Eval-Agent",
+      "type": "Browser Automation",
+      "status": "Active",
+      "purpose": "Web evaluation and testing"
+    },
+    {
+      "name": "21st-dev/magic",
+      "type": "UI Generation",
+      "status": "Active",
+      "purpose": "Component generation and design"
+    },
+    {
+      "name": "Stagehand",
+      "type": "Browser Control",
+      "status": "Active",
+      "purpose": "Advanced browser automation"
+    }
+  ],
+  "relationships": [
+    {
+      "from": "Apptivity Final v1",
+      "to": "Next.js 15.3.3",
+      "type": "USES_TECHNOLOGY"
+    },
+    {
+      "from": "Apptivity Final v1",
+      "to": "TypeScript",
+      "type": "USES_TECHNOLOGY"
+    },
+    {
+      "from": "Apptivity Final v1",
+      "to": "Clerk Auth",
+      "type": "USES_TECHNOLOGY"
+    },
+    {
+      "from": "Apptivity Final v1",
+      "to": "Supabase",
+      "type": "USES_TECHNOLOGY"
+    },
+    {
+      "from": "Apptivity Final v1",
+      "to": "Smart Bookmarks",
+      "type": "HAS_FEATURE"
+    },
+    {
+      "from": "Apptivity Final v1",
+      "to": "Analytics Dashboard",
+      "type": "HAS_FEATURE"
+    },
+    {
+      "from": "Apptivity Final v1",
+      "to": "BookmarkHubDashboard",
+      "type": "HAS_COMPONENT"
+    },
+    {
+      "from": "Apptivity Final v1",
+      "to": "View Selector Visibility Fix",
+      "type": "RECENTLY_FIXED"
+    },
+    {
+      "from": "Apptivity Final v1",
+      "to": "Supabase MCP",
+      "type": "INTEGRATES_WITH"
+    },
+    {
+      "from": "Apptivity Final v1",
+      "to": "GitHub MCP",
+      "type": "INTEGRATES_WITH"
+    },
+    {
+      "from": "BookmarkHubDashboard",
+      "to": "ViewSelector",
+      "type": "CONTAINS"
+    },
+    {
+      "from": "BookmarkHubDashboard",
+      "to": "FolderGridView",
+      "type": "CONTAINS"
+    },
+    {
+      "from": "Analytics Dashboard",
+      "to": "Visit Tracking",
+      "type": "IMPLEMENTS"
+    }
+  ],
+  "metadata": {
+    "export_date": "2025-01-13T00:00:00Z",
+    "export_version": "1.0",
+    "total_nodes": 50,
+    "total_relationships": 35,
+    "graph_status": "Ready for Neo4j Import"
+  }
+} 
