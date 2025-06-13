@@ -35,7 +35,8 @@ import {
   User,
   LogOut,
   Bookmark,
-  Brain
+  Brain,
+  Play
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -229,6 +230,18 @@ export function EnhancedSidebar({
       icon: Search, 
       path: '/search',
       active: currentPath === '/search'
+    },
+    { 
+      name: 'Features', 
+      icon: Zap, 
+      path: '/features',
+      active: currentPath === '/features'
+    },
+    { 
+      name: 'Playlists', 
+      icon: Play, 
+      path: '/playlists',
+      active: currentPath === '/playlists'
     },
     { 
       name: 'Analytics', 

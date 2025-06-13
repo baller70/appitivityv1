@@ -296,6 +296,8 @@ export function FolderOrgChartView({
     const teamsFolders = folders.filter(f => assignmentMap.get(f.id) === 'teams').length;
     const collaboratorsFolders = folders.filter(f => assignmentMap.get(f.id) === 'collaborators').length;
     const unassignedFolders = folders.filter(f => !assignmentMap.has(f.id)).length;
+    const assignedFolders = directorFolders + teamsFolders + collaboratorsFolders;
+    const totalFolders = folders.length;
     const totalBookmarks = bookmarks.length;
     
     return {
@@ -303,6 +305,8 @@ export function FolderOrgChartView({
       teamsFolders,
       collaboratorsFolders,
       unassignedFolders,
+      assignedFolders,
+      totalFolders,
       totalBookmarks
     };
   }, [folders, bookmarks, hierarchyAssignments]);

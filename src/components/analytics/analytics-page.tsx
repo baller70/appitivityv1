@@ -42,6 +42,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { DnaPageHeader } from '../dna-profile/dna-page-header';
 
 interface AnalyticsPageProps {
   userId: string;
@@ -533,66 +534,47 @@ export function AnalyticsPage({ userId: _userId }: AnalyticsPageProps) {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Enhanced Header */}
-      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.push('/dashboard')}
-              className="flex items-center space-x-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+      {/* Standardized Header */}
+      <DnaPageHeader 
+        title="Analytics"
+        description={`Comprehensive insights into your bookmark usage • Last updated: ${new Date().toLocaleTimeString()}`}
+      >
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={exportData}
+          className="flex items-center space-x-2"
+        >
+          <Download className="h-4 w-4" />
+          <span className="hidden sm:inline">Export</span>
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={refreshData}
+          disabled={refreshing}
+          className="flex items-center space-x-2"
+        >
+          <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+          <span className="hidden sm:inline">Refresh</span>
+        </Button>
+        <div className="flex items-center space-x-2 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+          {['7d', '30d', '90d', 'all'].map((range) => (
+            <button
+              key={range}
+              onClick={() => setTimeRange(range)}
+              className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                timeRange === range
+                  ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+              }`}
             >
-              <ArrowLeft className="h-4 w-4" />
-              <span>Back to Dashboard</span>
-            </Button>
-            <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">ANALYTICS DASHBOARD</h1>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Comprehensive insights into your bookmark usage • Last updated: {new Date().toLocaleTimeString()}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={exportData}
-              className="flex items-center space-x-2"
-            >
-              <Download className="h-4 w-4" />
-              <span className="hidden sm:inline">Export</span>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={refreshData}
-              disabled={refreshing}
-              className="flex items-center space-x-2"
-            >
-              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">Refresh</span>
-            </Button>
-            <div className="flex items-center space-x-2 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-              {['7d', '30d', '90d', 'all'].map((range) => (
-                <button
-                  key={range}
-                  onClick={() => setTimeRange(range)}
-                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                    timeRange === range
-                      ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                  }`}
-                >
-                  {range === 'all' ? 'All Time' : range.toUpperCase()}
-                </button>
-              ))}
-            </div>
-            <UserButton afterSignOutUrl="/" />
-          </div>
+              {range === 'all' ? 'All Time' : range.toUpperCase()}
+            </button>
+          ))}
         </div>
-      </header>
+        <UserButton afterSignOutUrl="/" />
+      </DnaPageHeader>
 
       {/* Main Content */}
       <main className="p-4 sm:p-6 space-y-6">

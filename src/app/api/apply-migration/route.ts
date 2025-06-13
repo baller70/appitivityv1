@@ -28,6 +28,7 @@ export async function POST() {
       "ALTER TABLE bookmarks ADD COLUMN IF NOT EXISTS goal_notes TEXT;",
       "ALTER TABLE bookmarks ADD COLUMN IF NOT EXISTS goal_created_at TIMESTAMPTZ DEFAULT NOW();",
       "ALTER TABLE bookmarks ADD COLUMN IF NOT EXISTS goal_completed_at TIMESTAMPTZ;",
+      "ALTER TABLE bookmarks ADD COLUMN IF NOT EXISTS tags JSONB;",
       "ALTER TABLE folders ADD COLUMN IF NOT EXISTS deadline_date TIMESTAMPTZ;",
       "ALTER TABLE folders ADD COLUMN IF NOT EXISTS goal_description TEXT;",
       "ALTER TABLE folders ADD COLUMN IF NOT EXISTS goal_type VARCHAR(50);",

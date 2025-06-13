@@ -32,7 +32,8 @@ import {
   Upload,
   X,
   RotateCcw,
-  Target
+  Target,
+  MessageCircle
 } from 'lucide-react';
 import { RichTextEditor } from '../ui/rich-text-editor';
 import { NotificationIframe } from '../notifications/notification-iframe';
@@ -42,6 +43,7 @@ import { BookmarkService, type BookmarkWithRelations } from '../../lib/services/
 import type { Folder, Tag } from '../../types/supabase';
 import { useUser } from '@clerk/nextjs';
 import { toast } from 'sonner';
+import { BookmarkComments } from '../comments/bookmark-comments';
 
 interface BookmarkDetailModalProps {
   bookmark: BookmarkWithRelations | null;
@@ -53,7 +55,7 @@ interface BookmarkDetailModalProps {
   onBookmarkCreated?: (bookmark: BookmarkWithRelations) => void;
 }
 
-type TabType = 'overview' | 'timer' | 'notifications' | 'reminders' | 'related' | 'documents' | 'progress';
+type TabType = 'overview' | 'timer' | 'notifications' | 'reminders' | 'related' | 'documents' | 'progress' | 'comments';
 
 export function BookmarkDetailModal({
   bookmark,
@@ -405,6 +407,7 @@ export function BookmarkDetailModal({
     { id: 'related' as const, label: 'Related', icon: Link },
     { id: 'documents' as const, label: 'Documents', icon: FileText },
     { id: 'progress' as const, label: 'Progress', icon: TrendingUp },
+    { id: 'comments' as const, label: 'Comments', icon: MessageCircle },
   ];
 
   return (
@@ -1450,6 +1453,11 @@ export function BookmarkDetailModal({
                 </Card>
               </div>
             </div>
+          )}
+
+          {/* Comments Tab */}
+          {activeTab === 'comments' && (
+            <BookmarkComments bookmarkId={bookmark.id} />
           )}
         </div>
       </DialogContent>

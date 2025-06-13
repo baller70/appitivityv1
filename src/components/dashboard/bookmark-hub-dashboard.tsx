@@ -36,7 +36,12 @@ import {
   Target,
   Link as LinkIcon,
   Columns,
-  X
+  X,
+  Globe,
+  Crown,
+  Brain,
+  Sparkles,
+  Users
 } from 'lucide-react';
 import { BookmarkValidationModal } from '../bookmarks/bookmark-validation-modal';
 import { BookmarkImportModal } from '../bookmarks/bookmark-import-modal';
@@ -57,6 +62,14 @@ import { FolderFormDialog } from '../folders/folder-form-dialog';
 import { FilterPopover } from '../ui/filter-popover';
 import { ProductivityDashboard } from '../productivity/productivity-dashboard';
 import { EnhancedSidebar } from '../layout/enhanced-sidebar';
+import { SaveTabsDialog } from '../tabs/save-tabs-dialog';
+import { IntegrationsDialog } from '../integrations/integrations-dialog';
+import { MonetizationDialog } from '../monetization/monetization-dialog';
+import { IndustryFilterDialog } from '../ai/industry-filter-dialog';
+import { SmartRecommendations } from '../recommendations/smart-recommendations';
+import { AdvancedAnalyticsDashboard } from '../analytics/advanced-analytics-dashboard';
+import { BackupRestoreSystem } from '../backup/backup-restore-system';
+import { CollaborationSystem } from '../sharing/collaboration-system';
 
 
 interface BookmarkHubDashboardProps {
@@ -94,6 +107,11 @@ function BookmarkHubDashboardContent({ userId, userData, onNavigate }: BookmarkH
   const [editingFolder, setEditingFolder] = useState<Folder | null>(null);
   const [targetFolderId, setTargetFolderId] = useState<string | null>(null);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
+  const [showSaveTabsDialog, setShowSaveTabsDialog] = useState(false);
+  const [showRecommendations, setShowRecommendations] = useState(false);
+  const [showAdvancedAnalytics, setShowAdvancedAnalytics] = useState(false);
+  const [showBackupRestore, setShowBackupRestore] = useState(false);
+  const [showCollaboration, setShowCollaboration] = useState(false);
 
   // Filter state for the new FilterPopover
   const [filters, setFilters] = useState({
@@ -412,6 +430,11 @@ function BookmarkHubDashboardContent({ userId, userData, onNavigate }: BookmarkH
       console.error('Failed to move bookmark:', error);
       toast.error('Failed to move bookmark');
     }
+  };
+
+  const handleSaveTabsSuccess = (result: { bookmarks: any[]; playlist?: any }) => {
+    toast.success(`Saved ${result.bookmarks.length} tabs as bookmarks${result.playlist ? ' and created playlist' : ''}`);
+    loadData(); // Refresh the data to show new bookmarks
   };
 
   // Filter and sort bookmarks
@@ -808,46 +831,27 @@ function BookmarkHubDashboardContent({ userId, userData, onNavigate }: BookmarkH
                   ADD BOOKMARK
                 </Button>
 
-                <Dialog open={showBulkImport} onOpenChange={setShowBulkImport}>
-                  <DialogTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="bg-gradient-to-r from-emerald-50 to-emerald-100 hover:from-emerald-100 hover:to-emerald-200 text-emerald-700 font-semibold px-4 py-2 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 border-2 border-emerald-300 hover:border-emerald-400"
-                    >
-                      <Upload className="h-4 w-4 mr-2" />
-                      IMPORT URLS
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-4xl max-h-[80vh]">
-                    <DialogHeader>
-                      <DialogTitle>Bulk Import Bookmarks</DialogTitle>
-                    </DialogHeader>
-                    <BulkImportModal
-                      isOpen={showBulkImport}
-                      onImport={handleBulkImport}
-                      folders={folders}
-                      tags={tags}
-                      existingBookmarks={bookmarks.map(b => ({ url: b.url, id: b.id, title: b.title }))}
-                      onClose={() => setShowBulkImport(false)}
-                    />
-                  </DialogContent>
-                </Dialog>
+                <Button 
+                  onClick={() => setShowSaveTabsDialog(true)} 
+                  size="sm"
+                  className="bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white font-semibold px-4 py-2 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 border-0"
+                >
+                  <Globe className="h-4 w-4 mr-2" />
+                  SAVE TABS
+                </Button>
 
-                <BookmarkValidationModal
-                  bookmarks={filteredAndSortedBookmarks}
+                <MonetizationDialog
                   trigger={
                     <Button 
-                      variant="outline" 
                       size="sm"
-                      className="bg-gradient-to-r from-amber-50 to-amber-100 hover:from-amber-100 hover:to-amber-200 text-amber-700 font-semibold px-4 py-2 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 border-2 border-amber-300 hover:border-amber-400"
+                      className="bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800 text-white font-semibold px-4 py-2 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 border-0"
                     >
-                      <Shield className="h-4 w-4 mr-2" />
-                      CHECK LINKS
+                      <Crown className="h-4 w-4 mr-2" />
+                      PREMIUM
                     </Button>
                   }
                 />
-                
+
                 <Button
                   variant="outline"
                   size="sm"
@@ -1055,6 +1059,12 @@ function BookmarkHubDashboardContent({ userId, userData, onNavigate }: BookmarkH
         onOpenChange={setShowFolderForm}
         folder={editingFolder}
         onSubmit={handleFolderSubmit}
+      />
+
+      <SaveTabsDialog
+        open={showSaveTabsDialog}
+        onOpenChange={setShowSaveTabsDialog}
+        onSuccess={handleSaveTabsSuccess}
       />
     </>
   );

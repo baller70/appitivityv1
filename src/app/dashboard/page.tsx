@@ -1,6 +1,6 @@
 import React from 'react';
 import { currentUser } from '@clerk/nextjs/server';
-import { BookmarkHubDashboard } from '../../components/dashboard/bookmark-hub-dashboard';
+import { DashboardMain } from '../../components/dashboard/dashboard-main';
 
 export default async function DashboardPage() {
   const user = await currentUser();
@@ -13,7 +13,7 @@ export default async function DashboardPage() {
   };
 
   return (
-    <BookmarkHubDashboard 
+    <DashboardMain 
       userId={userData.id}
       userData={userData}
     />

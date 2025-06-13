@@ -11,7 +11,7 @@ import { BookmarkDetailModal } from '../bookmarks/bookmark-detail-modal';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
-import { Card, CardContent, CardHeader } from '../ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { 
   ArrowLeft, 
   Heart, 
@@ -76,7 +76,10 @@ import {
   Calendar as CalendarIcon,
   Clock as ClockIcon,
   TrendingUp as TrendingUpIcon,
-  BarChart as BarChartIcon
+  BarChart as BarChartIcon,
+  Trash2,
+  Edit,
+  MoreHorizontal
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -88,6 +91,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '../ui/select';
+import { DnaPageHeader } from '../dna-profile/dna-page-header';
 
 interface FavoritesPageProps {
   userId: string;
@@ -296,13 +300,13 @@ export function FavoritesPage({ userId }: FavoritesPageProps) {
         (b.visit_count || 0) > (max?.visit_count || 0) ? b : max, null as BookmarkWithRelations | null);
       
       const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-      const recentlyAdded = favoriteBookmarks.filter(b => 
-        new Date(b.created_at) > oneWeekAgo).length;
+      const recentCount = favoriteBookmarks.filter(b =>
+        b.created_at && new Date(b.created_at) > oneWeekAgo).length;
       
       // Calculate engagement score (0-100)
       const avgVisits = totalVisits / Math.max(favoriteBookmarks.length, 1);
       const engagementScore = Math.min(100, Math.round(
-        (avgVisits * 10) + (recentlyAdded * 5) + (uniqueDomains * 2)
+        (avgVisits * 10) + (recentCount * 5) + (uniqueDomains * 2)
       ));
 
       // Top categories from folders
@@ -333,7 +337,7 @@ export function FavoritesPage({ userId }: FavoritesPageProps) {
         uniqueDomains,
         foldersUsed,
         mostVisitedBookmark: mostVisited,
-        recentlyAdded,
+        recentlyAdded: recentCount,
         thisWeekVisits: Math.floor(totalVisits * 0.3), // Simulated
         topCategories,
         engagementScore,
@@ -396,12 +400,12 @@ export function FavoritesPage({ userId }: FavoritesPageProps) {
           bValue = b.title.toLowerCase();
           break;
         case 'created_at':
-          aValue = new Date(a.created_at || 0);
-          bValue = new Date(b.created_at || 0);
+          aValue = new Date(a.created_at ?? 0);
+          bValue = new Date(b.created_at ?? 0);
           break;
         case 'updated_at':
-          aValue = new Date(a.updated_at || 0);
-          bValue = new Date(b.updated_at || 0);
+          aValue = new Date(a.updated_at ?? 0);
+          bValue = new Date(b.updated_at ?? 0);
           break;
         case 'visit_count':
           aValue = a.visit_count || 0;
@@ -577,7 +581,8 @@ export function FavoritesPage({ userId }: FavoritesPageProps) {
       list: 'grid-cols-1',
       compact: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6',
       kanban: 'grid-cols-1 md:grid-cols-3',
-      timeline: 'grid-cols-1'
+      timeline: 'grid-cols-1',
+      analytics: 'grid-cols-1'
     };
 
     return (
@@ -620,60 +625,36 @@ export function FavoritesPage({ userId }: FavoritesPageProps) {
   return (
     <SelectionProvider>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        {/* Enhanced Header */}
-        <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 sm:px-6 py-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-            <div className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => router.push('/dashboard')}
-                className="flex items-center space-x-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                <span className="hidden sm:inline">Back to Dashboard</span>
-                <span className="sm:hidden">Back</span>
-              </Button>
-              <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
-              <div className="flex items-center space-x-2">
-                <Heart className="h-6 w-6 text-red-500" />
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-                  Favorites
-                  <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
-                    ({bookmarks.length})
-                  </span>
-                </h1>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => loadData(true)}
-                disabled={refreshing}
-                className="flex items-center space-x-2"
-              >
-                <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-                <span className="hidden sm:inline">Refresh</span>
-              </Button>
-              
-              {bookmarks.length > 0 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleExportFavorites}
-                  className="flex items-center space-x-2"
-                >
-                  <Download className="h-4 w-4" />
-                  <span className="hidden sm:inline">Export</span>
-                </Button>
-              )}
-              
-              <UserButton afterSignOutUrl="/" />
-            </div>
-          </div>
-        </header>
+        {/* Standardized Header */}
+        <DnaPageHeader 
+          title="Favorites"
+          description={`${bookmarks.length} bookmarks marked as favorite`}
+        >
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => loadData(true)}
+            disabled={refreshing}
+            className="flex items-center space-x-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Refresh</span>
+          </Button>
+          
+          {bookmarks.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportFavorites}
+              className="flex items-center space-x-2"
+            >
+              <Download className="h-4 w-4" />
+              <span className="hidden sm:inline">Export</span>
+            </Button>
+          )}
+          
+          <UserButton afterSignOutUrl="/" />
+        </DnaPageHeader>
 
         {/* Analytics Stats */}
         {bookmarks.length > 0 && (

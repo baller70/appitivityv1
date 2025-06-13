@@ -8,7 +8,15 @@ import { ensureUserProfile } from '../../../lib/fix-database'
 export async function GET() {
   try {
     const { userId } = await auth()
-    const user = await currentUser()
+    let user = null
+    
+    // Safely get current user
+    try {
+      user = await currentUser()
+    } catch (error) {
+      console.error('Error getting current user:', error)
+      // Continue without user data
+    }
     
     // Handle both authenticated users and demo mode
     const effectiveUserId = userId || 'demo-user'

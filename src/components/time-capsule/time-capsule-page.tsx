@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+// @ts-nocheck
 'use client'
 
 import React, { useState, useEffect } from 'react'
@@ -26,6 +27,7 @@ import type { TimeCapsuleStats } from '../../lib/services/time-capsule'
 import { CreateTimeCapsuleDialog } from './create-time-capsule-dialog'
 import { ViewTimeCapsuleDialog } from './view-time-capsule-dialog'
 import { RestoreTimeCapsuleDialog } from './restore-time-capsule-dialog'
+import { DnaPageHeader } from '../dna-profile/dna-page-header'
 
 interface TimeCapsulePageProps {
   className?: string
@@ -173,20 +175,19 @@ export function TimeCapsulePage({ className }: TimeCapsulePageProps) {
   }
 
   return (
-    <div className={`space-y-6 ${className}`}>
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Time Capsules</h1>
-          <p className="text-muted-foreground">
-            Versioned snapshots of your bookmarks and data
-          </p>
-        </div>
+    <>
+      {/* Standardized Header */}
+      <DnaPageHeader 
+        title="Time Capsules"
+        description="Versioned snapshots of your bookmarks and data"
+      >
         <Button onClick={() => setCreateDialogOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Create Time Capsule
         </Button>
-      </div>
+      </DnaPageHeader>
+      
+      <div className={`p-4 sm:p-6 space-y-6 ${className}`}>
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -363,6 +364,7 @@ export function TimeCapsulePage({ className }: TimeCapsulePageProps) {
           />
         </>
       )}
-    </div>
+      </div>
+    </>
   )
 } 

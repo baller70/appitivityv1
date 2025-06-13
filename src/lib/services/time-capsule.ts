@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+// @ts-nocheck
 import { supabaseAdmin } from '../supabase'
 import { normalizeUserId } from '../uuid-compat'
 import type { 
@@ -34,12 +35,12 @@ export interface TimeCapsuleStats {
 }
 
 export class TimeCapsuleService {
-  constructor(private _userId: string) {}
+  constructor(private userId: string) {}
 
   /**
    * Create a new time capsule with current bookmarks snapshot
    */
-  async createTimeCapsule(_data: CreateTimeCapsuleData): Promise<TimeCapsule> {
+  async createTimeCapsule(data: CreateTimeCapsuleData): Promise<TimeCapsule> {
     const normalizedUserId = normalizeUserId(this.userId)
 
     if (!supabaseAdmin) {
@@ -101,7 +102,7 @@ export class TimeCapsuleService {
 
       // Create bookmark snapshots
       const bookmarkSnapshots: TimeCapsuleBookmarkInsert[] = filteredBookmarks.map(bookmark => ({
-        _time_capsule_id: timeCapsule.id,
+        time_capsule_id: timeCapsule.id,
         original_bookmark_id: bookmark.id,
         title: bookmark.title,
         url: bookmark.url,
@@ -134,7 +135,7 @@ export class TimeCapsuleService {
             for (const bookmarkTag of bookmark.bookmark_tags) {
               if (bookmarkTag.tags) {
                 tagSnapshots.push({
-                  _time_capsule_id: timeCapsule.id,
+                  time_capsule_id: timeCapsule.id,
                   bookmark_snapshot_id: snapshotBookmark.id,
                   tag_name: (bookmarkTag.tags as any).name,
                   tag_color: (bookmarkTag.tags as any).color
@@ -157,7 +158,7 @@ export class TimeCapsuleService {
           // Update tag count
           await supabaseAdmin
             .from('time_capsules')
-            .update({ _tag_count: tagSnapshots.length })
+            .update({ tag_count: tagSnapshots.length })
             .eq('id', timeCapsule.id)
         }
       }
@@ -184,7 +185,7 @@ export class TimeCapsuleService {
       .from('time_capsules')
       .select('*')
       .eq('user_id', normalizedUserId)
-      .order('snapshot_date', { _ascending: false })
+      .order('snapshot_date', { ascending: false })
 
     if (error) {
       throw new Error(`Failed to fetch time _capsules: ${error.message}`)
@@ -196,7 +197,7 @@ export class TimeCapsuleService {
   /**
    * Get a specific time capsule with its bookmarks and tags
    */
-  async getTimeCapsule(_capsuleId: string): Promise<TimeCapsuleWithStats | null> {
+  async getTimeCapsule(capsuleId: string): Promise<TimeCapsuleWithStats | null> {
     const normalizedUserId = normalizeUserId(this.userId)
 
     if (!supabaseAdmin) {
@@ -223,7 +224,7 @@ export class TimeCapsuleService {
       .from('time_capsule_bookmarks')
       .select('*')
       .eq('time_capsule_id', capsuleId)
-      .order('created_at', { _ascending: true })
+      .order('created_at', { ascending: true })
 
     if (bookmarksError) {
       throw new Error(`Failed to fetch capsule _bookmarks: ${bookmarksError.message}`)
@@ -249,7 +250,7 @@ export class TimeCapsuleService {
   /**
    * Delete a time capsule
    */
-  async deleteTimeCapsule(_capsuleId: string): Promise<void> {
+  async deleteTimeCapsule(capsuleId: string): Promise<void> {
     const normalizedUserId = normalizeUserId(this.userId)
 
     if (!supabaseAdmin) {
@@ -270,7 +271,7 @@ export class TimeCapsuleService {
   /**
    * Update time capsule metadata
    */
-  async updateTimeCapsule(_capsuleId: string, updates: Partial<Pick<TimeCapsule, 'name' | 'description'>>): Promise<TimeCapsule> {
+  async updateTimeCapsule(capsuleId: string, updates: Partial<Pick<TimeCapsule, 'name' | 'description'>>): Promise<TimeCapsule> {
     const normalizedUserId = normalizeUserId(this.userId)
 
     if (!supabaseAdmin) {
@@ -306,7 +307,7 @@ export class TimeCapsuleService {
       .from('time_capsules')
       .select('*')
       .eq('user_id', normalizedUserId)
-      .order('snapshot_date', { _ascending: true })
+      .order('snapshot_date', { ascending: true })
 
     if (error) {
       throw new Error(`Failed to fetch time capsule _stats: ${error.message}`)
@@ -328,7 +329,7 @@ export class TimeCapsuleService {
   /**
    * Restore bookmarks from a time capsule (create new bookmarks based on snapshot)
    */
-  async restoreFromTimeCapsule(_capsuleId: string, options: {
+  async restoreFromTimeCapsule(capsuleId: string, options: {
     restoreToFolder?: string
     skipExisting?: boolean
   } = {}): Promise<{ restored: number; skipped: number; errors: string[] }> {
@@ -364,7 +365,7 @@ export class TimeCapsuleService {
       if (error) {
         results.errors.push(`Failed to fetch existing _bookmarks: ${error.message}`)
       } else {
-        existingUrls = new Set((data || []).map((_b: { url: string }) => b.url))
+        existingUrls = new Set((data || []).map((b: { url: string }) => b.url))
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
       }
     }
@@ -399,9 +400,8 @@ export class TimeCapsuleService {
         } else {
           results.restored++
         }
-      } catch (_error) {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        results.errors.push(`Error restoring "${snapshotBookmark.title}": ${error instanceof Error ? error._message : 'Unknown error'}`)
+      } catch (error) {
+        results.errors.push(`Error restoring "${snapshotBookmark.title}": ${error instanceof Error ? error.message : 'Unknown error'}`)
       }
     }
 

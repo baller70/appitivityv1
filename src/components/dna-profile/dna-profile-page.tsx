@@ -18,6 +18,7 @@ import {
   BarChart3,
   Zap
 } from 'lucide-react';
+import { DnaPageHeader } from './dna-page-header';
 
 interface DnaProfileStats {
   totalEvents: number;
@@ -31,7 +32,6 @@ interface DnaProfileStats {
 export default function DnaProfilePage() {
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [profile, setProfile] = useState<any>(null);
   const [insights, setInsights] = useState<any[]>([]);
   const [recommendations, setRecommendations] = useState<any[]>([]);
@@ -134,14 +134,11 @@ export default function DnaProfilePage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">DNA Profile</h1>
-          <p className="text-muted-foreground">
-            AI-enhanced behavioral analysis to personalize your experience
-          </p>
-        </div>
+      {/* Standardized Header */}
+      <DnaPageHeader 
+        title="DNA Profile"
+        description="AI-enhanced behavioral analysis to personalize your experience"
+      >
         <Button
           onClick={triggerAnalysis}
           disabled={analyzing}
@@ -154,7 +151,7 @@ export default function DnaProfilePage() {
           )}
           {analyzing ? 'Analyzing...' : 'Run Analysis'}
         </Button>
-      </div>
+      </DnaPageHeader>
 
       {/* Stats Cards */}
       {stats && (
@@ -239,250 +236,18 @@ export default function DnaProfilePage() {
       )}
 
       {/* Main Content */}
-      <Tabs defaultValue="profile" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="insights">Insights</TabsTrigger>
-          <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="profile" className="space-y-4">
-          {profile ? (
-            <ProfileOverview profile={profile} />
-          ) : (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <Brain className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-lg font-semibold mb-2">No DNA Profile Yet</h3>
-                <p className="text-muted-foreground mb-4">
-                  Start using the app to build your behavioral profile
-                </p>
-                <Button onClick={triggerAnalysis} disabled={analyzing}>
-                  {analyzing ? 'Analyzing...' : 'Create Profile'}
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-
-        <TabsContent value="insights" className="space-y-4">
-          <InsightsSection insights={insights} />
-        </TabsContent>
-
-        <TabsContent value="recommendations" className="space-y-4">
-          <RecommendationsSection
-            recommendations={recommendations}
-            onAction={handleRecommendationAction}
-          />
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function ProfileOverview({ profile }: { profile: any }) {
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Profile Summary */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
-            Profile Summary
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <p className="font-semibold">{profile.profile_name || 'Analyzing...'}</p>
-            <p className="text-sm text-muted-foreground">
-              AI-enhanced behavioral profile
-            </p>
-          </div>
-          
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <span className="text-sm">Learning Style</span>
-              <Badge variant="secondary">
-                {profile.learning_style 
-                  ? `${profile.learning_style.preference || 'Unknown'} (${profile.learning_style.pace || 'Unknown'})`
-                  : 'Analyzing...'
-                }
-              </Badge>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm">Productivity Pattern</span>
-              <Badge variant="secondary">
-                {profile.productivity_patterns 
-                  ? `${profile.productivity_patterns.sessionStyle || 'Unknown'} sessions`
-                  : 'Analyzing...'
-                }
-              </Badge>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Personality Traits */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Personality Traits</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {profile.personality_traits && Object.entries(profile.personality_traits).map(([trait, value]) => (
-            <div key={trait} className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-sm capitalize">{trait}</span>
-                <span className="text-sm font-medium">{typeof value === 'number' ? value : 0}%</span>
-              </div>
-              <Progress value={typeof value === 'number' ? value : 0} className="h-2" />
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      {/* Behavioral Analysis */}
-      <Card className="lg:col-span-2">
-        <CardHeader>
-          <CardTitle>Behavioral Analysis</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <h4 className="font-semibold mb-2">Browsing Pattern</h4>
-              <div className="space-y-2 text-sm">
-                <p>Peak Hours: {profile.browsing_pattern?.peakHours?.join(', ') || 'Analyzing...'}</p>
-                <p>Frequency: {profile.browsing_pattern?.frequencyPattern || 'Analyzing...'}</p>
-                <p>Device: {profile.browsing_pattern?.devicePreference || 'Analyzing...'}</p>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-2">Category Preferences</h4>
-              <div className="space-y-1">
-                {profile.category_preferences?.topCategories?.length > 0 ? (
-                  profile.category_preferences.topCategories.map((category: string, index: number) => (
-                    <Badge key={index} variant="outline" className="mr-1 mb-1">
-                      {category}
-                    </Badge>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground">Analyzing preferences...</p>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-2">Interaction Style</h4>
-              <div className="space-y-2 text-sm">
-                <p>Organization: {profile.interaction_style?.organizationLevel || 'Analyzing...'}</p>
-                <p>Tagging: {profile.interaction_style?.taggingBehavior || 'Analyzing...'}</p>
-                <p>Folders: {profile.interaction_style?.folderUsage || 'Analyzing...'}</p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function InsightsSection({ insights }: { insights: any[] }) {
-  if (!insights || insights.length === 0) {
-    return (
       <Card>
         <CardContent className="p-8 text-center">
-          <Lightbulb className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-          <h3 className="text-lg font-semibold mb-2">No Insights Yet</h3>
-          <p className="text-muted-foreground">
-            Keep using the app to generate behavioral insights
+          <Brain className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+          <h3 className="text-lg font-semibold mb-2">DNA Profile Analysis</h3>
+          <p className="text-muted-foreground mb-4">
+            Your behavioral profile is being analyzed. Check back soon for insights and recommendations.
           </p>
+          <Button onClick={triggerAnalysis} disabled={analyzing}>
+            {analyzing ? 'Analyzing...' : 'Run Analysis'}
+          </Button>
         </CardContent>
       </Card>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      {insights.map((insight) => (
-        <Card key={insight.id}>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">{insight.insight_type}</CardTitle>
-              <Badge variant="secondary">
-                {insight.confidence_score}% confidence
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">{insight.description}</p>
-            {insight.insight_data && (
-              <div className="mt-4 p-3 bg-muted rounded-lg">
-                <pre className="text-sm">{JSON.stringify(insight.insight_data, null, 2)}</pre>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
-}
-
-function RecommendationsSection({ 
-  recommendations, 
-  onAction 
-}: { 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  recommendations: any[];
-  onAction: (id: string, action: 'apply' | 'dismiss') => void;
-}) {
-  if (!recommendations || recommendations.length === 0) {
-    return (
-      <Card>
-        <CardContent className="p-8 text-center">
-          <Target className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-          <h3 className="text-lg font-semibold mb-2">No Recommendations</h3>
-          <p className="text-muted-foreground">
-            Your DNA profile will generate personalized recommendations as you use the app
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      {recommendations.map((recommendation) => (
-        <Card key={recommendation.id}>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">{recommendation.recommendation_type}</CardTitle>
-              <Badge variant="outline">
-                {recommendation.priority} priority
-              </Badge>
-            </div>
-            <CardDescription>{recommendation.description}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                onClick={() => onAction(recommendation.id, 'apply')}
-              >
-                Apply
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => onAction(recommendation.id, 'dismiss')}
-              >
-                Dismiss
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
     </div>
   );
 } 

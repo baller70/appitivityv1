@@ -10,6 +10,7 @@ import { FavoritesPage } from '../favorites/favorites-page';
 import { SettingsPage } from '../settings/settings-page';
 import { EnhancedSearchDashboard } from '../search/enhanced-search-dashboard';
 import { TimeCapsulePage } from '../time-capsule/time-capsule-page';
+import DnaTabs from '../dna-profile/dna-tabs';
 import DnaProfilePage from '../dna-profile/dna-profile-page';
 import { 
   BarChart3, 
@@ -25,6 +26,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import type { BookmarkWithRelations } from '../../lib/services/bookmarks';
 import type { Folder, Tag } from '../../types/supabase';
+import { CopilotPage } from '../ai/copilot-page';
 
 interface DashboardMainProps {
   userId: string;
@@ -36,7 +38,7 @@ interface DashboardMainProps {
 }
 
 export function DashboardMain({ userId, userData }: DashboardMainProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'favorites' | 'settings' | 'search' | 'time-capsule' | 'dna-profile'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'favorites' | 'settings' | 'search' | 'time-capsule' | 'dna-profile' | 'copilot'>('overview');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dashboardData, setDashboardData] = useState<{
@@ -117,6 +119,7 @@ export function DashboardMain({ userId, userData }: DashboardMainProps) {
     { id: 'search', label: 'Search', icon: Search },
     { id: 'time-capsule', label: 'Time Capsule', icon: Package },
     { id: 'dna-profile', label: 'DNA Profile', icon: Brain },
+    { id: 'copilot', label: 'AI Copilot', icon: User },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
@@ -169,7 +172,14 @@ export function DashboardMain({ userId, userData }: DashboardMainProps) {
       case 'time-capsule':
         return <TimeCapsulePage />;
       case 'dna-profile':
-        return <DnaProfilePage />;
+        return (
+          <>
+            <DnaTabs />
+            <DnaProfilePage />
+          </>
+        );
+      case 'copilot':
+        return <CopilotPage />;
       case 'settings':
         return <SettingsPage userId={userId} />;
       default:
@@ -251,7 +261,7 @@ export function DashboardMain({ userId, userData }: DashboardMainProps) {
                   : 'text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-700'
               }`}
             >
-              <Brain className="mr-2 h-3 w-3" />
+              <Brain className="mr-3 h-4 w-4" />
               DNA Profile
             </button>
           </div>
@@ -259,9 +269,9 @@ export function DashboardMain({ userId, userData }: DashboardMainProps) {
       </nav>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 p-8">
         {renderActiveComponent()}
       </main>
     </div>
   );
-} 
+}

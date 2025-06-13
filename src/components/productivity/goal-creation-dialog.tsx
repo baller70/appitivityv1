@@ -90,7 +90,6 @@ export function GoalCreationDialog({
           goal_priority: formData.goalPriority,
           goal_progress: 0,
           goal_notes: formData.goalNotes,
-          goal_created_at: new Date().toISOString(),
           deadline_date: formData.deadlineDate ? new Date(formData.deadlineDate).toISOString() : null
         });
       } else if (formData.targetType === 'folder' && formData.targetId) {
@@ -102,7 +101,6 @@ export function GoalCreationDialog({
           goal_priority: formData.goalPriority,
           goal_progress: 0,
           goal_notes: formData.goalNotes,
-          goal_created_at: new Date().toISOString(),
           deadline_date: formData.deadlineDate ? new Date(formData.deadlineDate).toISOString() : null
         });
       }

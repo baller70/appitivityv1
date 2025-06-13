@@ -8,6 +8,9 @@ import {
   type NotificationType, 
   type NotificationPriority 
 } from './notification-types';
+import { useUser } from '@clerk/nextjs';
+import { NotificationService } from '@/lib/services/notifications';
+import type { UserNotification } from '@/types/supabase';
 
 const defaultSettings: NotificationSettings = {
   enabled: true,
@@ -24,6 +27,7 @@ const defaultSettings: NotificationSettings = {
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
+  const { user } = useUser();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [settings, setSettings] = useState<NotificationSettings>(defaultSettings);
 
@@ -245,6 +249,48 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       ...options,
     });
   }, [showNotification]);
+
+  // --- Supabase integration to load & stream notifications ---
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const service = new NotificationService(user.id);
+
+    // Helper to convert DB row to local Notification object
+    const convertRow = (row: UserNotification): Notification => ({
+      id: row.id,
+      type: (row.type as NotificationType) || 'info',
+      title: row.title || 'Update',
+      message: row.message,
+      priority: (row.priority as NotificationPriority) || 'low',
+      timestamp: row.created_at ? new Date(row.created_at) : new Date(),
+      isRead: !!row.read_at,
+      isDismissed: false,
+      duration: undefined,
+      action: row.link ? { label: 'Open', onClick: () => window.open(row.link as string, '_blank') } : undefined,
+    });
+
+    // Initial fetch
+    service.listNotifications().then(rows => {
+      setNotifications(prev => {
+        const existingIds = new Set(prev.map(n => n.id));
+        const converted = rows.map(convertRow).filter(n => !existingIds.has(n.id));
+        return [...converted, ...prev];
+      });
+    }).catch(err => console.error('Load notifications error', err));
+
+    // Realtime subscription
+    const unsubscribe = service.subscribeToNewNotifications(row => {
+      const local = convertRow(row);
+      setNotifications(prev => [local, ...prev]);
+      // Also trigger toast
+      info(local.title, local.message);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [user?.id, info]);
 
   // Notification management
   const dismissNotification = useCallback((id: string) => {

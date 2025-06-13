@@ -32,29 +32,31 @@ export async function ensureUserProfile(userId: string, email: string, fullName?
   console.log('Ensuring profile for user:', normalizedUserId, 'from Clerk ID:', userId, 'email:', email, 'fullName:', fullName)
   
   try {
-    // First check if profile exists by email (most reliable identifier)
-    const { data: profileByEmail, error: fetchByEmailError } = await supabaseAdmin
-      .from('profiles')
-      .select('id, email')
-      .eq('email', email)
-      .single()
+    // If email is provided, try finding profile by email first
+    if (email) {
+      const { data: profileByEmail, error: fetchByEmailError } = await supabaseAdmin
+        .from('profiles')
+        .select('id, email')
+        .eq('email', email)
+        .single()
 
-    if (fetchByEmailError && fetchByEmailError.code !== 'PGRST116') {
-      console.error('Error checking profile by email:', fetchByEmailError)
-      throw fetchByEmailError
-    }
-
-    if (profileByEmail) {
-      if (profileByEmail.id !== normalizedUserId) {
-        console.log('Found profile with same email but different ID. Expected:', normalizedUserId, 'Found:', profileByEmail.id)
-        console.log('Using existing profile ID:', profileByEmail.id)
-      } else {
-        console.log('Profile already exists for user ID:', normalizedUserId)
+      if (fetchByEmailError && fetchByEmailError.code !== 'PGRST116') {
+        console.error('Error checking profile by email:', fetchByEmailError)
+        throw fetchByEmailError
       }
-      return { 
-        success: true, 
-        profile: profileByEmail,
-        userId: profileByEmail.id // Always use the existing profile ID
+
+      if (profileByEmail) {
+        if (profileByEmail.id !== normalizedUserId) {
+          console.log('Found profile with same email but different ID. Expected:', normalizedUserId, 'Found:', profileByEmail.id)
+          console.log('Using existing profile ID:', profileByEmail.id)
+        } else {
+          console.log('Profile already exists for user ID:', normalizedUserId)
+        }
+        return { 
+          success: true, 
+          profile: profileByEmail,
+          userId: profileByEmail.id // Always use the existing profile ID
+        }
       }
     }
 

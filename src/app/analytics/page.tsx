@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import { AnalyticsPage } from '../../components/analytics/analytics-page';
+import DnaTabsWrapper from '../../components/dna-profile/dna-tabs-wrapper';
 
 export default async function Analytics() {
   const { userId } = await auth();
@@ -9,5 +10,12 @@ export default async function Analytics() {
     redirect('/sign-in');
   }
 
-  return <AnalyticsPage userId={userId} />;
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <DnaTabsWrapper />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <AnalyticsPage userId={userId} />
+      </div>
+    </div>
+  );
 } 

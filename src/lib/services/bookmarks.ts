@@ -11,7 +11,6 @@ import type {
 // Bookmark with related data
 export interface BookmarkWithRelations extends Bookmark {
   folder?: Folder | null
-  tags?: Tag[]
   preview_image?: string | null
   deadline_date?: string | null
   goal_description?: string | null
@@ -101,7 +100,7 @@ export class BookmarkService {
     // Transform the data to include tags properly
     return data?.map(bookmark => ({
       ...bookmark,
-      tags: bookmark.tags?.map((bt: unknown) => (bt as { tag: Tag }).tag).filter(Boolean) || [],
+      tags: (bookmark.tags as any[] ?? []).map(t => 'name' in t ? t : (t as any)).filter(Boolean),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       reminder_at: (bookmark as any).reminder_at || null
     })) || []
@@ -134,7 +133,7 @@ export class BookmarkService {
     console.log('Successfully fetched bookmark:', id)
     return {
       ...data,
-      tags: data.tags?.map((bt: unknown) => (bt as { tag: Tag }).tag).filter(Boolean) || [],
+      tags: (data.tags as any[] ?? []).map(t => 'name' in t ? t : (t as any)).filter(Boolean),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       reminder_at: (data as any).reminder_at || null
     }
@@ -269,7 +268,7 @@ export class BookmarkService {
 
     return data?.map(bookmark => ({
       ...bookmark,
-      tags: bookmark.tags?.map((bt: any) => bt.tag).filter(Boolean) || []
+      tags: (bookmark.tags as any[] ?? []).map(t => 'name' in t ? t : (t as any)).filter(Boolean)
     })) || []
   }
 

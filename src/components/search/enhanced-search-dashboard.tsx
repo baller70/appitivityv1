@@ -20,6 +20,7 @@ import type { BookmarkWithRelations } from '../../lib/services/bookmarks';
 import type { Folder as FolderType, Tag as TagType } from '../../types/supabase';
 import { BookmarkCard } from '../bookmarks/bookmark-card';
 import { toast } from 'sonner';
+import { DnaPageHeader } from '../dna-profile/dna-page-header';
 
 interface EnhancedSearchDashboardProps {
   userId: string;
@@ -100,17 +101,15 @@ export function EnhancedSearchDashboard({ userId }: EnhancedSearchDashboardProps
   }, [loadInitialData]);
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Enhanced Search
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Discover your bookmarks with advanced search and filtering
-          </p>
-        </div>
+    <>
+      {/* Standardized Header */}
+      <DnaPageHeader 
+        title="Search"
+        description="Discover your bookmarks with advanced search and filtering"
+      />
+      
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-6xl mx-auto">
 
         {/* Search Interface */}
         <Card className="mb-8">
@@ -435,7 +434,8 @@ export function EnhancedSearchDashboard({ userId }: EnhancedSearchDashboardProps
             </Card>
           </div>
         )}
+        </div>
       </div>
-    </div>
+    </>
   );
 } 
