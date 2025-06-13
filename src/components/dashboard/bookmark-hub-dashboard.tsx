@@ -723,25 +723,6 @@ function BookmarkHubDashboardContent({ userId, userData, onNavigate }: BookmarkH
           <main className="flex-1 p-6 overflow-auto">
                 {/* Bookmarks Display */}
                 <div className="space-y-6">
-                             {viewMode === 'folder-grid' ? (
-                 <FolderGridView 
-                   folders={folders}
-                   bookmarks={bookmarks}
-                   onCreateFolder={() => {}}
-                   onEditFolder={() => {}}
-                   onDeleteFolder={() => {}}
-                   onAddBookmarkToFolder={() => {}}
-                   onDropBookmarkToFolder={() => {}}
-                   onBookmarkUpdated={handleBookmarkUpdated}
-                   onBookmarkDeleted={handleBookmarkDeleted}
-                   onOpenDetail={handleOpenDetail}
-                   currentFolderId={selectedFolder}
-                   onFolderNavigate={setSelectedFolder}
-                 />
-              ) : (
-                <>
-
-
                   {/* Professional View Mode Selector - Large Size */}
                   <div className="bg-white dark:bg-gray-800 rounded-3xl p-14 border border-slate-200 dark:border-slate-700 shadow-xl mb-10">
                     <div className="flex items-center justify-center">
@@ -779,7 +760,22 @@ function BookmarkHubDashboardContent({ userId, userData, onNavigate }: BookmarkH
                   </div>
 
                   {/* Bookmarks Content */}
-                  {viewMode === 'list' ? (
+                  {viewMode === 'folder-grid' ? (
+                    <FolderGridView 
+                      folders={folders}
+                      bookmarks={bookmarks}
+                      onCreateFolder={handleCreateFolder}
+                      onEditFolder={handleEditFolder}
+                      onDeleteFolder={handleDeleteFolder}
+                      onAddBookmarkToFolder={handleAddBookmarkToFolder}
+                      onDropBookmarkToFolder={handleDropBookmarkToFolder}
+                      onBookmarkUpdated={handleBookmarkUpdated}
+                      onBookmarkDeleted={handleBookmarkDeleted}
+                      onOpenDetail={handleOpenDetail}
+                      currentFolderId={selectedFolder}
+                      onFolderNavigate={setSelectedFolder}
+                    />
+                  ) : viewMode === 'list' ? (
                     <ListView
                       bookmarks={filteredAndSortedBookmarks}
                       onBookmarkClick={handleOpenDetail}
@@ -844,21 +840,6 @@ function BookmarkHubDashboardContent({ userId, userData, onNavigate }: BookmarkH
                       onEditFolder={handleEditFolder}
                       onDeleteFolder={handleDeleteFolder}
                       onAddBookmarkToFolder={handleAddBookmarkToFolder}
-                    />
-                  ) : viewMode === 'folder-grid' ? (
-                    <FolderGridView
-                      folders={folders}
-                      bookmarks={bookmarks}
-                      onCreateFolder={handleCreateFolder}
-                      onEditFolder={handleEditFolder}
-                      onDeleteFolder={handleDeleteFolder}
-                      onAddBookmarkToFolder={handleAddBookmarkToFolder}
-                      onDropBookmarkToFolder={handleDropBookmarkToFolder}
-                      onBookmarkUpdated={handleBookmarkUpdated}
-                      onBookmarkDeleted={handleBookmarkDeleted}
-                      onOpenDetail={handleOpenDetail}
-                      currentFolderId={selectedFolder}
-                      onFolderNavigate={setSelectedFolder}
                     />
                   ) : viewMode === 'detailed' ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -995,9 +976,7 @@ function BookmarkHubDashboardContent({ userId, userData, onNavigate }: BookmarkH
                       <p className="text-gray-500 dark:text-gray-400">Unknown view mode: {viewMode}</p>
                     </div>
                   )}
-                </>
-              )}
-            </div>
+                </div>
 
                 {/* Upcoming Deadlines & Active Goals Section - Add more spacing */}
                 <div className="mt-12 mb-8">
