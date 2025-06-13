@@ -1,6 +1,5 @@
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
-import { SettingsPage } from '../../components/settings/settings-page';
 
 export default async function Settings() {
   const { userId } = await auth();
@@ -9,5 +8,6 @@ export default async function Settings() {
     redirect('/sign-in');
   }
 
-  return <SettingsPage userId={userId} />;
+  // Redirect to the enhanced settings page which now contains all functionality
+  redirect('/features/settings');
 } 

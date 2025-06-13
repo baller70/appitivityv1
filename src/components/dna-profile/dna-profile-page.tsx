@@ -32,17 +32,10 @@ interface DnaProfileStats {
 export default function DnaProfilePage() {
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
-  const [profile, setProfile] = useState<any>(null);
-  const [insights, setInsights] = useState<any[]>([]);
-  const [recommendations, setRecommendations] = useState<any[]>([]);
-  const [stats, setStats] = useState<DnaProfileStats>({
-    totalEvents: 0,
-    profileAge: 0,
-    lastAnalysis: null,
-    confidenceScore: 0,
-    activeInsights: 0,
-    pendingRecommendations: 0
-  });
+  const [profile, setProfile] = useState(null);
+  const [insights, setInsights] = useState([]);
+  const [recommendations, setRecommendations] = useState([]);
+  const [stats, setStats] = useState<DnaProfileStats | null>(null);
 
   useEffect(() => {
     loadDnaProfile();
@@ -250,4 +243,4 @@ export default function DnaProfilePage() {
       </Card>
     </div>
   );
-} 
+}

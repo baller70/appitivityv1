@@ -36,7 +36,8 @@ import {
   LogOut,
   Bookmark,
   Brain,
-  Play
+  Play,
+  CreditCard
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -226,41 +227,28 @@ export function EnhancedSidebar({
       active: currentPath === '/dashboard'
     },
     { 
-      name: 'Search', 
-      icon: Search, 
-      path: '/search',
-      active: currentPath === '/search'
+      name: 'AI Co-pilot', 
+      icon: Brain, 
+      path: '/ai-copilot',
+      active: currentPath === '/ai-copilot'
     },
     { 
-      name: 'Features', 
+      name: 'Feature', 
       icon: Zap, 
-      path: '/features',
-      active: currentPath === '/features'
+      path: '/feature',
+      active: currentPath === '/feature'
     },
     { 
-      name: 'Playlists', 
-      icon: Play, 
-      path: '/playlists',
-      active: currentPath === '/playlists'
-    },
-    { 
-      name: 'Analytics', 
-      icon: BarChart3, 
-      path: '/analytics',
-      active: currentPath === '/analytics'
-    },
-    { 
-      name: 'Favorites', 
-      icon: Heart, 
-      path: '/favorites',
-      count: stats.favoriteBookmarks,
-      active: currentPath === '/favorites'
+      name: 'Marketplace', 
+      icon: CreditCard, 
+      path: '/marketplace',
+      active: currentPath === '/marketplace'
     },
     { 
       name: 'Settings', 
       icon: Settings, 
-      path: '/settings',
-      active: currentPath === '/settings'
+      path: '/features/settings',
+      active: currentPath === '/features/settings' || currentPath === '/settings'
     },
   ];
 
@@ -481,25 +469,7 @@ export function EnhancedSidebar({
             </div>
           </div>
 
-          {/* Quick Actions */}
-          <div className="p-4 border-t border-gray-200 dark:border-gray-800">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Quick Actions
-              </h2>
-            </div>
-            <div className="space-y-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full justify-start"
-                onClick={onAddBookmark}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                {!isCollapsed && "Add Bookmark"}
-              </Button>
-            </div>
-          </div>
+
 
           {/* Categories */}
           <div className="p-4 border-t border-gray-200 dark:border-gray-800">

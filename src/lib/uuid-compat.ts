@@ -13,7 +13,7 @@ const CLERK_UUID_NAMESPACE = '6ba7b810-9dad-11d1-80b4-00c04fd430c8'
  * This creates a deterministic UUID from the Clerk user ID
  */
 export function clerkIdToUuid(clerkId: string): string {
-  if (!clerkId || typeof clerkId !== 'string') {
+  if (!clerkId || typeof clerkId !== 'string' || clerkId.length === 0) {
     throw new Error(`Invalid clerkId provided: ${clerkId}`)
   }
   return uuidv5(clerkId, CLERK_UUID_NAMESPACE)
@@ -30,8 +30,8 @@ export function isValidUuid(str: string): boolean {
 /**
  * Normalize user ID - convert Clerk format to UUID if needed
  */
-export function normalizeUserId(userId: string): string {
-  if (!userId || typeof userId !== 'string') {
+export function normalizeUserId(userId: string | null | undefined): string {
+  if (!userId || typeof userId !== 'string' || userId.length === 0) {
     throw new Error(`Invalid userId provided to normalizeUserId: ${userId}`)
   }
   

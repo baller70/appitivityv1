@@ -20,7 +20,7 @@ export async function ensureProfileMiddleware() {
       throw new Error('Failed to ensure demo user profile')
     }
     
-    return { userId: demoUserId, email: demoEmail, name: demoName }
+    return { userId: result.userId || demoUserId, email: demoEmail, name: demoName }
   }
   
   // For authenticated users, get their details from Clerk
@@ -41,5 +41,6 @@ export async function ensureProfileMiddleware() {
   }
   
   console.log('_ensureProfileMiddleware: Profile ensured successfully')
-  return { userId, email, name }
+  // Return the actual userId from the database, not the original Clerk userId
+  return { userId: result.userId || userId, email, name }
 } 

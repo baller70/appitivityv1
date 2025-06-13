@@ -279,7 +279,7 @@ export class DnaProfileService {
 
   private async getRecentEvents(_days: number = 30): Promise<DnaProfileEvent[]> {
     const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - days);
+    cutoffDate.setDate(cutoffDate.getDate() - _days);
 
     const { data, error } = await supabase
       .from('dna_profile_events')
@@ -315,16 +315,16 @@ export class DnaProfileService {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private async performBehavioralAnalysis(_events: DnaProfileEvent[], bookmarks: any[], folders: any[]): Promise<BehavioralAnalysis> {
     // Analyze browsing patterns
-    const browsingPattern = this.analyzeBrowsingPattern(events);
+    const browsingPattern = this.analyzeBrowsingPattern(_events);
     
     // Analyze category preferences
-    const categoryPreferences = this.analyzeCategoryPreferences(bookmarks, events);
+    const categoryPreferences = this.analyzeCategoryPreferences(bookmarks, _events);
     
     // Analyze interaction style
-    const interactionStyle = this.analyzeInteractionStyle(bookmarks, folders, events);
+    const interactionStyle = this.analyzeInteractionStyle(bookmarks, folders, _events);
     
     // Calculate personality traits
-    const personalityTraits = this.calculatePersonalityTraits(events, bookmarks, folders);
+    const personalityTraits = this.calculatePersonalityTraits(_events, bookmarks, folders);
 
     return {
       browsingPattern,
@@ -339,12 +339,12 @@ export class DnaProfileService {
     let totalDuration = 0;
     const sessionGaps: number[] = [];
 
-    events.forEach((event, index) => {
+    _events.forEach((event, index) => {
       const hour = new Date(event.created_at).getHours();
       hourCounts[hour] = (hourCounts[hour] || 0) + 1;
 
       if (index > 0) {
-        const gap = new Date(event.created_at).getTime() - new Date(events[index - 1].created_at).getTime();
+        const gap = new Date(event.created_at).getTime() - new Date(_events[index - 1].created_at).getTime();
         sessionGaps.push(gap);
       }
     });
@@ -360,7 +360,7 @@ export class DnaProfileService {
     return {
       peakHours,
       sessionDuration: avgSessionDuration,
-      frequencyPattern: this.determineFrequencyPattern(events),
+      frequencyPattern: this.determineFrequencyPattern(_events),
       devicePreference: 'mixed' as const // Would need device info from events
     };
   }
@@ -370,7 +370,7 @@ export class DnaProfileService {
     const categoryCount: Record<string, number> = {};
     
     // Analyze bookmark URLs to infer categories
-    bookmarks.forEach(bookmark => {
+    _bookmarks.forEach(bookmark => {
       const category = this.inferCategoryFromUrl(bookmark.url);
       categoryCount[category] = (categoryCount[category] || 0) + 1;
     });
@@ -397,7 +397,7 @@ export class DnaProfileService {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private analyzeInteractionStyle(_bookmarks: any[], folders: any[], events: DnaProfileEvent[]): BehavioralAnalysis['interactionStyle'] {
     const folderCount = folders.length;
-    const bookmarkCount = bookmarks.length;
+    const bookmarkCount = _bookmarks.length;
     const avgBookmarksPerFolder = folderCount > 0 ? bookmarkCount / folderCount : bookmarkCount;
 
     const organizationLevel: 'minimal' | 'moderate' | 'extensive' = folderCount === 0 ? 'minimal' :
@@ -426,15 +426,15 @@ export class DnaProfileService {
     const curiosity = Math.min(100, (uniqueDomains / bookmarks.length) * 200);
 
     // Calculate focus based on session patterns and revisit behavior
-    const revisitEvents = events.filter(e => e.event_type === 'bookmark_visited');
-    const focus = Math.min(100, (revisitEvents.length / events.length) * 150);
+    const revisitEvents = _events.filter(e => e.event_type === 'bookmark_visited');
+    const focus = Math.min(100, (revisitEvents.length / _events.length) * 150);
 
     // Calculate organization based on folder structure and tagging
-    const organizationScore = (folders.length * 10) + (events.filter(e => e.event_type.includes('tag')).length * 5);
+    const organizationScore = (folders.length * 10) + (_events.filter(e => e.event_type.includes('tag')).length * 5);
     const organization = Math.min(100, organizationScore);
 
     // Calculate exploration based on new bookmark additions and category diversity
-    const newBookmarkEvents = events.filter(e => e.event_type === 'bookmark_added');
+    const newBookmarkEvents = _events.filter(e => e.event_type === 'bookmark_added');
     const exploration = Math.min(100, (newBookmarkEvents.length / 30) * 100); // 30 days
 
     return {
@@ -448,20 +448,20 @@ export class DnaProfileService {
   private async generateDnaProfile(_analysis: BehavioralAnalysis): Promise<UserDnaProfile> {
     const profileData: UserDnaProfileInsert = {
       user_id: this.userId,
-      profile_name: this.generateProfileName(analysis),
-      browsing_pattern: analysis.browsingPattern,
-      category_preferences: analysis.categoryPreferences,
-      interaction_style: analysis.interactionStyle,
+      profile_name: this.generateProfileName(_analysis),
+      browsing_pattern: _analysis.browsingPattern,
+      category_preferences: _analysis.categoryPreferences,
+      interaction_style: _analysis.interactionStyle,
       organization_style: {
-        level: analysis.interactionStyle.organizationLevel,
-        folderUsage: analysis.interactionStyle.folderUsage,
-        taggingBehavior: analysis.interactionStyle.taggingBehavior
+        level: _analysis.interactionStyle.organizationLevel,
+        folderUsage: _analysis.interactionStyle.folderUsage,
+        taggingBehavior: _analysis.interactionStyle.taggingBehavior
       },
-      personality_traits: analysis.personalityTraits,
-      learning_style: this.inferLearningStyle(analysis),
-      productivity_patterns: this.analyzeProductivityPatterns(analysis),
-      content_affinity: analysis.categoryPreferences,
-      confidence_score: this.calculateConfidenceScore(analysis),
+      personality_traits: _analysis.personalityTraits,
+      learning_style: this.inferLearningStyle(_analysis),
+      productivity_patterns: this.analyzeProductivityPatterns(_analysis),
+      content_affinity: _analysis.categoryPreferences,
+      confidence_score: this.calculateConfidenceScore(_analysis),
       last_analyzed_at: new Date().toISOString(),
       analysis_version: '1.0'
     };

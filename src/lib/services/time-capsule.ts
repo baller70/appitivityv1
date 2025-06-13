@@ -175,6 +175,9 @@ export class TimeCapsuleService {
    * Get all time capsules for the user
    */
   async getTimeCapsules(): Promise<TimeCapsule[]> {
+    if (!this.userId) {
+      throw new Error('User ID is required for time capsules')
+    }
     const normalizedUserId = normalizeUserId(this.userId)
 
     if (!supabaseAdmin) {
@@ -297,6 +300,9 @@ export class TimeCapsuleService {
    * Get time capsule statistics
    */
   async getTimeCapsuleStats(): Promise<TimeCapsuleStats> {
+    if (!this.userId) {
+      throw new Error('User ID is required for time capsule stats')
+    }
     const normalizedUserId = normalizeUserId(this.userId)
 
     if (!supabaseAdmin) {

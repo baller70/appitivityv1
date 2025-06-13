@@ -41,7 +41,11 @@ import {
   Crown,
   Brain,
   Sparkles,
-  Users
+  Users,
+  Grid3X3,
+  MoreHorizontal,
+  FolderOpen,
+  FileText
 } from 'lucide-react';
 import { BookmarkValidationModal } from '../bookmarks/bookmark-validation-modal';
 import { BookmarkImportModal } from '../bookmarks/bookmark-import-modal';
@@ -62,7 +66,7 @@ import { FolderFormDialog } from '../folders/folder-form-dialog';
 import { FilterPopover } from '../ui/filter-popover';
 import { ProductivityDashboard } from '../productivity/productivity-dashboard';
 import { EnhancedSidebar } from '../layout/enhanced-sidebar';
-import { SaveTabsDialog } from '../tabs/save-tabs-dialog';
+
 import { IntegrationsDialog } from '../integrations/integrations-dialog';
 import { MonetizationDialog } from '../monetization/monetization-dialog';
 import { IndustryFilterDialog } from '../ai/industry-filter-dialog';
@@ -82,7 +86,7 @@ interface BookmarkHubDashboardProps {
   onNavigate?: (path: string) => void;
 }
 
-type ViewMode = 'grid' | 'list' | 'compact' | 'kanban' | 'timeline' | 'folder' | 'hierarchy' | 'productivity';
+type ViewMode = 'grid' | 'list' | 'compact' | 'kanban' | 'timeline' | 'folder' | 'hierarchy' | 'productivity' | 'folder-grid' | 'detailed' | 'goals';
 
 function BookmarkHubDashboardContent({ userId, userData, onNavigate }: BookmarkHubDashboardProps) {
   const { enterSelectionMode, isSelectionMode } = useSelection();
@@ -107,7 +111,7 @@ function BookmarkHubDashboardContent({ userId, userData, onNavigate }: BookmarkH
   const [editingFolder, setEditingFolder] = useState<Folder | null>(null);
   const [targetFolderId, setTargetFolderId] = useState<string | null>(null);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
-  const [showSaveTabsDialog, setShowSaveTabsDialog] = useState(false);
+
   const [showRecommendations, setShowRecommendations] = useState(false);
   const [showAdvancedAnalytics, setShowAdvancedAnalytics] = useState(false);
   const [showBackupRestore, setShowBackupRestore] = useState(false);
@@ -120,7 +124,11 @@ function BookmarkHubDashboardContent({ userId, userData, onNavigate }: BookmarkH
     sortBy: 'newest' as 'newest' | 'oldest' | 'title' | 'url' | 'recent' | 'visits' | 'favorites'
   });
 
-
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedBookmarks, setSelectedBookmarks] = useState<BookmarkWithRelations[]>([]);
+  const [bulkSelectMode, setBulkSelectMode] = useState(false);
+  const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
+  // Removed activeTab state - using only view mode selector now
 
   const loadData = useCallback(async () => {
     try {
@@ -432,10 +440,7 @@ function BookmarkHubDashboardContent({ userId, userData, onNavigate }: BookmarkH
     }
   };
 
-  const handleSaveTabsSuccess = (result: { bookmarks: any[]; playlist?: any }) => {
-    toast.success(`Saved ${result.bookmarks.length} tabs as bookmarks${result.playlist ? ' and created playlist' : ''}`);
-    loadData(); // Refresh the data to show new bookmarks
-  };
+
 
   // Filter and sort bookmarks
   const filteredAndSortedBookmarks = bookmarks
@@ -716,313 +721,318 @@ function BookmarkHubDashboardContent({ userId, userData, onNavigate }: BookmarkH
 
           {/* Content Area */}
           <main className="flex-1 p-6 overflow-auto">
-            {/* Actions Bar */}
-            <div className="flex items-center justify-between space-x-4 mb-8 px-2">
-              {/* Left Section - Menu Button */}
-              <div className="flex items-center">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                  className="lg:hidden"
-                >
-                  <Menu className="h-4 w-4" />
-                </Button>
-              </div>
+                {/* Bookmarks Display */}
+                <div className="space-y-6">
+                             {viewMode === 'folder-grid' ? (
+                 <FolderGridView 
+                   folders={folders}
+                   bookmarks={bookmarks}
+                   onCreateFolder={() => {}}
+                   onEditFolder={() => {}}
+                   onDeleteFolder={() => {}}
+                   onAddBookmarkToFolder={() => {}}
+                   onDropBookmarkToFolder={() => {}}
+                   onBookmarkUpdated={handleBookmarkUpdated}
+                   onBookmarkDeleted={handleBookmarkDeleted}
+                   onOpenDetail={handleOpenDetail}
+                   currentFolderId={selectedFolder}
+                   onFolderNavigate={setSelectedFolder}
+                 />
+              ) : (
+                <>
 
-              {/* Center Section - Search Bar + View Mode Selector */}
-              <div className="flex items-center space-x-4 flex-1 max-w-4xl">
-                {/* Search Bar */}
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Search bookmarks..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  {searchTerm && (
-                    <button
-                      onClick={() => setSearchTerm('')}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
+
+                  {/* Professional View Mode Selector - Large Size */}
+                  <div className="bg-white dark:bg-gray-800 rounded-3xl p-14 border border-slate-200 dark:border-slate-700 shadow-xl mb-10">
+                    <div className="flex items-center justify-center">
+                      <div className="inline-flex h-18 items-center justify-center rounded-2xl bg-gray-100 dark:bg-gray-800 p-3 shadow-lg border border-gray-200 dark:border-gray-700">
+                        {[
+                          { mode: 'list' as ViewMode, icon: List, label: 'List' },
+                          { mode: 'grid' as ViewMode, icon: LayoutGrid, label: 'Grid' },
+                          { mode: 'kanban' as ViewMode, icon: Trello, label: 'Kanban' },
+                          { mode: 'timeline' as ViewMode, icon: Clock, label: 'Timeline' },
+                          { mode: 'folder-grid' as ViewMode, icon: FolderTree, label: 'Folder Grid' },
+                          { mode: 'compact' as ViewMode, icon: Rows3, label: 'Compact' },
+                          { mode: 'detailed' as ViewMode, icon: FileText, label: 'Detailed' },
+                          { mode: 'goals' as ViewMode, icon: Target, label: 'Goals' }
+                        ].map(({ mode, icon: Icon, label }, index) => (
+                          <React.Fragment key={mode}>
+                            <button
+                              onClick={() => setViewMode(mode)}
+                              className={`inline-flex items-center justify-center whitespace-nowrap rounded-xl px-7 py-3.5 text-lg font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${
+                                viewMode === mode
+                                  ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 shadow-lg border border-gray-200 dark:border-gray-600'
+                                  : 'text-gray-600 dark:text-gray-400 hover:bg-white/50 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100'
+                              }`}
+                            >
+                              <Icon className="w-5 h-5 mr-3" />
+                              {label}
+                            </button>
+                            {/* Vertical Separator */}
+                            {index < 7 && (
+                              <div className="h-10 w-px bg-gray-300 dark:bg-gray-600 mx-2.5" />
+                            )}
+                          </React.Fragment>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bookmarks Content */}
+                  {viewMode === 'list' ? (
+                    <ListView
+                      bookmarks={filteredAndSortedBookmarks}
+                      onBookmarkClick={handleOpenDetail}
+                      onFavorite={(bookmark: BookmarkWithRelations) => {
+                        const updatedBookmark = { ...bookmark, is_favorite: !bookmark.is_favorite };
+                        handleBookmarkUpdated(updatedBookmark);
+                      }}
+                      onReorder={(reorderedBookmarks: BookmarkWithRelations[]) => {
+                        setBookmarks(reorderedBookmarks);
+                      }}
+                      loading={loading}
+                    />
+                  ) : viewMode === 'grid' ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {filteredAndSortedBookmarks.map((bookmark) => {
+                        // Calculate total visits for percentage calculation
+                        const totalVisits = bookmarks.reduce((sum, b) => sum + (b.visit_count || 0), 0);
+                        
+                        return (
+                          <BookmarkCard
+                            key={bookmark.id}
+                            bookmark={bookmark}
+                            onUpdated={handleBookmarkUpdated}
+                            onDeleted={() => handleBookmarkDeleted(bookmark.id)}
+                            onOpenDetail={() => handleOpenDetail(bookmark)}
+                            folders={folders}
+                            totalBookmarkVisits={totalVisits}
+                          />
+                        );
+                      })}
+                    </div>
+                  ) : viewMode === 'kanban' ? (
+                    <KanbanView
+                      bookmarks={filteredAndSortedBookmarks}
+                      onBookmarkClick={handleOpenDetail}
+                      onFavorite={(bookmark: BookmarkWithRelations) => {
+                        const updatedBookmark = { ...bookmark, is_favorite: !bookmark.is_favorite };
+                        handleBookmarkUpdated(updatedBookmark);
+                      }}
+                      loading={loading}
+                    />
+                  ) : viewMode === 'timeline' ? (
+                    <TimelineView
+                      bookmarks={filteredAndSortedBookmarks}
+                      onBookmarkClick={handleOpenDetail}
+                      onFavorite={(bookmark: BookmarkWithRelations) => {
+                        const updatedBookmark = { ...bookmark, is_favorite: !bookmark.is_favorite };
+                        handleBookmarkUpdated(updatedBookmark);
+                      }}
+                      loading={loading}
+                    />
+                  ) : viewMode === 'compact' ? (
+                    <CompactView
+                      bookmarks={filteredAndSortedBookmarks}
+                      folders={folders}
+                      tags={tags}
+                      onBookmarkUpdated={handleBookmarkUpdated}
+                      onBookmarkDeleted={(bookmarkId: string) => {
+                        handleBookmarkDeleted(bookmarkId);
+                      }}
+                      onCreateFolder={handleCreateFolder}
+                      onEditFolder={handleEditFolder}
+                      onDeleteFolder={handleDeleteFolder}
+                      onAddBookmarkToFolder={handleAddBookmarkToFolder}
+                    />
+                  ) : viewMode === 'detailed' ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {filteredAndSortedBookmarks.map((bookmark) => (
+                        <div key={bookmark.id} className="space-y-4">
+                          <h3 className="font-semibold text-gray-900 dark:text-white">{bookmark.title}</h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">{bookmark.description}</p>
+                          <div className="flex items-center space-x-4">
+                            <span className="text-xs text-gray-500 dark:text-gray-400">{new URL(bookmark.url).hostname}</span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">{new Date(bookmark.created_at || Date.now()).toLocaleTimeString('en-US', {
+                              hour: 'numeric',
+                              minute: '2-digit'
+                            })}</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                window.open(bookmark.url, '_blank');
+                              }}
+                              className="p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                            </button>
+                            {bookmark.is_favorite && (
+                              <Heart className="w-4 h-4 text-red-500" fill="currentColor" />
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : viewMode === 'goals' ? (
+                    /* GOALS View Content */
+                    <div className="space-y-6">
+                      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">GOALS MANAGEMENT</h2>
+                        
+                        {/* Goals Overview Cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                          <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg p-6">
+                            <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">Active Goals</h3>
+                            <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">{upcomingItems.filter(item => item.status === 'active').length}</p>
+                          </div>
+                          <div className="bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg p-6">
+                            <h3 className="text-lg font-semibold text-green-900 dark:text-green-100 mb-2">Completed</h3>
+                            <p className="text-3xl font-bold text-green-600 dark:text-green-400">{upcomingItems.filter(item => item.status === 'completed').length}</p>
+                          </div>
+                          <div className="bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-lg p-6">
+                            <h3 className="text-lg font-semibold text-orange-900 dark:text-orange-100 mb-2">Overdue</h3>
+                            <p className="text-3xl font-bold text-orange-600 dark:text-orange-400">
+                              {upcomingItems.filter(item => item.deadline && new Date(item.deadline) < new Date()).length}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Goals Table */}
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full rounded-lg">
+                            <thead>
+                              <tr className="border-b border-gray-200 dark:border-gray-700">
+                                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Type</th>
+                                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Name</th>
+                                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Goal Description</th>
+                                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Deadline</th>
+                                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Status</th>
+                                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Progress</th>
+                                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {upcomingItems.length > 0 ? upcomingItems.map(item => (
+                                <tr key={item.type + '-' + item.id} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                  <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">{item.type}</td>
+                                  <td className="px-4 py-3 text-gray-900 dark:text-gray-100">{item.name}</td>
+                                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{item.goal || 'No goal description'}</td>
+                                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
+                                    {item.deadline ? new Date(item.deadline).toLocaleDateString() : 'No deadline'}
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                      item.status === 'completed' 
+                                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                        : item.deadline && new Date(item.deadline) < new Date()
+                                        ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                        : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                                    }`}>
+                                      {item.status === 'completed' ? 'Completed' : 
+                                       item.deadline && new Date(item.deadline) < new Date() ? 'Overdue' : 'Active'}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <div className="flex items-center space-x-2">
+                                      <div className="w-16 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                        <div 
+                                          className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                                          style={{ width: `${item.progress || 0}%` }}
+                                        ></div>
+                                      </div>
+                                      <span className="text-sm text-gray-600 dark:text-gray-400">{item.progress || 0}%</span>
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <div className="flex items-center space-x-2">
+                                      <button className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 text-sm font-medium">
+                                        Edit
+                                      </button>
+                                      <button className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200 text-sm font-medium">
+                                        Complete
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )) : (
+                                <tr>
+                                  <td colSpan={7} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+                                    <div className="flex flex-col items-center space-y-4">
+                                      <Target className="h-12 w-12 text-gray-400" />
+                                      <div>
+                                        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No goals found</h3>
+                                        <p className="text-gray-600 dark:text-gray-400">Start setting goals for your bookmarks and folders to track your progress.</p>
+                                      </div>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                                     ) : (
+                     <FolderGridView
+                       folders={folders}
+                       bookmarks={bookmarks}
+                       onCreateFolder={() => {}}
+                       onEditFolder={() => {}}
+                       onDeleteFolder={() => {}}
+                       onAddBookmarkToFolder={() => {}}
+                       onDropBookmarkToFolder={() => {}}
+                       onBookmarkUpdated={handleBookmarkUpdated}
+                       onBookmarkDeleted={handleBookmarkDeleted}
+                       onOpenDetail={handleOpenDetail}
+                       currentFolderId={selectedFolder}
+                       onFolderNavigate={setSelectedFolder}
+                     />
+                  )}
+                </>
+              )}
+            </div>
+
+                {/* Upcoming Deadlines & Active Goals Section - Add more spacing */}
+                <div className="mt-12 mb-8">
+                  {upcomingItems.length > 0 && (
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                      <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">UPCOMING DEADLINES & ACTIVE GOALS</h2>
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full rounded-lg">
+                          <thead>
+                            <tr className="border-b border-gray-200 dark:border-gray-700">
+                              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Type</th>
+                              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Name</th>
+                              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Deadline</th>
+                              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Goal</th>
+                              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Status</th>
+                              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Progress</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {upcomingItems.map(item => (
+                              <tr key={item.type + '-' + item.id} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">{item.type}</td>
+                                <td className="px-4 py-3 text-gray-900 dark:text-gray-100">{item.name}</td>
+                                <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{item.deadline ? new Date(item.deadline).toLocaleDateString() : '-'}</td>
+                                <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{item.goal || '-'}</td>
+                                <td className="px-4 py-3">
+                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                    {item.status || 'active'}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{typeof item.progress === 'number' ? `${item.progress}%` : '-'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   )}
                 </div>
 
-                {/* View Mode Selector */}
-                <div className="flex items-center border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm">
-                  <Button
-                    variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                    size="lg"
-                    onClick={() => setViewMode('grid')}
-                    className="p-4 rounded-r-none border-r border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
-                    title="Grid View"
-                  >
-                    <LayoutGrid className="h-6 w-6" />
-                  </Button>
-                  <Button
-                    variant={viewMode === 'list' ? 'default' : 'ghost'}
-                    size="lg"
-                    onClick={() => setViewMode('list')}
-                    className="p-4 rounded-none border-r border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
-                    title="List View"
-                  >
-                    <List className="h-6 w-6" />
-                  </Button>
-                  <Button
-                    variant={viewMode === 'compact' ? 'default' : 'ghost'}
-                    size="lg"
-                    onClick={() => setViewMode('compact')}
-                    className="p-4 rounded-none border-r border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
-                    title="Compact View"
-                  >
-                    <AlignJustify className="h-6 w-6" />
-                  </Button>
-                  <Button
-                    variant={viewMode === 'kanban' ? 'default' : 'ghost'}
-                    size="lg"
-                    onClick={() => setViewMode('kanban')}
-                    className="p-4 rounded-none border-r border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
-                    title="Kanban View"
-                  >
-                    <Kanban className="h-6 w-6" />
-                  </Button>
-                  <Button
-                    variant={viewMode === 'timeline' ? 'default' : 'ghost'}
-                    size="lg"
-                    onClick={() => setViewMode('timeline')}
-                    className="p-4 rounded-none border-r border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
-                    title="Timeline View"
-                  >
-                    <Clock className="h-6 w-6" />
-                  </Button>
-                  <Button
-                    variant={viewMode === 'hierarchy' ? 'default' : 'ghost'}
-                    size="lg"
-                    onClick={() => setViewMode('hierarchy')}
-                    className="p-4 rounded-none border-r border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
-                    title="Hierarchy View"
-                  >
-                    <FolderTree className="h-6 w-6" />
-                  </Button>
-                  <Button
-                    variant={viewMode === 'productivity' ? 'default' : 'ghost'}
-                    size="lg"
-                    onClick={() => setViewMode('productivity')}
-                    className="p-4 rounded-l-none hover:bg-gray-50 dark:hover:bg-gray-700"
-                    title="Productivity Goals"
-                  >
-                    <Target className="h-6 w-6" />
-                  </Button>
-                </div>
-              </div>
-
-              {/* Right Section - Action Buttons */}
-              <div className="flex items-center space-x-2">
-                <Button 
-                  onClick={() => setShowEnhancedDialog(true)} 
-                  size="sm"
-                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold px-4 py-2 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 border-0"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  ADD BOOKMARK
-                </Button>
-
-                <Button 
-                  onClick={() => setShowSaveTabsDialog(true)} 
-                  size="sm"
-                  className="bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white font-semibold px-4 py-2 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 border-0"
-                >
-                  <Globe className="h-4 w-4 mr-2" />
-                  SAVE TABS
-                </Button>
-
-                <MonetizationDialog
-                  trigger={
-                    <Button 
-                      size="sm"
-                      className="bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800 text-white font-semibold px-4 py-2 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 border-0"
-                    >
-                      <Crown className="h-4 w-4 mr-2" />
-                      PREMIUM
-                    </Button>
-                  }
-                />
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={enterSelectionMode}
-                  className="bg-gradient-to-r from-purple-50 to-purple-100 hover:from-purple-100 hover:to-purple-200 text-purple-700 font-semibold px-4 py-2 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 border-2 border-purple-300 hover:border-purple-400 flex items-center space-x-2"
-                >
-                  <CheckSquare className="h-4 w-4" />
-                  <span>BULK SELECT</span>
-                </Button>
-              </div>
-            </div>
-
-            {/* Enhanced Dialog Component */}
-            <EnhancedBookmarkDialog
-              open={showEnhancedDialog}
-              onOpenChange={setShowEnhancedDialog}
-              onSubmit={handleEnhancedBookmarkSubmit}
-              folders={folders}
-              tags={tags}
-            />
-
-            <MassActionsToolbar 
-              bookmarks={filteredAndSortedBookmarks}
-              userId={userId}
-              onUpdate={loadData}
-              folders={folders}
-              tags={tags}
-            />
-
-            {/* Main Content Display */}
-            {viewMode === 'folder' ? (
-              // Dedicated Folder View Mode - always shows folders
-              <FolderGridView
-                folders={folders}
-                bookmarks={bookmarks}
-                onCreateFolder={handleCreateFolder}
-                onEditFolder={handleEditFolder}
-                onDeleteFolder={handleDeleteFolder}
-                onAddBookmarkToFolder={handleAddBookmarkToFolder}
-                onDropBookmarkToFolder={handleDropBookmarkToFolder}
-                onBookmarkUpdated={handleBookmarkUpdated}
-                onBookmarkDeleted={handleBookmarkDeleted}
-                onOpenDetail={handleOpenDetail}
-                currentFolderId={currentFolderId}
-                onFolderNavigate={setCurrentFolderId}
-              />
-            ) : viewMode === 'hierarchy' ? (
-              // Hierarchy View Mode - folder hierarchy visualization
-              <FolderOrgChartView
-                folders={folders}
-                bookmarks={bookmarks}
-                onCreateFolder={handleCreateFolder}
-                onEditFolder={handleEditFolder}
-                onDeleteFolder={handleDeleteFolder}
-                onAddBookmarkToFolder={handleAddBookmarkToFolder}
-                onDropBookmarkToFolder={handleDropBookmarkToFolder}
-                onBookmarkUpdated={handleBookmarkUpdated}
-                onBookmarkDeleted={handleBookmarkDeleted}
-                onOpenDetail={handleOpenDetail}
-                currentFolderId={currentFolderId}
-                onFolderNavigate={setCurrentFolderId}
-              />
-            ) : viewMode === 'timeline' ? (
-              <TimelineView
-                bookmarks={filteredAndSortedBookmarks}
-                onBookmarkClick={handleOpenDetail}
-                onFavorite={(bookmark: BookmarkWithRelations) => {
-                  const updatedBookmark = { ...bookmark, is_favorite: !bookmark.is_favorite };
-                  handleBookmarkUpdated(updatedBookmark);
-                }}
-                loading={loading}
-              />
-            ) : viewMode === 'productivity' ? (
-              <ProductivityDashboard userId={userId} />
-            ) : viewMode === 'kanban' ? (
-              <KanbanView
-                bookmarks={filteredAndSortedBookmarks}
-                onBookmarkClick={handleOpenDetail}
-                onFavorite={(bookmark: BookmarkWithRelations) => {
-                  const updatedBookmark = { ...bookmark, is_favorite: !bookmark.is_favorite };
-                  handleBookmarkUpdated(updatedBookmark);
-                }}
-                loading={loading}
-              />
-            ) : viewMode === 'list' ? (
-              <ListView
-                bookmarks={filteredAndSortedBookmarks}
-                onBookmarkClick={handleOpenDetail}
-                onFavorite={(bookmark: BookmarkWithRelations) => {
-                  const updatedBookmark = { ...bookmark, is_favorite: !bookmark.is_favorite };
-                  handleBookmarkUpdated(updatedBookmark);
-                }}
-                onReorder={(reorderedBookmarks: BookmarkWithRelations[]) => {
-                  setBookmarks(reorderedBookmarks);
-                }}
-                loading={loading}
-              />
-            ) : viewMode === 'compact' ? (
-              <CompactView
-                bookmarks={filteredAndSortedBookmarks}
-                folders={folders}
-                tags={tags}
-                onBookmarkUpdated={handleBookmarkUpdated}
-                onBookmarkDeleted={(bookmarkId: string) => {
-                  handleBookmarkDeleted(bookmarkId);
-                }}
-                onCreateFolder={handleCreateFolder}
-                onEditFolder={handleEditFolder}
-                onDeleteFolder={handleDeleteFolder}
-                onAddBookmarkToFolder={handleAddBookmarkToFolder}
-              />
-            ) : (
-              // Grid View - shows bookmark cards
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredAndSortedBookmarks.map((bookmark) => {
-                  // Calculate total visits for percentage calculation
-                  const totalVisits = bookmarks.reduce((sum, b) => sum + (b.visit_count || 0), 0);
-                  
-                  return (
-                    <BookmarkCard
-                      key={bookmark.id}
-                      bookmark={bookmark}
-                      onUpdated={handleBookmarkUpdated}
-                      onDeleted={() => handleBookmarkDeleted(bookmark.id)}
-                      onOpenDetail={() => handleOpenDetail(bookmark)}
-                      folders={folders}
-                      totalBookmarkVisits={totalVisits}
-                    />
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Upcoming Deadlines & Active Goals Section - Add more spacing */}
-            <div className="mt-12 mb-8">
-              {upcomingItems.length > 0 && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">UPCOMING DEADLINES & ACTIVE GOALS</h2>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full rounded-lg">
-                      <thead>
-                        <tr className="border-b border-gray-200 dark:border-gray-700">
-                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Type</th>
-                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Name</th>
-                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Deadline</th>
-                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Goal</th>
-                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Status</th>
-                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Progress</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {upcomingItems.map(item => (
-                          <tr key={item.type + '-' + item.id} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                            <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">{item.type}</td>
-                            <td className="px-4 py-3 text-gray-900 dark:text-gray-100">{item.name}</td>
-                            <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{item.deadline ? new Date(item.deadline).toLocaleDateString() : '-'}</td>
-                            <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{item.goal || '-'}</td>
-                            <td className="px-4 py-3">
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                                {item.status || 'active'}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{typeof item.progress === 'number' ? `${item.progress}%` : '-'}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </div>
           </main>
         </div>
       </div>
@@ -1061,11 +1071,7 @@ function BookmarkHubDashboardContent({ userId, userData, onNavigate }: BookmarkH
         onSubmit={handleFolderSubmit}
       />
 
-      <SaveTabsDialog
-        open={showSaveTabsDialog}
-        onOpenChange={setShowSaveTabsDialog}
-        onSuccess={handleSaveTabsSuccess}
-      />
+
     </>
   );
 }
