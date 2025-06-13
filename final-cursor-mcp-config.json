@@ -20,6 +20,15 @@
         "run", "-i", "--rm", "--init",
         "mcp/fetch"
       ]
+    },
+    "github": {
+      "command": "npx",
+      "args": [
+        "@modelcontextprotocol/server-github"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "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"
+      }
     }
   }
 }
