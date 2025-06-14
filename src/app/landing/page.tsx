@@ -25,7 +25,16 @@ import {
   GitBranch,
   CheckCircle,
   Figma,
+  Lock,
+  Gift,
 } from 'lucide-react'
+import TestimonialsSection from '@/components/landing/TestimonialsSection'
+import TechnologyStackSection from '@/components/landing/TechnologyStackSection'
+import PricingPlansSection from '@/components/landing/PricingPlansSection'
+import ComparisonPricingTableSection from '@/components/landing/ComparisonPricingTableSection'
+import FAQSection from '@/components/landing/FAQSection'
+import SignupShowcaseSection from '@/components/landing/SignupShowcaseSection'
+import FooterSection from '@/components/landing/FooterSection'
 
 const LucideIcon = ({ name, className }: { name: string; className: string }) => {
   const Icon = {
@@ -102,30 +111,30 @@ const LandingPage = () => {
   return (
     <div className="min-h-screen flex flex-col font-inter bg-gray-950 text-white antialiased overflow-x-hidden">
       {/* Header */}
-      <header className="animate-fade-in-down animate-delay-100 flex items-center justify-between px-4 sm:px-6 lg:px-8 xl:px-12 py-4 lg:py-6 border-b border-gray-800/50 bg-gray-950/80 backdrop-blur-sm sticky top-0 z-50">
+      <header style={{fontFamily: 'Saira, sans-serif'}} className="animate-fade-in-down animate-delay-100 flex items-center justify-between px-4 sm:px-6 lg:px-8 xl:px-12 py-4 lg:py-6 border-b border-gray-800/50 bg-gray-950/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="flex items-center gap-3">
           <a
             href="#"
             className="lg:text-2xl text-xl font-bold text-white tracking-tight font-satoshi hover:text-brand-400 transition-colors duration-300"
           >
-            FlowSync
+            BookmarkAI
           </a>
         </div>
 
         <nav className="hidden md:flex items-center gap-6 lg:gap-8 text-sm font-medium">
           <a
-            href="#features"
+            href="#testimonials"
+            className="hover:text-brand-400 text-gray-400 transition-all duration-300 flex items-center gap-2 hover:scale-105 hover:bg-gray-800/30 px-3 py-2 rounded-lg"
+          >
+            <Users className="w-4 h-4" />
+            <span className="hidden lg:inline">Testimonials</span>
+          </a>
+          <a
+            href="#technology"
             className="hover:text-brand-400 text-gray-400 transition-all duration-300 flex items-center gap-2 hover:scale-105 hover:bg-gray-800/30 px-3 py-2 rounded-lg"
           >
             <Layers className="w-4 h-4" />
-            <span className="hidden lg:inline">Integrations</span>
-          </a>
-          <a
-            href="#enterprise"
-            className="hover:text-brand-400 text-gray-400 transition-all duration-300 flex items-center gap-2 hover:scale-105 hover:bg-gray-800/30 px-3 py-2 rounded-lg"
-          >
-            <Building2 className="w-4 h-4" />
-            <span className="hidden lg:inline">Enterprise</span>
+            <span className="hidden lg:inline">Technology</span>
           </a>
           <a
             href="#pricing"
@@ -135,22 +144,22 @@ const LandingPage = () => {
             <span className="hidden lg:inline">Pricing</span>
           </a>
           <a
-            href="#docs"
+            href="#faq"
             className="hover:text-brand-400 text-gray-400 transition-all duration-300 flex items-center gap-2 hover:scale-105 hover:bg-gray-800/30 px-3 py-2 rounded-lg"
           >
-            <FileText className="w-4 h-4" />
-            <span className="hidden lg:inline">API Docs</span>
+            <MessageCircle className="w-4 h-4" />
+            <span className="hidden lg:inline">FAQ</span>
           </a>
         </nav>
 
         <div className="flex items-center gap-2 lg:gap-4">
-          <button className="hidden sm:flex items-center gap-2 text-sm font-medium text-gray-400 hover:text-white transition-all duration-300 px-3 py-2 rounded-lg hover:bg-gray-800/50 hover:scale-105">
+          <a href="/sign-in" className="hidden sm:flex items-center gap-2 text-sm font-medium text-gray-400 hover:text-white transition-all duration-300 px-3 py-2 rounded-lg hover:bg-gray-800/50 hover:scale-105">
             <LogIn className="w-4 h-4" />
-            Sign in
-          </button>
+            SIGN IN
+          </a>
           <button className="flex items-center gap-2 text-xs lg:text-sm font-semibold px-3 lg:px-5 py-2 lg:py-2.5 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-brand-500/50 hover:scale-105 hover:-translate-y-1">
             <PlayCircle className="w-4 h-4" />
-            <span className="hidden sm:inline">Start Free Trial</span>
+            <span className="hidden sm:inline">START FREE TRIAL</span>
             <span className="sm:hidden">Try Free</span>
           </button>
         </div>
@@ -172,11 +181,7 @@ const LandingPage = () => {
           {/* Badge */}
           <div className="animate-fade-in-up animate-delay-200 inline-flex items-center gap-2 px-4 py-2 bg-brand-900/50 border border-brand-800/50 text-brand-300 rounded-full text-sm font-medium mb-8 backdrop-blur-sm hover:bg-brand-900/70 hover:border-brand-700/70 transition-all duration-300 hover:scale-105">
             <TrendingUp className="w-4 h-4" />
-            <span className="hidden sm:inline">
-              Trusted by 125,000+ teams at
-            </span>
-            <span className="sm:hidden">Used by 125k+ teams</span>
-            <span className="font-semibold">Microsoft, Spotify, Stripe</span>
+            <span className="font-semibold">Analytics-Powered Insights&nbsp;•&nbsp;AI-Driven Organization&nbsp;•&nbsp;Task-Focused Workspace</span>
           </div>
 
           {/* Headline */}
@@ -191,28 +196,23 @@ const LandingPage = () => {
           </h1>
 
           {/* Subheadline */}
-          <p className="animate-fade-in-up animate-delay-400 mx-auto mt-6 lg:mt-8 max-w-3xl text-base leading-relaxed text-gray-300">
-            FlowSync Pro unifies Slack, Notion, GitHub, Figma, Linear, and 300+
-            tools with intelligent automation.{' '}
-            <span className="text-white font-medium hover:text-brand-400 transition-colors duration-300 cursor-default">
-              Reduce context switching by 78%
-            </span>{' '}
-            and ship products 3x faster.
+          <p style={{fontFamily: 'Saira, sans-serif'}} className="animate-fade-in-up animate-delay-400 mx-auto mt-6 lg:mt-8 max-w-3xl text-base leading-relaxed text-gray-300 font-bold">
+            BookmarkAI uses artificial intelligence to categorize your links, surface forgotten gems, and let you find resources in seconds.
           </p>
 
           {/* Stats */}
           <div className="animate-fade-in-up animate-delay-500 flex flex-wrap items-center justify-center gap-4 lg:gap-8 mt-8 text-sm text-gray-400">
             <div className="flex items-center gap-2 hover:text-green-400 transition-all duration-300 hover:scale-110">
               <ShieldCheck className="w-4 h-4 text-green-400" />
-              <span>SOC 2 Type II</span>
+              <span>Early-access spots limited</span>
             </div>
             <div className="flex items-center gap-2 hover:text-blue-400 transition-all duration-300 hover:scale-110">
-              <Globe className="w-4 h-4 text-blue-400" />
-              <span>99.9% uptime SLA</span>
+              <Lock className="w-4 h-4 text-blue-400" />
+              <span>Privacy-first data encrypted</span>
             </div>
             <div className="flex items-center gap-2 hover:text-purple-400 transition-all duration-300 hover:scale-110">
               <Clock className="w-4 h-4 text-purple-400" />
-              <span>5-min setup</span>
+              <span>1-min signup</span>
             </div>
           </div>
 
@@ -232,7 +232,7 @@ const LandingPage = () => {
                 type="submit"
                 className="flex gap-2 lg:px-8 lg:py-4 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 transition-all duration-300 hover:shadow-xl hover:shadow-brand-500/25 lg:text-base group text-sm font-semibold text-white rounded-xl pt-3 pr-6 pb-3 pl-6 items-center justify-center hover:scale-105 hover:-translate-y-1"
               >
-                <span>Get Free Demo</span>
+                <span style={{fontFamily: 'Saira, sans-serif'}}>Get Free Demo</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
               </button>
             </form>
@@ -243,195 +243,112 @@ const LandingPage = () => {
               </span>
               <span className="flex items-center gap-1 hover:text-blue-400 transition-colors duration-300">
                 <Calendar className="w-3 h-3 text-blue-400" />
-                14-day free trial
+                7-day free trial
               </span>
               <span className="flex items-center gap-1 hover:text-purple-400 transition-colors duration-300">
-                <Users className="w-3 h-3 text-purple-400" />
-                Free for teams under 10
+                <Gift className="w-3 h-3 text-purple-400" />
+                Exclusive beta perks
               </span>
             </p>
           </div>
-
-          {/* Interactive Demo Cards */}
-          <div className="mt-16 lg:mt-24 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 max-w-6xl mx-auto">
-            {/* Slack Integration Card */}
-            <div className="animate-fade-in-left animate-delay-700 group hover-lift hover:border-green-500/30 transition-all duration-500 hover:shadow-2xl hover:shadow-green-500/20 text-left border border-gray-700/50 rounded-2xl p-6 backdrop-blur-sm bg-gray-900/30 hover:bg-gray-900/50">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    <Hash className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-white group-hover:text-green-400 transition-colors duration-300">
-                      Slack
-                    </h3>
-                    <p className="text-xs text-gray-400">#product-updates</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                  <span className="text-xs text-green-400 font-medium">
-                    Live
-                  </span>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex gap-3 bg-gray-700/20 border border-gray-800 rounded-lg p-3 hover:bg-gray-700/30 hover:border-gray-700 transition-all duration-300">
-                  <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span className="text-xs font-bold text-white">M</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-white mb-1">
-                      Marcus Rivera
-                    </p>
-                    <p className="text-sm text-gray-300">
-                      🚀 Product v2.1 deployed successfully!
-                    </p>
-                    <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
-                      <span>2 min ago</span>
-                      <div className="flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3 text-green-400" />
-                        <span>CI/CD Pipeline</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between text-xs text-gray-500 px-1">
-                  <span className="flex items-center gap-1 hover:text-green-400 transition-colors duration-300">
-                    <Users className="w-3 h-3" />
-                    <span>47 online</span>
-                  </span>
-                  <span className="flex items-center gap-1 hover:text-green-400 transition-colors duration-300">
-                    <Bell className="w-3 h-3" />
-                    <span>3 mentions</span>
-                  </span>
-                </div>
-              </div>
-
-              <button className="w-full mt-4 px-4 py-2.5 bg-green-600/20 hover:bg-green-600/40 border border-green-500/30 hover:border-green-500/60 text-green-400 text-sm font-medium rounded-lg transition-all duration-300 flex items-center justify-center gap-2 hover:scale-105">
-                <MessageCircle className="w-4 h-4" />
-                Reply in Thread
-              </button>
-            </div>
-
-            {/* Analytics/ROI Card */}
-            <div className="animate-slide-up animate-delay-800 border-brand-500/30 hover:border-brand-500/60 hover-lift hover:shadow-2xl hover:shadow-brand-500/30 transition-all duration-500 text-center bg-gradient-to-t from-indigo-500/20 to-purple-600/10 hover:from-indigo-500/30 hover:to-purple-600/20 border rounded-2xl p-6 backdrop-blur-sm group">
-              <div className="flex gap-2 mb-6 items-center justify-start">
-                <div className="w-10 h-10 flex bg-gradient-to-br from-brand-500 to-purple-600 rounded-xl items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                  <TrendingUp className="w-5 h-5 text-white" />
-                </div>
-                <div className="text-left">
-                  <h3 className="font-semibold text-white group-hover:text-brand-400 transition-colors duration-300">
-                    Productivity Impact
-                  </h3>
-                  <p className="text-xs text-gray-400">Last 30 days</p>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <div className="text-4xl lg:text-5xl font-bold font-satoshi text-white mb-1 group-hover:text-brand-400 transition-colors duration-500">
-                    92%
-                  </div>
-                  <p className="text-sm text-gray-300">
-                    Time saved on manual tasks
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 text-center">
-                  <div className="bg-white/5 hover:bg-white/10 rounded-lg p-3 transition-all duration-300 hover:scale-105">
-                    <div className="text-xl font-bold text-green-400">
-                      +31h
-                    </div>
-                    <p className="text-xs text-gray-400">Weekly savings</p>
-                  </div>
-                  <div className="bg-white/5 hover:bg-white/10 rounded-lg p-3 transition-all duration-300 hover:scale-105">
-                    <div className="text-xl font-bold text-blue-400">
-                      -67%
-                    </div>
-                    <p className="text-xs text-gray-400">Context switches</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-center gap-4 text-xs text-gray-400">
-                  <span className="flex items-center gap-1 hover:text-yellow-400 transition-colors duration-300">
-                    <Clock className="w-3 h-3 text-yellow-400" />
-                    Real-time tracking
-                  </span>
-                  <span className="flex items-center gap-1 hover:text-red-400 transition-colors duration-300">
-                    <Zap className="w-3 h-3 text-red-400" />
-                    Goal: 95%
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Multi-Tool Integration (now with green color scheme) */}
-            <div className="animate-fade-in-right animate-delay-700 relative overflow-hidden hover-lift hover:border-green-500/30 transition-all duration-500 hover:shadow-2xl hover:shadow-green-500/20 border border-gray-700/50 rounded-2xl p-6 backdrop-blur-sm bg-gray-900/30 hover:bg-gray-900/50 group">
-              <div className="flex items-center justify-between mb-6 relative z-40">
-                <div>
-                  <h3 className="font-semibold text-white group-hover:text-green-400 transition-colors duration-300">
-                    Unified Workspace
-                  </h3>
-                  <p className="text-xs text-gray-400">6 tools connected</p>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Zap className="w-4 h-4 text-green-400 group-hover:animate-pulse" />
-                  <span className="text-xs text-green-400 font-medium">
-                    Auto-sync
-                  </span>
-                </div>
-              </div>
-
-              {/* Notion Card */}
-              <div className="absolute top-16 left-4 w-5/6 z-10 bg-gray-900 hover:bg-gray-800 border border-gray-800 hover:border-gray-700 rounded-lg p-4 shadow-lg rotate-[-4deg] transition-all duration-300 hover:rotate-[-2deg] hover:scale-105">
-                <div className="flex items-center gap-2 text-xs font-medium text-gray-300 mb-2">
-                  <FileText className="w-4 h-4 text-gray-400" />
-                  <span>Notion</span>
-                </div>
-                <p className="text-sm font-medium text-white mb-1">
-                  Sprint Planning Template
-                </p>
-                <p className="text-xs text-gray-400">
-                  Updated from Linear issues
-                </p>
-              </div>
-
-              {/* GitHub Card */}
-              <div className="absolute top-20 right-4 w-4/5 z-20 bg-gray-900 hover:bg-gray-800 border border-gray-800 hover:border-gray-700 rounded-lg p-4 shadow-lg rotate-[3deg] transition-all duration-300 hover:rotate-[1deg] hover:scale-105">
-                <div className="flex items-center gap-2 text-xs font-medium text-gray-300 mb-2">
-                  <GitBranch className="w-4 h-4 text-orange-400" />
-                  <span>GitHub</span>
-                </div>
-                <p className="text-sm font-medium text-white text-left mb-1">
-                  feat/user-dashboard
-                </p>
-                <div className="flex items-center gap-2 text-xs text-gray-400">
-                  <CheckCircle className="w-3 h-3 text-green-400" />
-                  <span>All checks passed</span>
-                </div>
-              </div>
-
-              {/* Figma Card (now with green accent) */}
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rotate-[1deg] w-5/6 bg-green-900/30 hover:bg-green-900/50 border border-green-700 hover:border-green-600 rounded-lg p-4 shadow-lg z-30 transition-all duration-300 hover:rotate-0 hover:scale-105">
-                <div className="flex items-center gap-2 text-xs font-medium text-green-300 mb-2">
-                  <Figma className="w-4 h-4" />
-                  <span>Figma</span>
-                </div>
-                <p className="text-sm font-medium text-white mb-1">
-                  Mobile App Mockups v3
-                </p>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-green-400">Ready for dev handoff</span>
-                  <ArrowRight className="w-3 h-3 text-gray-400 group-hover:translate-x-1 transition-transform duration-300" />
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </section>
+
+      {/* Interactive Demo Cards */}
+      <section id="interactive-cards" className="mt-4 lg:mt-8 scroll-mt-28">
+        <h2
+          className="text-center font-bold mb-10 text-5xl md:text-7xl lg:text-8xl select-none"
+          style={{ WebkitTextStroke: '1px #3b82f6', color: 'transparent', opacity: 0.12 }}
+        >
+          FEATURES
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 max-w-6xl mx-auto">
+
+          {/* Analytics Card */}
+          <div className="animate-fade-in-left animate-delay-700 group hover-lift hover:border-green-500/30 transition-all duration-500 hover:shadow-2xl hover:shadow-green-500/20 text-left border border-gray-700/50 rounded-2xl p-6 backdrop-blur-sm bg-gray-900/30 hover:bg-gray-900/50 transform -rotate-6 hover:rotate-0 hover:z-50">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                  <Hash className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-bold uppercase text-white group-hover:text-green-400 transition-colors duration-300" style={{fontFamily:'Saira, sans-serif'}}>
+                    ANALYTIC INSIGHT
+                  </h3>
+                  <p className="text-xs text-gray-400">Real-time insights</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span className="text-xs text-green-400 font-medium">Live</span>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex gap-3 bg-gray-700/20 border border-gray-800 rounded-lg p-3 hover:bg-gray-700/30 hover:border-gray-700 transition-all duration-300">
+                <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0"><span className="text-xs font-bold text-white">M</span></div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white mb-1">Marcus Rivera</p>
+                  <p className="text-sm text-gray-300">📊 Engagement score up 18% this week!</p>
+                  <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
+                    <span>2 min ago</span>
+                    <div className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-green-400" /><span>Usage Metrics</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-xs text-gray-500 px-1">
+                <span className="flex items-center gap-1 hover:text-green-400 transition-colors duration-300"><Users className="w-3 h-3" /><span>47 online</span></span>
+                <span className="flex items-center gap-1 hover:text-green-400 transition-colors duration-300"><Bell className="w-3 h-3" /><span>3 mentions</span></span>
+              </div>
+            </div>
+
+            <button className="w-full mt-4 px-4 py-2.5 bg-green-600/20 hover:bg-green-600/40 border border-green-500/30 hover:border-green-500/60 text-green-400 text-sm font-medium rounded-lg transition-all duration-300 flex items-center justify-center gap-2 hover:scale-105"><MessageCircle className="w-4 h-4" />Reply in Thread</button>
+          </div>
+
+          {/* Auto-AI Copilot Card */}
+          <div className="animate-slide-up animate-delay-800 border-brand-500/30 hover:border-brand-500/60 hover-lift hover:shadow-2xl hover:shadow-brand-500/30 transition-all duration-500 text-center bg-gradient-to-t from-indigo-500/20 to-purple-600/10 hover:from-indigo-500/30 hover:to-purple-600/20 border rounded-2xl p-6 backdrop-blur-sm group transform hover:z-50">
+            <div className="flex gap-2 mb-6 items-center justify-start"><div className="w-10 h-10 flex bg-gradient-to-br from-brand-500 to-purple-600 rounded-xl items-center justify-center group-hover:scale-110 transition-transform duration-300"><TrendingUp className="w-5 h-5 text-white" /></div><div className="text-left"><h3 className="font-bold uppercase text-white group-hover:text-brand-400 transition-colors duration-300" style={{fontFamily:'Saira, sans-serif'}}>
+              AI DRIVEN ORGANIZATION
+            </h3><p className="text-xs text-gray-400">Smart automation</p></div></div>
+            <div className="space-y-4"><div><div className="text-4xl lg:text-5xl font-bold font-satoshi text-white mb-1 group-hover:text-brand-400 transition-colors duration-500">92%</div><p className="text-sm text-gray-300">Tasks automated by AI</p></div><div className="grid grid-cols-2 gap-4 text-center"><div className="bg-white/5 hover:bg-white/10 rounded-lg p-3 transition-all duration-300 hover:scale-105"><div className="text-xl font-bold text-green-400">+31h</div><p className="text-xs text-gray-400">AI Suggestions</p></div><div className="bg-white/5 hover:bg-white/10 rounded-lg p-3 transition-all duration-300 hover:scale-105"><div className="text-xl font-bold text-blue-400">-67%</div><p className="text-xs text-gray-400">Manual Actions</p></div></div><div className="flex items-center justify-center gap-4 text-xs text-gray-400"><span className="flex items-center gap-1 hover:text-yellow-400 transition-colors duration-300"><Clock className="w-3 h-3 text-yellow-400" />Real-time tracking</span><span className="flex items-center gap-1 hover:text-red-400 transition-colors duration-300"><Zap className="w-3 h-3 text-red-400" />Goal: 95%</span></div></div>
+          </div>
+
+          {/* Project Management Card */}
+          <div className="animate-fade-in-right animate-delay-700 relative overflow-hidden hover-lift hover:border-green-500/30 transition-all duration-500 hover:shadow-2xl hover:shadow-green-500/20 border border-gray-700/50 rounded-2xl p-6 backdrop-blur-sm bg-gray-900/30 hover:bg-gray-900/50 group transform rotate-6 hover:rotate-0 hover:z-50">
+            <div className="flex items-center justify-between mb-6 relative z-40"><div><h3 className="font-bold uppercase text-white group-hover:text-green-400 transition-colors duration-300" style={{fontFamily:'Saira, sans-serif'}}>
+              TASK FOCUS WORKSPACE
+            </h3><p className="text-xs text-gray-400">6 tools connected</p></div><div className="flex items-center gap-1"><Zap className="w-4 h-4 text-green-400 group-hover:animate-pulse" /><span className="text-xs text-green-400 font-medium">Auto-sync</span></div></div>
+
+            {/* Notion Card */}
+            <div className="absolute top-16 left-4 w-5/6 z-10 bg-gray-900 hover:bg-gray-800 border border-gray-800 hover:border-gray-700 rounded-lg p-4 shadow-lg rotate-[-4deg] transition-all duration-300 hover:rotate-[-2deg] hover:scale-105"><div className="flex items-center gap-2 text-xs font-medium text-gray-300 mb-2"><FileText className="w-4 h-4 text-gray-400" /><span>Notion</span></div><p className="text-sm font-medium text-white mb-1">Sprint Planning Template</p><p className="text-xs text-gray-400">Updated from Linear issues</p></div>
+
+            {/* GitHub Card */}
+            <div className="absolute top-20 right-4 w-4/5 z-20 bg-gray-900 hover:bg-gray-800 border border-gray-800 hover:border-gray-700 rounded-lg p-4 shadow-lg rotate-[3deg] transition-all duration-300 hover:rotate-[1deg] hover:scale-105"><div className="flex items-center gap-2 text-xs font-medium text-gray-300 mb-2"><GitBranch className="w-4 h-4 text-orange-400" /><span>GitHub</span></div><p className="text-sm font-medium text-white text-left mb-1">feat/user-dashboard</p><div className="flex items-center gap-2 text-xs text-gray-400"><CheckCircle className="w-3 h-3 text-green-400" /><span>All checks passed</span></div></div>
+
+            {/* Figma Card */}
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rotate-[1deg] w-5/6 bg-green-900/30 hover:bg-green-900/50 border border-green-700 hover:border-green-600 rounded-lg p-4 shadow-lg z-30 transition-all duration-300 hover:rotate-0 hover:scale-105"><div className="flex items-center gap-2 text-xs font-medium text-green-300 mb-2"><Figma className="w-4 h-4" /><span>Figma</span></div><p className="text-sm font-medium text-white mb-1">Mobile App Mockups v3</p><div className="flex items-center justify-between text-xs"><span className="text-green-400">Ready for dev handoff</span><ArrowRight className="w-3 h-3 text-gray-400 group-hover:translate-x-1 transition-transform duration-300" /></div></div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* Testimonials Section */}
+      <section id="testimonials" className="scroll-mt-28">
+        <TestimonialsSection />
+      </section>
+
+      <SignupShowcaseSection />
+
+      <section id="pricing" className="scroll-mt-28">
+        <PricingPlansSection />
+        <ComparisonPricingTableSection />
+      </section>
+
+      <section id="faq" className="scroll-mt-28">
+        <FAQSection />
+      </section>
+      <FooterSection />
     </div>
   )
 }

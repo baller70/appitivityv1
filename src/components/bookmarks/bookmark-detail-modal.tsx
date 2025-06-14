@@ -33,7 +33,8 @@ import {
   X,
   RotateCcw,
   Target,
-  MessageCircle
+  MessageCircle,
+  Image
 } from 'lucide-react';
 import { RichTextEditor } from '../ui/rich-text-editor';
 import { NotificationIframe } from '../notifications/notification-iframe';
@@ -55,7 +56,7 @@ interface BookmarkDetailModalProps {
   onBookmarkCreated?: (bookmark: BookmarkWithRelations) => void;
 }
 
-type TabType = 'overview' | 'timer' | 'notifications' | 'reminders' | 'related' | 'documents' | 'progress' | 'comments';
+type TabType = 'overview' | 'timer' | 'notifications' | 'reminders' | 'related' | 'media' | 'documents' | 'progress' | 'comments';
 
 export function BookmarkDetailModal({
   bookmark,
@@ -405,6 +406,7 @@ export function BookmarkDetailModal({
     { id: 'notifications' as const, label: 'Notifications', icon: Bell },
     { id: 'reminders' as const, label: 'Reminders', icon: Calendar },
     { id: 'related' as const, label: 'Related', icon: Link },
+    { id: 'media' as const, label: 'Media', icon: Image },
     { id: 'documents' as const, label: 'Documents', icon: FileText },
     { id: 'progress' as const, label: 'Progress', icon: TrendingUp },
     { id: 'comments' as const, label: 'Comments', icon: MessageCircle },
@@ -1400,6 +1402,90 @@ export function BookmarkDetailModal({
                 toast.info(`Viewing details for ${relatedBookmark.title}`);
               }}
             />
+          )}
+
+          {/* Media Tab */}
+          {activeTab === 'media' && (
+            <div className="space-y-6">
+              {/* Reuse preview upload section */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Left Side - Preview Upload */}
+                <div className="lg:col-span-1">
+                  {/* Preview/Thumbnail with Upload */}
+                  {/* Reusing same block from Overview for consistency */}
+                  {/* BEGIN Preview Upload */}
+                  <div 
+                    className={`relative w-full h-48 rounded-lg flex items-center justify-center border-2 border-dashed transition-all cursor-pointer group ${
+                      isDragOver 
+                        ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20' 
+                        : previewImage 
+                        ? 'border-gray-200 dark:border-gray-700' 
+                        : 'border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 hover:border-gray-400 dark:hover:border-gray-500'
+                    }`}
+                    onDrop={handleDrop}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onClick={() => document.getElementById('preview-upload')?.click()}
+                  >
+                    {previewImage ? (
+                      <>
+                        <img 
+                          src={previewImage} 
+                          alt="Bookmark preview" 
+                          className="w-full h-full object-cover rounded-lg"
+                        />
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removePreviewImage();
+                          }}
+                          className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                        <div className="absolute inset-0 bg-black bg-opacity-50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <div className="text-center text-white">
+                            <Upload className="h-8 w-8 mx-auto mb-2" />
+                            <p className="text-sm">Change Image</p>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-center">
+                        {isDragOver ? (
+                          <>
+                            <Upload className="h-12 w-12 text-blue-500 mx-auto mb-2" />
+                            <p className="text-sm text-blue-600 dark:text-blue-400">Drop image here</p>
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="h-12 w-12 text-gray-400 mx-auto mb-2 group-hover:text-gray-500" />
+                            <p className="text-sm text-gray-500 dark:text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300">
+                              Click or drag to upload
+                            </p>
+                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                              PNG, JPG, GIF up to 5MB
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    )}
+                    <input
+                      id="preview-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileInput}
+                      className="hidden"
+                    />
+                  </div>
+                  {/* END Preview Upload */}
+                </div>
+                {/* Right side placeholder for future media list or description */}
+                <div className="lg:col-span-2 flex items-center justify-center text-sm text-gray-500 dark:text-gray-400 min-h-[12rem]">
+                  {previewImage ? 'Image preview shown on the left.' : 'Upload images or media related to this bookmark.'}
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Documents Tab */}

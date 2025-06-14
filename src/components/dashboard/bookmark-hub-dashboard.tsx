@@ -86,7 +86,7 @@ interface BookmarkHubDashboardProps {
   onNavigate?: (path: string) => void;
 }
 
-type ViewMode = 'grid' | 'list' | 'compact' | 'kanban' | 'timeline' | 'folder-grid' | 'detailed' | 'goals';
+type ViewMode = 'grid' | 'list' | 'compact' | 'kanban' | 'timeline' | 'folder-grid' | 'goals';
 
 function BookmarkHubDashboardContent({ userId, userData, onNavigate }: BookmarkHubDashboardProps) {
   const { enterSelectionMode, isSelectionMode } = useSelection();
@@ -724,7 +724,7 @@ function BookmarkHubDashboardContent({ userId, userData, onNavigate }: BookmarkH
                 {/* Bookmarks Display */}
                 <div className="space-y-6">
                   {/* Professional View Mode Selector - Large Size */}
-                  <div className="bg-white dark:bg-gray-800 rounded-3xl p-14 border border-slate-200 dark:border-slate-700 shadow-xl mb-10">
+                  <div className="bg-white dark:bg-gray-800 rounded-3xl p-14 border border-slate-200 dark:border-slate-700 shadow-xl mb-4">
                     <div className="flex items-center justify-center">
                       <div className="inline-flex h-18 items-center justify-center rounded-2xl bg-gray-100 dark:bg-gray-800 p-3 shadow-lg border border-gray-200 dark:border-gray-700">
                         {[
@@ -734,7 +734,6 @@ function BookmarkHubDashboardContent({ userId, userData, onNavigate }: BookmarkH
                           { mode: 'timeline' as ViewMode, icon: Clock, label: 'Timeline' },
                           { mode: 'folder-grid' as ViewMode, icon: FolderTree, label: 'Folder Grid' },
                           { mode: 'compact' as ViewMode, icon: Rows3, label: 'Compact' },
-                          { mode: 'detailed' as ViewMode, icon: FileText, label: 'Detailed' },
                           { mode: 'goals' as ViewMode, icon: Target, label: 'Goals' }
                         ].map(({ mode, icon: Icon, label }, index) => (
                           <React.Fragment key={mode}>
@@ -750,7 +749,7 @@ function BookmarkHubDashboardContent({ userId, userData, onNavigate }: BookmarkH
                               {label}
                             </button>
                             {/* Vertical Separator */}
-                            {index < 7 && (
+                            {index < 6 && (
                               <div className="h-10 w-px bg-gray-300 dark:bg-gray-600 mx-2.5" />
                             )}
                           </React.Fragment>
@@ -758,6 +757,19 @@ function BookmarkHubDashboardContent({ userId, userData, onNavigate }: BookmarkH
                       </div>
                     </div>
                   </div>
+
+                  {/* Add Bookmark button shown just below selector when in Grid view */}
+                  {viewMode === 'grid' && (
+                    <div className="flex justify-end mb-6">
+                      <Button
+                        onClick={() => setShowEnhancedDialog(true)}
+                        className="inline-flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl shadow-lg"
+                      >
+                        <Plus className="h-5 w-5" />
+                        <span>Add Bookmark</span>
+                      </Button>
+                    </div>
+                  )}
 
                   {/* Bookmarks Content */}
                   {viewMode === 'folder-grid' ? (
@@ -789,11 +801,11 @@ function BookmarkHubDashboardContent({ userId, userData, onNavigate }: BookmarkH
                       loading={loading}
                     />
                   ) : viewMode === 'grid' ? (
+                    <>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {filteredAndSortedBookmarks.map((bookmark) => {
                         // Calculate total visits for percentage calculation
                         const totalVisits = bookmarks.reduce((sum, b) => sum + (b.visit_count || 0), 0);
-                        
                         return (
                           <BookmarkCard
                             key={bookmark.id}
@@ -807,6 +819,7 @@ function BookmarkHubDashboardContent({ userId, userData, onNavigate }: BookmarkH
                         );
                       })}
                     </div>
+                    </>
                   ) : viewMode === 'kanban' ? (
                     <KanbanView
                       bookmarks={filteredAndSortedBookmarks}
@@ -841,36 +854,6 @@ function BookmarkHubDashboardContent({ userId, userData, onNavigate }: BookmarkH
                       onDeleteFolder={handleDeleteFolder}
                       onAddBookmarkToFolder={handleAddBookmarkToFolder}
                     />
-                  ) : viewMode === 'detailed' ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {filteredAndSortedBookmarks.map((bookmark) => (
-                        <div key={bookmark.id} className="space-y-4">
-                          <h3 className="font-semibold text-gray-900 dark:text-white">{bookmark.title}</h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-300">{bookmark.description}</p>
-                          <div className="flex items-center space-x-4">
-                            <span className="text-xs text-gray-500 dark:text-gray-400">{new URL(bookmark.url).hostname}</span>
-                            <span className="text-xs text-gray-500 dark:text-gray-400">{new Date(bookmark.created_at || Date.now()).toLocaleTimeString('en-US', {
-                              hour: 'numeric',
-                              minute: '2-digit'
-                            })}</span>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                window.open(bookmark.url, '_blank');
-                              }}
-                              className="p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                            >
-                              <ExternalLink className="w-4 h-4" />
-                            </button>
-                            {bookmark.is_favorite && (
-                              <Heart className="w-4 h-4 text-red-500" fill="currentColor" />
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
                   ) : viewMode === 'goals' ? (
                     /* GOALS View Content */
                     <div className="space-y-6">
@@ -975,8 +958,8 @@ function BookmarkHubDashboardContent({ userId, userData, onNavigate }: BookmarkH
                     <div className="text-center py-12">
                       <p className="text-gray-500 dark:text-gray-400">Unknown view mode: {viewMode}</p>
                     </div>
-                  )}
-                </div>
+              )}
+            </div>
 
                 {/* Upcoming Deadlines & Active Goals Section - Add more spacing */}
                 <div className="mt-12 mb-8">
