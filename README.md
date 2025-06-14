@@ -1,5 +1,19 @@
 # BookmarkHub - Advanced Bookmark Management Platform
 
+## **Recent UI Enhancements (June 2025)**
+
+The landing-page experience has been refreshed to deliver a cleaner, more modern first impression:
+
+| Area | Change |
+|------|--------|
+| **Hero** | Headline updated to Saira typeface and now reads `#1 BOOKMARK APP IN THE WORLD` (single-line, gradient accent). |
+| **Feature & Comparison Sections** | Plan columns enlarged, left-aligned titles, outline thumbs-up icons, animated/glow CTA buttons with distinct hover colours. |
+| **FAQ** | New Saira-styled FAQ block with top ten questions, larger section heading. |
+| **Footer** | Typography unified to Saira, subtle radial glow & dotted texture, enlarged columns/links, refined hover states. |
+| **General Typography** | All headings (H1/H2/H3) capitalised and rendered with the Saira Google Font across the site. |
+
+These visual updates bring the public marketing pages more in line with the professional tone of BookmarkAI while retaining performance-first principles.
+
 ## Version 2.2.1 - Critical Issues Update
 
 ### 🚨 Current Status: CRITICAL ERRORS DETECTED
