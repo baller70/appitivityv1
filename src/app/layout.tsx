@@ -2,6 +2,7 @@ import React, { ReactNode } from 'react'
 import './globals.css'
 import { ThemeAccentControls } from '@/components/ui/ThemeAccentControls'
 import { AppProviders } from './providers'
+import { ChunkErrorBoundary } from '@/components/ChunkErrorBoundary'
 
 export const metadata = {
   title: 'AppOrganizer Dashboard',
@@ -25,10 +26,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <AppProviders>
-          <ThemeAccentControls />
-          {children}
-        </AppProviders>
+        <ChunkErrorBoundary>
+          <AppProviders>
+            <ThemeAccentControls />
+            {children}
+          </AppProviders>
+        </ChunkErrorBoundary>
       </body>
     </html>
   )
