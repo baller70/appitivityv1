@@ -186,40 +186,33 @@ export function BookmarkCard({ bookmark, folders, onUpdated, onDeleted, onOpenDe
     }
   };
 
-  const handleCardClick = async (e: React.MouseEvent) => {
+  const handleCardClick = (e: React.MouseEvent) => {
     if (isSelectionMode) {
       e.preventDefault();
       toggleItem(bookmark.id);
-    } else {
-      // Track the visit when opening detail modal
-      try {
-        const response = await fetch('/api/bookmarks/visit', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            bookmarkId: bookmark.id,
-          }),
-        });
+      return;
+    }
 
-        if (response.ok) {
-          const result = await response.json();
-          // Update the local bookmark state with new visit count
+    // Open detail modal first for snappy UX
+    onOpenDetail?.();
+
+    // Fire-and-forget visit tracking
+    fetch('/api/bookmarks/visit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bookmarkId: bookmark.id }),
+    })
+      .then(async (res) => {
+        if (res.ok) {
+          const result = await res.json();
           onUpdated({
             ...bookmark,
             visit_count: result.bookmark.visit_count,
             last_visited_at: result.bookmark.last_visited_at,
           });
         }
-      } catch (error) {
-        console.error('Failed to track visit:', error);
-      }
-
-      // Open detail modal when clicking on the card
-      onOpenDetail?.();
-      toast.success('Opening bookmark details');
-    }
+      })
+      .catch((err) => console.error('Failed to track visit:', err));
   };
 
   const handleLongPress = () => {
@@ -264,14 +257,7 @@ export function BookmarkCard({ bookmark, folders, onUpdated, onDeleted, onOpenDe
 
   const usagePercentage = calculateUsagePercentage();
   
-  // Debug logging
-  console.log('BookmarkCard Debug:', {
-    bookmarkTitle: bookmark.title,
-    bookmarkVisits: bookmark.visit_count,
-    totalBookmarkVisits,
-    usagePercentage,
-    shouldShow: totalBookmarkVisits && totalBookmarkVisits >= 0
-  });
+  // Remove noisy debug logging in production
 
   return (
     <>
@@ -334,7 +320,6 @@ export function BookmarkCard({ bookmark, folders, onUpdated, onDeleted, onOpenDe
               onClick={(e) => {
                 e.stopPropagation();
                 onOpenDetail?.();
-                toast.info('Opening bookmark details');
               }}
               title="View bookmark details"
             >
@@ -349,7 +334,6 @@ export function BookmarkCard({ bookmark, folders, onUpdated, onDeleted, onOpenDe
               onClick={(e) => {
                 e.stopPropagation();
                 setShowEdit(true);
-                toast.info('Opening edit form');
               }}
               title="Edit bookmark"
             >
