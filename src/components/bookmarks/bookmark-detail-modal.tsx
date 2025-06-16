@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -39,7 +39,7 @@ import {
 import { RichTextEditor } from '../ui/rich-text-editor';
 import { NotificationIframe } from '../notifications/notification-iframe';
 import { ReminderManager } from '@/components/reminders';
-import { RelatedManager } from '@/components/related';
+import { RelatedBookmarksSection } from '@/components/related/related-gallery';
 import { BookmarkService, type BookmarkWithRelations } from '../../lib/services/bookmarks';
 import type { Folder, Tag } from '../../types/supabase';
 import { useUser } from '@clerk/nextjs';
@@ -88,6 +88,30 @@ export function BookmarkDetailModal({
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [allBookmarks, setAllBookmarks] = useState<BookmarkWithRelations[]>([]);
+
+  // Build simple related list (same folder or overlapping tags)
+  const relatedItems = useMemo(() => {
+    if (!bookmark) return [] as any[];
+    return allBookmarks
+      .filter((b) => b.id !== bookmark.id)
+      .filter((b) => {
+        // same folder
+        if (bookmark.folder_id && b.folder_id === bookmark.folder_id) return true;
+        // overlapping tags
+        const t1 = bookmark.tags?.map((t) => t.id) || [];
+        const t2 = b.tags?.map((t) => t.id) || [];
+        return t1.some((id) => t2.includes(id));
+      })
+      .map((b) => ({
+        id: b.id,
+        title: b.title,
+        url: b.url,
+        faviconUrl: b.favicon_url ?? undefined,
+        tags: b.tags?.map((t) => t.name) || [],
+        lastVisited: b.last_visited_at ? new Date(b.last_visited_at) : undefined,
+        visitCount: b.visit_count ?? 0,
+      }));
+  }, [bookmark, allBookmarks]);
 
   // Update edited description when bookmark changes
   useEffect(() => {
@@ -724,16 +748,14 @@ export function BookmarkDetailModal({
               {bookmark && (
                 <div className="space-y-4 pt-6 border-t border-gray-200 dark:border-gray-700">
                   <h3 className="text-lg font-semibold">Related Bookmarks</h3>
-                  <RelatedManager
-                    targetBookmark={bookmark}
-                    allBookmarks={allBookmarks}
-                    onBookmarkVisit={(relatedBookmark) => {
-                      window.open(relatedBookmark.url, '_blank')
-                      toast.success(`Opened ${relatedBookmark.title}`)
-                    }}
-                    onBookmarkViewDetails={(relatedBookmark) => {
-                      onClose()
-                      toast.info(`Viewing details for ${relatedBookmark.title}`)
+                  <RelatedBookmarksSection
+                    items={relatedItems}
+                    onAdd={() => toast.info('Add bookmark')}
+                    onEdit={(id) => toast.info(`Edit ${id}`)}
+                    onDelete={(id) => toast.success(`Deleted ${id}`)}
+                    onReorder={(newOrder) => {
+                      // TODO: persist reorder later
+                      console.log('reorder', newOrder.map((i) => i.id));
                     }}
                   />
                 </div>
