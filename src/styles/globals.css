@@ -108,8 +108,6 @@
   }
 }
 
-
-
 @layer base {
   * {
     @apply border-border;
@@ -117,4 +115,29 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Accent palettes */
+[data-accent='brand'] {
+  /* uses default variables, no override needed */
+}
+
+[data-accent='blue'] {
+  --primary: 215 100% 47%; /* blue-600 */
+  --primary-foreground: 210 40% 98%;
+}
+
+[data-accent='green'] {
+  --primary: 142 76% 36%; /* green-600 */
+  --primary-foreground: 210 40% 98%;
+}
+
+[data-accent='purple'] {
+  --primary: 271 81% 56%; /* purple-500 */
+  --primary-foreground: 210 40% 98%;
+}
+
+[data-accent='orange'] {
+  --primary: 24 94% 50%; /* orange-500 */
+  --primary-foreground: 210 40% 98%;
 } 

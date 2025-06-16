@@ -6,6 +6,8 @@ import { Toaster } from '../components/ui/toaster'
 import { NotificationProvider, NotificationContainer } from '@/components/notifications'
 import { ReminderProvider } from '@/components/reminders'
 import StagewiseToolbar from '@/components/dev/stagewise-toolbar'
+import { ThemeProvider } from '@/components/providers/ThemeProvider'
+import { ThemeAccentControls } from '@/components/ui/ThemeAccentControls'
 
 export const metadata: Metadata = {
   title: 'AppOrganizer Dashboard',
@@ -36,14 +38,19 @@ export default function RootLayout({
           <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700,800,900&display=swap" rel="stylesheet" />
         </head>
         <body className="bg-secondary-50 dark:bg-secondary-900 text-secondary-900 dark:text-secondary-100 antialiased">
-          <NotificationProvider>
-            <ReminderProvider>
-              {children}
-              <NotificationContainer />
-              <Toaster />
-              <StagewiseToolbar />
-            </ReminderProvider>
-          </NotificationProvider>
+          <ThemeProvider>
+            <NotificationProvider>
+              <ReminderProvider>
+                {/* Global theme/accent controls */}
+                <div className="fixed top-2 right-4 z-50"><ThemeAccentControls /></div>
+
+                {children}
+                <NotificationContainer />
+                <Toaster />
+                <StagewiseToolbar />
+              </ReminderProvider>
+            </NotificationProvider>
+          </ThemeProvider>
         </body>
       </html>
     </ClerkProvider>

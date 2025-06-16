@@ -1,0 +1,94 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+Please adapt the globs depending on your project structure.
+
+---
+name: nextjs-best-practices.mdc
+description: Best practices for Next.js applications and routing
+globs: **/*.{ts,tsx}
+---
+
+- Use the App Router for better performance and organization.
+- Implement proper error boundaries to handle errors gracefully.
+- Utilize `getStaticProps` and `getServerSideProps` for optimal data fetching.
+- Leverage API routes for server-side logic and data handling.
+
+---
+name: typescript-best-practices.mdc 
+description: TypeScript coding standards and type safety guidelines
+globs: **/*.{ts,tsx}
+---
+
+- Enable strict mode in `tsconfig.json` for better type safety.
+- Prefer using interfaces over type aliases for object shapes.
+- Utilize type guards and assertions to ensure type safety at runtime.
+- Implement proper type inference to reduce redundancy.
+
+---
+name: tailwindcss-best-practices.mdc
+description: Guidelines for using Tailwind CSS effectively
+globs: **/*.{ts,tsx,css}
+---
+
+- Use utility-first classes for rapid styling and layout.
+- Leverage `@apply` for reusable styles in custom CSS.
+- Ensure responsive design by using Tailwind's responsive utilities.
+- Optimize for performance by purging unused styles in production.
+
+---
+name: react-best-practices.mdc
+description: Best practices for React component development
+globs: **/*.{ts,tsx}
+---
+
+- Use functional components and hooks for cleaner code.
+- Implement prop types or TypeScript interfaces for component props.
+- Use React's `useMemo` and `useCallback` to optimize performance.
+- Keep components small and focused on a single responsibility.
+
+---
+name: playwright-best-practices.mdc
+description: Best practices for end-to-end testing with Playwright
+globs: **/*.{ts,tsx}
+---
+
+- Organize tests into logical suites for better maintainability.
+- Use fixtures to set up test data and state.
+- Implement page object patterns for reusable test code.
+- Run tests in headless mode for faster CI/CD integration.
+
+---
+name: storybook-best-practices.mdc
+description: Guidelines for developing UI components with Storybook
+globs: **/*.{ts,tsx}
+---
+
+- Create stories for all component states and variations.
+- Use addons like `@storybook/addon-a11y` for accessibility checks.
+- Document component usage and props in the storybook.
+- Keep stories isolated to ensure they are easy to test and debug.
+
+---
+name: supabase-best-practices.mdc
+description: Best practices for using Supabase in applications
+globs: **/*.{ts,tsx}
+---
+
+- Use environment variables to manage Supabase keys securely.
+- Implement row-level security for data protection.
+- Utilize Supabase's real-time capabilities for dynamic applications.
+- Structure database tables and relationships for optimal performance.
+
+---
+name: framer-motion-best-practices.mdc
+description: Best practices for animations with Framer Motion
+globs: **/*.{ts,tsx}
+---
+
+- Use `motion` components for declarative animations.
+- Leverage variants for complex animations and transitions.
+- Optimize performance by using `shouldComponentUpdate` or `React.memo`.
+- Keep animations subtle to enhance user experience without distraction.

@@ -77,6 +77,7 @@ export function FolderGridView({
     
     while (folder) {
       breadcrumbs.unshift(folder);
+      // @ts-ignore – folder is defined inside the while loop, TypeScript flow analysis is too strict here.
       folder = folder.parent_id ? folders.find(f => f.id === folder.parent_id) : undefined;
     }
     

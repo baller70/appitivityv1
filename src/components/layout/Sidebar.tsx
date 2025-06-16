@@ -9,6 +9,11 @@ import {
   Menu,
   Plus
 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
+import { ThemeToggle } from '@/components/ui/ThemeToggle'
+import { AccentToggle } from '@/components/ui/AccentToggle'
+import { cn } from '@/lib/utils'
 
 interface SidebarProps {
   isCollapsed: boolean
@@ -32,11 +37,13 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   ]
 
   return (
-    <div 
+    <div
       data-testid="sidebar"
-      className={`bg-gray-900 border-r border-gray-800 transition-all duration-300 ${
+      className={cn(
+        'bg-gray-900 border-r border-gray-800 transition-all duration-300',
         isCollapsed ? 'w-16' : 'w-64'
-      }`}>
+      )}
+    >
       <div className="flex flex-col h-full">
         {/* Header */}
         <div className="p-4 border-b border-gray-800">
@@ -47,37 +54,34 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                 <p className="text-sm text-gray-400">Your digital workspace</p>
               </div>
             )}
-            <button
-              onClick={onToggle}
-              className="p-2 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-white"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
+            <div className="flex items-center space-x-2">
+              <Button variant="ghost" size="icon" onClick={onToggle}>
+                <Menu className="w-5 h-5" />
+              </Button>
+              <ThemeToggle />
+              <AccentToggle />
+            </div>
           </div>
         </div>
 
         {/* Navigation */}
         <div className="p-4">
           {!isCollapsed && (
-                    <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-          NAVIGATION
-        </h2>
+            <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+              NAVIGATION
+            </h2>
           )}
           <nav className="space-y-1">
             {navigationItems.map((item) => (
-              <a
+              <Button
                 key={item.name}
-                href="#"
-                className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  item.active
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                }`}
+                variant={item.active ? 'default' : 'ghost'}
+                className="w-full justify-start"
               >
                 <item.icon className="w-5 h-5 mr-3" />
                 {!isCollapsed && (
                   <>
-                    <span className="flex-1">{item.name}</span>
+                    <span className="flex-1 text-sm font-medium">{item.name}</span>
                     {item.count && (
                       <span className="bg-gray-700 text-gray-300 text-xs px-2 py-1 rounded-full">
                         {item.count}
@@ -85,7 +89,7 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                     )}
                   </>
                 )}
-              </a>
+              </Button>
             ))}
           </nav>
         </div>
@@ -98,14 +102,14 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
             </h2>
             <div className="space-y-1">
               {categories.map((category) => (
-                <a
+                <Button
                   key={category.name}
-                  href="#"
-                  className="flex items-center justify-between px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
+                  variant="ghost"
+                  className="w-full justify-between text-sm"
                 >
                   <span>{category.name}</span>
-                  <span className="text-xs text-gray-500">{category.count}</span>
-                </a>
+                  <span className="text-xs text-muted-foreground">{category.count}</span>
+                </Button>
               ))}
             </div>
           </div>
@@ -129,10 +133,10 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
               </div>
             </div>
             
-            <button className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center">
+            <Button className="w-full mt-4">
               <Plus className="w-4 h-4 mr-2" />
               Add Bookmark
-            </button>
+            </Button>
           </div>
         )}
       </div>

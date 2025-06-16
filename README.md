@@ -1,5 +1,7 @@
 # BookmarkHub - Advanced Bookmark Management Platform
 
+![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/baller70/appitivityv1?utm_source=oss&utm_medium=github&utm_campaign=baller70%2Fappitivityv1&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
+
 ## **Recent UI Enhancements (June 2025)**
 
 The landing-page experience has been refreshed to deliver a cleaner, more modern first impression:

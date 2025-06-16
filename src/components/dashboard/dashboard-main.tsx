@@ -27,6 +27,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import type { BookmarkWithRelations } from '../../lib/services/bookmarks';
 import type { Folder, Tag } from '../../types/supabase';
 import { CopilotPage } from '../ai/copilot-page';
+import { ThemeAccentControls } from '@/components/ui/ThemeAccentControls'
 
 interface DashboardMainProps {
   userId: string;
@@ -69,7 +70,11 @@ export function DashboardMain({ userId, userData }: DashboardMainProps) {
       setError(null);
       
       // Ensure user profile exists
-      await apiClient.ensureUserProfile(userData.email || 'user@example.com', userData.firstName || 'User');
+      await apiClient.ensureUserProfile(
+        userId,
+        userData.email || 'user@example.com',
+        userData.firstName || 'User'
+      );
       
       // Load all dashboard data
       const [bookmarks, folders, tags] = await Promise.all([
@@ -106,7 +111,7 @@ export function DashboardMain({ userId, userData }: DashboardMainProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [userData.email, userData.firstName]);
+  }, [userId, userData.email, userData.firstName]);
 
   useEffect(() => {
     loadDashboardData();
@@ -194,9 +199,10 @@ export function DashboardMain({ userId, userData }: DashboardMainProps) {
   };
 
   return (
-    <div className="h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Let individual components handle their own layout and sidebar */}
-      {renderActiveComponent()}
+    <div className="h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+      <div className="flex-1 overflow-y-auto">
+        {renderActiveComponent()}
+      </div>
     </div>
   );
 }

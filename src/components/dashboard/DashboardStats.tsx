@@ -1,4 +1,6 @@
 import React from 'react'
+import { Card, CardContent } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 import type { BookmarkWithRelations } from '../../lib/services/bookmarks';
 
 interface DashboardStatsProps {
@@ -49,24 +51,22 @@ export default function DashboardStats({ bookmarks }: DashboardStatsProps) {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      {stats.map((stat, index) => (
-        <div 
-          key={index}
-          className="bg-gray-800 rounded-lg p-6 border border-gray-700"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-400 mb-1">
-                {stat.title}
-              </p>
-              <p className={`text-2xl font-bold ${
-                stat.changeType === 'positive' ? 'text-green-400' : 'text-white'
-              }`}>
-                {stat.value}
-              </p>
-            </div>
-          </div>
-        </div>
+      {stats.map((stat) => (
+        <Card key={stat.title} className="bg-card/50 hover:shadow-lg transition-shadow duration-200">
+          <CardContent className="p-6">
+            <p className="text-sm font-medium text-muted-foreground mb-1">
+              {stat.title}
+            </p>
+            <p
+              className={cn(
+                'text-2xl font-bold',
+                stat.changeType === 'positive' ? 'text-green-500' : 'text-foreground'
+              )}
+            >
+              {stat.value}
+            </p>
+          </CardContent>
+        </Card>
       ))}
     </div>
   )

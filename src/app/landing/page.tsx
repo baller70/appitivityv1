@@ -29,7 +29,6 @@ import {
   Gift,
 } from 'lucide-react'
 import TestimonialsSection from '@/components/landing/TestimonialsSection'
-import TechnologyStackSection from '@/components/landing/TechnologyStackSection'
 import PricingPlansSection from '@/components/landing/PricingPlansSection'
 import ComparisonPricingTableSection from '@/components/landing/ComparisonPricingTableSection'
 import FAQSection from '@/components/landing/FAQSection'
