@@ -358,43 +358,39 @@ export function BookmarkCard({ bookmark, folders, onUpdated, onDeleted, onOpenDe
 
             {/* External Link - Opens website */}
             <Button
+              asChild
               variant="ghost"
               size="sm"
               className="p-1 h-auto w-auto hover:bg-white/80"
-              onClick={async (e) => {
-                e.stopPropagation();
-                try {
-                  // Track the visit
-                  const response = await fetch('/api/bookmarks/visit', {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                      bookmarkId: bookmark.id,
-                    }),
-                  });
-
-                  if (response.ok) {
-                    const result = await response.json();
-                    // Update the local bookmark state with new visit count
-                    onUpdated({
-                      ...bookmark,
-                      visit_count: result.bookmark.visit_count,
-                      last_visited_at: result.bookmark.last_visited_at,
-                    });
-                  }
-
-                  window.open(bookmark.url, '_blank');
-                  toast.success('Opening website in new tab');
-                } catch (error) {
-                  console.error('Failed to open bookmark:', error);
-                  toast.error('Failed to open bookmark');
-                }
-              }}
               title="Open website in new tab"
+              onClick={(e) => e.stopPropagation()}
             >
-              <ExternalLink className="h-4 w-4 text-gray-400 hover:text-blue-500" />
+              <a
+                href={bookmark.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => {
+                  // Fire-and-forget visit tracking to avoid popup blocking
+                  fetch('/api/bookmarks/visit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ bookmarkId: bookmark.id }),
+                  })
+                    .then(async (res) => {
+                      if (res.ok) {
+                        const result = await res.json();
+                        onUpdated({
+                          ...bookmark,
+                          visit_count: result.bookmark.visit_count,
+                          last_visited_at: result.bookmark.last_visited_at,
+                        });
+                      }
+                    })
+                    .catch(() => {/* silent */});
+                }}
+              >
+                <ExternalLink className="h-4 w-4 text-gray-400 hover:text-blue-500" />
+              </a>
             </Button>
 
             {/* Delete */}
