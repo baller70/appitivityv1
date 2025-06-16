@@ -1,3 +1,5 @@
+'use client'
+
 import React, { ReactNode } from 'react'
 import type { Metadata } from 'next'
 import { ClerkProvider } from '@clerk/nextjs'
@@ -8,6 +10,7 @@ import { ReminderProvider } from '@/components/reminders'
 import StagewiseToolbar from '@/components/dev/stagewise-toolbar'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import { ThemeAccentControls } from '@/components/ui/ThemeAccentControls'
+import { AppProviders } from './providers'
 
 export const metadata: Metadata = {
   title: 'AppOrganizer Dashboard',
@@ -38,19 +41,21 @@ export default function RootLayout({
           <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700,800,900&display=swap" rel="stylesheet" />
         </head>
         <body className="bg-secondary-50 dark:bg-secondary-900 text-secondary-900 dark:text-secondary-100 antialiased">
-          <ThemeProvider>
-            <NotificationProvider>
-              <ReminderProvider>
-                {/* Global theme/accent controls */}
-                <div className="fixed top-2 right-4 z-50"><ThemeAccentControls /></div>
+          <AppProviders>
+            <ThemeProvider>
+              <NotificationProvider>
+                <ReminderProvider>
+                  {/* Global theme/accent controls */}
+                  <div className="fixed top-2 right-4 z-50"><ThemeAccentControls /></div>
 
-                {children}
-                <NotificationContainer />
-                <Toaster />
-                <StagewiseToolbar />
-              </ReminderProvider>
-            </NotificationProvider>
-          </ThemeProvider>
+                  {children}
+                  <NotificationContainer />
+                  <Toaster />
+                  <StagewiseToolbar />
+                </ReminderProvider>
+              </NotificationProvider>
+            </ThemeProvider>
+          </AppProviders>
         </body>
       </html>
     </ClerkProvider>
