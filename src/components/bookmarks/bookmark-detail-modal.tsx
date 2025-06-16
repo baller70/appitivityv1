@@ -747,7 +747,7 @@ export function BookmarkDetailModal({
               {/* Related Section */}
               {bookmark && (
                 <div className="space-y-4 pt-6 border-t border-gray-200 dark:border-gray-700">
-                  <h3 className="text-lg font-semibold">Related Bookmarks</h3>
+                  <h3 className="text-lg font-semibold uppercase">Related Bookmarks</h3>
                   <RelatedBookmarksSection
                     items={relatedItems}
                     onAdd={() => toast.info('Add bookmark')}
@@ -767,7 +767,7 @@ export function BookmarkDetailModal({
           {activeTab === 'timer' && (
             <div className="space-y-6">
               <div className="text-center">
-                <h3 className="text-lg font-semibold mb-4">Focus Timer</h3>
+                <h3 className="text-lg font-semibold mb-4 uppercase">Focus Timer</h3>
                 
                 {/* Bookmark Focus Card */}
                 <Card className="mb-6">
@@ -1044,7 +1044,7 @@ export function BookmarkDetailModal({
             <div className="space-y-8">
               {/* Notifications Section */}
               <div className="space-y-6">
-                <h3 className="text-lg font-semibold">Notifications</h3>
+                <h3 className="text-lg font-semibold uppercase">Notifications</h3>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                   <Card>
                     <CardContent className="p-4">
@@ -1077,7 +1077,7 @@ export function BookmarkDetailModal({
 
               {/* Reminders Section */}
               <div className="space-y-6">
-                <h3 className="text-lg font-semibold">Reminders</h3>
+                <h3 className="text-lg font-semibold uppercase">Reminders</h3>
                 <ReminderManager
                   bookmarkId={bookmark.id}
                   bookmarkTitle={bookmark.title}
