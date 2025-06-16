@@ -45,6 +45,7 @@ import type { Folder, Tag } from '../../types/supabase';
 import { useUser } from '@clerk/nextjs';
 import { toast } from 'sonner';
 import { BookmarkComments } from '../comments/bookmark-comments';
+import { useUpdateBookmark, uploadIcon } from '@/features/bookmarks/api'
 
 interface BookmarkDetailModalProps {
   bookmark: BookmarkWithRelations | null;
@@ -88,6 +89,9 @@ export function BookmarkDetailModal({
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [allBookmarks, setAllBookmarks] = useState<BookmarkWithRelations[]>([]);
+
+  // React-Query mutation to persist any Overview edits
+  const updateBookmark = useUpdateBookmark(bookmark?.id || '')
 
   // Build simple related list (same folder or overlapping tags)
   const relatedItems = useMemo(() => {
@@ -207,11 +211,21 @@ export function BookmarkDetailModal({
   };
 
   const saveDescription = () => {
-    // Here you would typically call an API to update the bookmark
-    setIsEditingDescription(false);
-    if (bookmark) {
-      onUpdated({ ...bookmark, description: editedDescription });
-    }
+    if (!bookmark) return;
+
+    updateBookmark.mutate(
+      { description: editedDescription },
+      {
+        onSuccess: (data: BookmarkWithRelations) => {
+          onUpdated(data)
+          setIsEditingDescription(false)
+          toast.success('Description updated')
+        },
+        onError: () => {
+          toast.error('Failed to update description')
+        },
+      }
+    )
   };
 
   const handleFavorite = async () => {
@@ -353,22 +367,29 @@ export function BookmarkDetailModal({
     }
   };
 
-  const handleImageUpload = (file: File) => {
-    if (file && file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        setPreviewImage(result);
-        // Update the bookmark with the new preview image
-        if (bookmark) {
-          const updatedBookmark = { 
-            ...bookmark, 
-            preview_image: result 
-          };
-          onUpdated(updatedBookmark);
-        }
-      };
-      reader.readAsDataURL(file);
+  const handleImageUpload = async (file: File) => {
+    if (!file || !bookmark) return;
+
+    try {
+      // 1. upload to S3 via presigned URL helper
+      const publicUrl = await uploadIcon(file)
+
+      // 2. Optimistically show preview
+      setPreviewImage(publicUrl)
+
+      // 3. Persist
+      updateBookmark.mutate({ icon_url: publicUrl }, {
+        onSuccess: (data: BookmarkWithRelations) => {
+          onUpdated(data)
+          toast.success('Icon updated')
+        },
+        onError: () => {
+          toast.error('Failed to save icon')
+        },
+      })
+    } catch (err) {
+      console.error(err)
+      toast.error('Icon upload failed')
     }
   };
 
