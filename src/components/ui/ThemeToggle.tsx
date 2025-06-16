@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { useThemeContext } from '../providers/ThemeProvider'
+import { useThemeContext } from '@/components/providers/ThemeProvider'
 import { Button } from './button'
 import {
   DropdownMenu,
