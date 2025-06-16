@@ -2,6 +2,7 @@ import React, { ReactNode } from 'react'
 import './globals.css'
 import { AppProviders } from './providers'
 import { ChunkErrorBoundary } from '@/components/ChunkErrorBoundary'
+import { ClerkProvider } from '@clerk/nextjs'
 
 export const metadata = {
   title: 'AppOrganizer Dashboard',
@@ -25,11 +26,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <AppProviders>
-          <ChunkErrorBoundary>
-            {children}
-          </ChunkErrorBoundary>
-        </AppProviders>
+        <ClerkProvider>
+          <AppProviders>
+            <ChunkErrorBoundary>
+              {children}
+            </ChunkErrorBoundary>
+          </AppProviders>
+        </ClerkProvider>
       </body>
     </html>
   )
