@@ -11,10 +11,8 @@ import { Label } from '../ui/label';
 import { 
   Clock, 
   Bell, 
-  Calendar, 
   Link, 
   FileText, 
-  TrendingUp, 
   BarChart3,
   Eye,
   Heart,
@@ -34,7 +32,9 @@ import {
   RotateCcw,
   Target,
   MessageCircle,
-  Image
+  Image,
+  Calendar,
+  TrendingUp
 } from 'lucide-react';
 import { RichTextEditor } from '../ui/rich-text-editor';
 import { NotificationIframe } from '../notifications/notification-iframe';
@@ -56,7 +56,7 @@ interface BookmarkDetailModalProps {
   onBookmarkCreated?: (bookmark: BookmarkWithRelations) => void;
 }
 
-type TabType = 'overview' | 'timer' | 'notifications' | 'reminders' | 'related' | 'media' | 'documents' | 'progress' | 'comments';
+type TabType = 'overview' | 'timer' | 'notifications' | 'media' | 'comments';
 
 export function BookmarkDetailModal({
   bookmark,
@@ -404,11 +404,7 @@ export function BookmarkDetailModal({
     { id: 'overview' as const, label: 'Overview', icon: BarChart3 },
     { id: 'timer' as const, label: 'Timer', icon: Clock },
     { id: 'notifications' as const, label: 'Notifications', icon: Bell },
-    { id: 'reminders' as const, label: 'Reminders', icon: Calendar },
-    { id: 'related' as const, label: 'Related', icon: Link },
     { id: 'media' as const, label: 'Media', icon: Image },
-    { id: 'documents' as const, label: 'Documents', icon: FileText },
-    { id: 'progress' as const, label: 'Progress', icon: TrendingUp },
     { id: 'comments' as const, label: 'Comments', icon: MessageCircle },
   ];
 
@@ -1011,12 +1007,24 @@ export function BookmarkDetailModal({
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex justify-end pt-6 border-t border-gray-200 dark:border-gray-700">
-                <Button variant="outline" onClick={onClose}>
-                  Close
-                </Button>
-              </div>
+              {/* Related Section (moved from former Related tab) */}
+              {bookmark && (
+                <div className="space-y-4 pt-6 border-t border-gray-200 dark:border-gray-700">
+                  <h3 className="text-lg font-semibold">Related Bookmarks</h3>
+                  <RelatedManager
+                    targetBookmark={bookmark}
+                    allBookmarks={allBookmarks}
+                    onBookmarkVisit={(relatedBookmark) => {
+                      window.open(relatedBookmark.url, '_blank');
+                      toast.success(`Opened ${relatedBookmark.title}`);
+                    }}
+                    onBookmarkViewDetails={(relatedBookmark) => {
+                      onClose();
+                      toast.info(`Viewing details for ${relatedBookmark.title}`);
+                    }}
+                  />
+                </div>
+              )}
             </div>
           )}
 
@@ -1296,115 +1304,54 @@ export function BookmarkDetailModal({
             </div>
           )}
 
-          {/* Notifications Tab */}
+          {/* Notifications & Reminders Tab */}
           {activeTab === 'notifications' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">Notification System</h3>
-                <div className="flex items-center space-x-2">
-                  <Bell className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Comprehensive notification management
-                  </span>
+            <div className="space-y-8">
+              {/* Notifications Section */}
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold">Notifications</h3>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  <Card>
+                    <CardContent className="p-4">
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                        Comprehensive notification management
+                      </p>
+                      {/* Embedded Notification Demo */}
+                      <NotificationIframe height="600px" />
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <h5 className="font-semibold text-green-600 dark:text-green-400 mb-2">
+                        Features Available
+                      </h5>
+                      <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                        <li>• Toast notifications (success, error, warning, info)</li>
+                        <li>• Priority levels (low, medium, high, urgent)</li>
+                        <li>• Browser notifications support</li>
+                        <li>• Audio alerts with volume control</li>
+                        <li>• Notification center with history</li>
+                        <li>• Filtering and search capabilities</li>
+                        <li>• Persistent storage</li>
+                        <li>• Customizable settings</li>
+                      </ul>
+                    </CardContent>
+                  </Card>
                 </div>
               </div>
-              
-              {/* Embedded Notification Demo */}
-              <NotificationIframe height="600px" />
-              
-              {/* Quick Actions */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card>
-                  <CardContent className="p-4">
-                    <h5 className="font-semibold text-blue-600 dark:text-blue-400 mb-2">
-                      Quick Setup
-                    </h5>
-                    <div className="space-y-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="w-full justify-start"
-                        onClick={() => {
-                          window.open('/notifications-test', '_blank', 'width=800,height=600');
-                        }}
-                      >
-                        <ExternalLink className="h-4 w-4 mr-2" />
-                        Open Full Notification Center
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="w-full justify-start"
-                        onClick={() => {
-                          if ('Notification' in window) {
-                            if (Notification.permission === 'default') {
-                              Notification.requestPermission().then(permission => {
-                                toast.success(permission === 'granted' ? 'Notifications enabled!' : 'Notifications not enabled');
-                              });
-                            } else {
-                              toast.info(`Notifications are ${Notification.permission}`);
-                            }
-                          } else {
-                            toast.error('Notifications not supported in this browser');
-                          }
-                        }}
-                      >
-                        <Settings className="h-4 w-4 mr-2" />
-                        Configure Browser Notifications
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardContent className="p-4">
-                    <h5 className="font-semibold text-green-600 dark:text-green-400 mb-2">
-                      Features Available
-                    </h5>
-                    <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                      <li>• Toast notifications (success, error, warning, info)</li>
-                      <li>• Priority levels (low, medium, high, urgent)</li>
-                      <li>• Browser notifications support</li>
-                      <li>• Audio alerts with volume control</li>
-                      <li>• Notification center with history</li>
-                      <li>• Filtering and search capabilities</li>
-                      <li>• Persistent storage</li>
-                      <li>• Customizable settings</li>
-                    </ul>
-                  </CardContent>
-                </Card>
+
+              {/* Reminders Section */}
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold">Reminders</h3>
+                <ReminderManager
+                  bookmarkId={bookmark.id}
+                  bookmarkTitle={bookmark.title}
+                />
               </div>
             </div>
           )}
 
-          {/* Reminders Tab */}
-          {activeTab === 'reminders' && (
-            <ReminderManager 
-              bookmarkId={bookmark.id} 
-              bookmarkTitle={bookmark.title}
-            />
-          )}
-
-          {/* Related Tab */}
-          {activeTab === 'related' && bookmark && (
-            <RelatedManager 
-              targetBookmark={bookmark}
-              allBookmarks={allBookmarks}
-              onBookmarkVisit={(relatedBookmark) => {
-                // Open the related bookmark in a new tab
-                window.open(relatedBookmark.url, '_blank');
-                toast.success(`Opened ${relatedBookmark.title}`);
-              }}
-              onBookmarkViewDetails={(relatedBookmark) => {
-                // Close current modal and open the related bookmark's details
-                onClose();
-                // In a real app, you'd trigger opening the modal for the related bookmark
-                toast.info(`Viewing details for ${relatedBookmark.title}`);
-              }}
-            />
-          )}
-
-          {/* Media Tab */}
+          {/* Media Tab (includes former Documents content) */}
           {activeTab === 'media' && (
             <div className="space-y-6">
               {/* Reuse preview upload section */}
@@ -1485,56 +1432,21 @@ export function BookmarkDetailModal({
                   {previewImage ? 'Image preview shown on the left.' : 'Upload images or media related to this bookmark.'}
                 </div>
               </div>
-            </div>
-          )}
 
-          {/* Documents Tab */}
-          {activeTab === 'documents' && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Documents & Notes</h3>
-              <Card>
-                <CardContent className="p-4">
-                  <p className="text-gray-600 dark:text-gray-400 text-center py-8">
-                    Create and attach documents, notes, and annotations for this bookmark.
-                  </p>
-                  <div className="text-center">
-                    <Button onClick={() => toast.info('Document management feature coming soon!')}>
-                      <FileText className="h-4 w-4 mr-2" />
-                      Add Document
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {/* Progress Tab */}
-          {activeTab === 'progress' && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Learning Progress</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Documents Content (merged) */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Documents & Notes</h3>
                 <Card>
-                  <CardContent className="p-4 text-center">
-                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-2">
-                      {bookmark.visit_count || 0}
+                  <CardContent className="p-4">
+                    <p className="text-gray-600 dark:text-gray-400 text-center py-8">
+                      Create and attach documents, notes, and annotations for this bookmark.
+                    </p>
+                    <div className="text-center">
+                      <Button onClick={() => toast.info('Document management feature coming soon!')}>
+                        <FileText className="h-4 w-4 mr-2" />
+                        Add Document
+                      </Button>
                     </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Total Visits</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4 text-center">
-                    <div className="text-2xl font-bold text-green-600 dark:text-green-400 mb-2">
-                      0
-                    </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Study Sessions</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4 text-center">
-                    <div className="text-2xl font-bold text-purple-600 dark:text-purple-400 mb-2">
-                      0h
-                    </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Time Spent</p>
                   </CardContent>
                 </Card>
               </div>

@@ -94,51 +94,7 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
           </nav>
         </div>
 
-        {/* Categories */}
-        {!isCollapsed && (
-          <div className="p-4 border-t border-gray-800">
-            <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-              Categories
-            </h2>
-            <div className="space-y-1">
-              {categories.map((category) => (
-                <Button
-                  key={category.name}
-                  variant="ghost"
-                  className="w-full justify-between text-sm"
-                >
-                  <span>{category.name}</span>
-                  <span className="text-xs text-muted-foreground">{category.count}</span>
-                </Button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Stats */}
-        {!isCollapsed && (
-          <div className="p-4 mt-auto border-t border-gray-800">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-400">Total Bookmarks</span>
-                <span className="text-sm font-semibold text-white">6</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-400">This Month</span>
-                <span className="text-sm font-semibold text-green-400">+12</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-400">Favorites</span>
-                <span className="text-sm font-semibold text-white">3</span>
-              </div>
-            </div>
-            
-            <Button className="w-full mt-4">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Bookmark
-            </Button>
-          </div>
-        )}
+        {/* Footer with Add Bookmark removed along with stats */}
       </div>
     </div>
   )
