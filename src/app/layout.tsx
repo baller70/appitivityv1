@@ -1,6 +1,5 @@
 import React, { ReactNode } from 'react'
 import './globals.css'
-import { ThemeAccentControls } from '@/components/ui/ThemeAccentControls'
 import { AppProviders } from './providers'
 import { ChunkErrorBoundary } from '@/components/ChunkErrorBoundary'
 
@@ -26,12 +25,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <ChunkErrorBoundary>
-          <AppProviders>
-            <ThemeAccentControls />
+        <AppProviders>
+          <ChunkErrorBoundary>
             {children}
-          </AppProviders>
-        </ChunkErrorBoundary>
+          </ChunkErrorBoundary>
+        </AppProviders>
       </body>
     </html>
   )
