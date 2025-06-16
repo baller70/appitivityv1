@@ -129,7 +129,7 @@ export function RelatedBookmarksSection({
 function SectionHeader({ count, onAdd }: { count: number; onAdd: () => void }) {
   return (
     <div className="sticky top-0 z-10 flex items-center justify-between bg-card/90 backdrop-blur rounded-t-2xl px-4 py-2 border-b border-border">
-      <h2 className="text-sm font-semibold">
+      <h2 className="text-sm font-semibold uppercase">
         Related Bookmarks (<span>{count}</span>)
       </h2>
       <Button size="sm" onClick={onAdd} className="bg-primary text-primary-foreground">

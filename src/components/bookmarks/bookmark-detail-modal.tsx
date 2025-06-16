@@ -440,7 +440,7 @@ export function BookmarkDetailModal({
             
             {/* Title and URL */}
             <div className="min-w-0 flex-1">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white truncate uppercase">
                 {bookmark.title}
               </h2>
               <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
