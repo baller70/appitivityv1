@@ -520,7 +520,7 @@ export function BookmarkDetailModal({
             <div className="space-y-6">
               {/* Performance Analytics */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Analytics & Performance</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white uppercase">Analytics & Performance</h3>
                 
                 {/* Performance Metrics */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
