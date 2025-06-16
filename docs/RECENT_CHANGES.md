@@ -84,5 +84,23 @@ Added Supabase MCP server to `.cursor/mcp.json` with:
 3. Leverage Supabase MCP for advanced database operations
 4. Implement additional view modes if needed
 
+## 2025-06-16
+
+### Bookmark Detail Modal
+- Merged **Notifications** and **Reminders** into a single "Notifications" tab. All reminder functionality now appears within this tab under its own heading.
+- Removed **Progress** tab. Key learning-progress metrics will be revisited in a future analytics redesign.
+- Consolidated **Documents & Notes** into the **Media** tab. Users can now manage images and documents from one place.
+- Moved **Related Bookmarks** section to the bottom of the **Overview** tab for quicker access.
+
+### Sidebar Cleanup
+- Deleted obsolete *Categories*, *Statistics*, and *Insights* blocks from both classic and enhanced sidebars.
+
+### Component Library
+- Added missing shadcn/ui primitives (Accordion, Avatar, AspectRatio, Command, Context-Menu, Hover-Card, Alert-Dialog, Radio-Group, Skeleton, Toggle) with corresponding Radix dependencies.
+
+### Miscellaneous
+- Updated TypeScript types and lint rules; all tests, type-checks, and lints pass.
+- Committed and pushed to `main` (`b3b428c2`).
+
 ---
 *Documentation generated automatically via GitHub MCP integration*
