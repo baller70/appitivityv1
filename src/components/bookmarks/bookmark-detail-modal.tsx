@@ -468,12 +468,9 @@ export function BookmarkDetailModal({
     // find bookmark in allBookmarks (fetched earlier)
     const b = allBookmarks.find((bk) => bk.id === id);
     if (b) {
-      // open new detail first so parent state sets before closing current modal
-      if (onOpenDetail) {
-        onOpenDetail(b);
-      }
-      // now close current modal
-      onClose();
+      // Tell parent to swap to the selected related bookmark.
+      // No need to close and reopen; parent modal will re-render with new data.
+      onOpenDetail?.(b);
     } else {
       toast.error('Bookmark not found');
     }
