@@ -45,6 +45,7 @@ import type { Folder, Tag } from '../../types/supabase';
 import { useUser } from '@clerk/nextjs';
 import { toast } from 'sonner';
 import { BookmarkComments } from '../comments/bookmark-comments';
+import { BookmarkForm } from './bookmark-form';
 
 interface BookmarkDetailModalProps {
   bookmark: BookmarkWithRelations | null;
@@ -67,9 +68,10 @@ export function BookmarkDetailModal({
   onUpdated,
   onBookmarkCreated
 }: BookmarkDetailModalProps) {
-  // Use the parameters to avoid unused variable errors
+  // We will use folders for Add Bookmark dialog
   void _folders;
   void _tags;
+
   const { user } = useUser();
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [timerTime, setTimerTime] = useState(25 * 60); // 25 minutes
@@ -88,6 +90,8 @@ export function BookmarkDetailModal({
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [allBookmarks, setAllBookmarks] = useState<BookmarkWithRelations[]>([]);
+
+  const [isAddBookmarkOpen, setIsAddBookmarkOpen] = useState(false);
 
   // Build simple related list (same folder or overlapping tags)
   const relatedItems = useMemo(() => {
@@ -402,6 +406,16 @@ export function BookmarkDetailModal({
     setPreviewImage(null);
   };
 
+  const handleAddBookmarkSubmit = (newBookmark: BookmarkWithRelations) => {
+    // Optimistically add new bookmark to local list
+    setAllBookmarks(prev => [...prev, newBookmark]);
+    toast.success('Bookmark added');
+    setIsAddBookmarkOpen(false);
+    if (onBookmarkCreated) {
+      onBookmarkCreated(newBookmark);
+    }
+  };
+
   if (!bookmark) return null;
 
   const tabs = [
@@ -413,6 +427,7 @@ export function BookmarkDetailModal({
   ];
 
   return (
+    <>
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader className="sr-only">
@@ -750,7 +765,7 @@ export function BookmarkDetailModal({
                   <h3 className="text-lg font-semibold uppercase">RELATED BOOKMARKS</h3>
                   <RelatedBookmarksSection
                     items={relatedItems}
-                    onAdd={() => toast.info('Add bookmark')}
+                    onAdd={() => setIsAddBookmarkOpen(true)}
                     onEdit={(id) => toast.info(`Edit ${id}`)}
                     onDelete={(id) => toast.success(`Deleted ${id}`)}
                     onReorder={(newOrder) => {
@@ -1195,5 +1210,19 @@ export function BookmarkDetailModal({
         </div>
       </DialogContent>
     </Dialog>
+    {/* Add / New Links Dialog */}
+    <Dialog open={isAddBookmarkOpen} onOpenChange={setIsAddBookmarkOpen}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>ADD BOOKMARK</DialogTitle>
+        </DialogHeader>
+        <BookmarkForm
+          folders={_folders}
+          onSubmit={handleAddBookmarkSubmit}
+          onCancel={() => setIsAddBookmarkOpen(false)}
+        />
+      </DialogContent>
+    </Dialog>
+    </>
   );
 } 
