@@ -41,7 +41,6 @@ import { NotificationIframe } from '../notifications/notification-iframe';
 import { ReminderManager } from '@/components/reminders';
 import { RelatedBookmarksSection } from '@/components/related/related-gallery';
 import { BookmarkService, type BookmarkWithRelations } from '../../lib/services/bookmarks';
-import { TagService } from '../../lib/services/tags';
 import type { Folder, Tag } from '../../types/supabase';
 import { useUser } from '@clerk/nextjs';
 import { toast } from 'sonner';
@@ -649,11 +648,12 @@ export function BookmarkDetailModal({
 
   // Tag management functions
   const loadAvailableTags = async () => {
-    if (!user) return;
-    
     try {
-      const tagService = new TagService(user.id);
-      const tags = await tagService.getTags();
+      const response = await fetch('/api/tags');
+      if (!response.ok) {
+        throw new Error('Failed to load tags');
+      }
+      const tags = await response.json();
       setAvailableTags(tags);
     } catch (error) {
       console.error('Failed to load tags:', error);
@@ -665,20 +665,70 @@ export function BookmarkDetailModal({
     
     setIsTagLoading(true);
     try {
-      const tagService = new TagService(user.id);
-      const bookmarkService = new BookmarkService(user.id);
+      console.log('Creating tag:', newTagName.trim());
       
-      // Create or get existing tag
-      const tag = await tagService.createOrGetTag(newTagName.trim());
-      
-      // Add tag to bookmark
-      await bookmarkService.addTagsToBookmark(bookmark.id, [tag.id]);
-      
-      // Refresh bookmark data
-      const updatedBookmark = await bookmarkService.getBookmark(bookmark.id);
-      if (updatedBookmark) {
-        onUpdated(updatedBookmark);
+      // Create tag via API
+      const tagResponse = await fetch('/api/tags', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: newTagName.trim(),
+          color: '#3B82F6' // Default blue color
+        }),
+      });
+
+      console.log('Tag response status:', tagResponse.status);
+      console.log('Tag response ok:', tagResponse.ok);
+
+      if (!tagResponse.ok) {
+        const errorData = await tagResponse.json();
+        console.error('Tag creation error data:', errorData);
+        
+        // Send error to Sentry API endpoint
+        try {
+          await fetch('/api/sentry-example-api', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              error: 'Tag creation failed',
+              details: {
+                status: tagResponse.status,
+                errorData,
+                tagName: newTagName.trim(),
+                bookmarkId: bookmark?.id,
+                userId: user?.id
+              }
+            })
+          });
+        } catch (sentryError) {
+          console.error('Failed to send error to Sentry:', sentryError);
+        }
+        
+        throw new Error(errorData.error || 'Failed to create tag');
       }
+
+      const tag = await tagResponse.json();
+      
+      // Add tag to bookmark via API
+      const addTagResponse = await fetch(`/api/bookmarks/${bookmark.id}/tags`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tagIds: [tag.id]
+        }),
+      });
+
+      if (!addTagResponse.ok) {
+        const errorData = await addTagResponse.json();
+        throw new Error(errorData.error || 'Failed to add tag to bookmark');
+      }
+
+      const updatedBookmark = await addTagResponse.json();
+      onUpdated(updatedBookmark);
       
       // Reset state
       setNewTagName('');
@@ -688,7 +738,25 @@ export function BookmarkDetailModal({
       toast.success(`Tag "${tag.name}" added to bookmark`);
     } catch (error) {
       console.error('Failed to add tag:', error);
-      toast.error('Failed to add tag');
+      
+      // Send detailed error to Sentry
+      if (typeof window !== 'undefined' && (window as any).Sentry) {
+        (window as any).Sentry.captureException(error, {
+          tags: {
+            component: 'BookmarkDetailModal',
+            action: 'handleAddTag',
+            tagName: newTagName.trim()
+          },
+          extra: {
+            bookmarkId: bookmark?.id,
+            userId: user?.id,
+            errorMessage: error instanceof Error ? error.message : 'Unknown error',
+            errorStack: error instanceof Error ? error.stack : 'No stack'
+          }
+        });
+      }
+      
+      toast.error(`Failed to add tag: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsTagLoading(false);
     }
@@ -699,21 +767,29 @@ export function BookmarkDetailModal({
     
     setIsTagLoading(true);
     try {
-      const bookmarkService = new BookmarkService(user.id);
-      
-      // Remove tag from bookmark
-      await bookmarkService.removeTagsFromBookmark(bookmark.id, [tagId]);
-      
-      // Refresh bookmark data
-      const updatedBookmark = await bookmarkService.getBookmark(bookmark.id);
-      if (updatedBookmark) {
-        onUpdated(updatedBookmark);
+      // Remove tag from bookmark via API
+      const removeTagResponse = await fetch(`/api/bookmarks/${bookmark.id}/tags`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tagIds: [tagId]
+        }),
+      });
+
+      if (!removeTagResponse.ok) {
+        const errorData = await removeTagResponse.json();
+        throw new Error(errorData.error || 'Failed to remove tag from bookmark');
       }
+
+      const updatedBookmark = await removeTagResponse.json();
+      onUpdated(updatedBookmark);
       
       toast.success(`Tag "${tagName}" removed from bookmark`);
     } catch (error) {
       console.error('Failed to remove tag:', error);
-      toast.error('Failed to remove tag');
+      toast.error(`Failed to remove tag: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsTagLoading(false);
     }
@@ -724,18 +800,29 @@ export function BookmarkDetailModal({
     
     setIsTagLoading(true);
     try {
-      const bookmarkService = new BookmarkService(user.id);
-      
-      // Update bookmark folder
-      const updatedBookmark = await bookmarkService.updateBookmark(bookmark.id, {
-        folder_id: folderId
+      // Update bookmark folder via API
+      const updateResponse = await fetch(`/api/bookmarks/${bookmark.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          folder_id: folderId
+        }),
       });
-      
+
+      if (!updateResponse.ok) {
+        const errorData = await updateResponse.json();
+        throw new Error(errorData.error || 'Failed to update bookmark category');
+      }
+
+      const updatedBookmark = await updateResponse.json();
       onUpdated(updatedBookmark);
+      
       toast.success('Bookmark category updated');
     } catch (error) {
       console.error('Failed to update folder:', error);
-      toast.error('Failed to update category');
+      toast.error(`Failed to update category: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsTagLoading(false);
     }

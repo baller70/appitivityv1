@@ -493,7 +493,7 @@ export function BookmarkCard({ bookmark, folders, onUpdated, onDeleted, onOpenDe
             {/* Tags Row - Exact from Reference */}
             {bookmark.tags && bookmark.tags.length > 0 && (
               <div className="flex flex-wrap gap-1 mb-3">
-                {bookmark.tags.map((tag) => (
+                {bookmark.tags.filter(tag => tag && tag.id && tag.name).map((tag) => (
                   <Badge 
                     key={tag.id} 
                     variant="secondary" 

@@ -250,7 +250,7 @@ function BookmarkHubDashboardContent({ userId, userData, onNavigate }: BookmarkH
           description: bookmarkData.description || '',
           folder_id: folderId,
           favicon_url: bookmarkData.favicon_url,
-          tagIds: bookmarkData.tags?.map(tag => tag.id) || []
+          tagIds: bookmarkData.tags?.filter(tag => tag && tag.id).map(tag => tag.id) || []
         }),
       });
 
@@ -479,7 +479,7 @@ function BookmarkHubDashboardContent({ userId, userData, onNavigate }: BookmarkH
     .filter(bookmark => {
       // Tag filter
       if (selectedTags.length === 0) return true;
-      return bookmark.tags?.some(tag => selectedTags.includes(tag.id)) || false;
+      return bookmark.tags?.some(tag => tag && tag.id && selectedTags.includes(tag.id)) || false;
     })
     .sort((a, b) => {
       switch (filters.sortBy) {
@@ -577,7 +577,7 @@ function BookmarkHubDashboardContent({ userId, userData, onNavigate }: BookmarkH
                     </div>
                     {bookmark.tags && bookmark.tags.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-2">
-                        {bookmark.tags.slice(0, 3).map((tag) => (
+                        {bookmark.tags.slice(0, 3).filter(tag => tag && tag.id).map((tag) => (
                           <span 
                             key={tag.id}
                             className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"

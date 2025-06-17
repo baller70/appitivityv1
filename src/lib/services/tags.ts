@@ -1,4 +1,3 @@
-import { createSupabaseClient } from '../supabase'
 import { normalizeUserId } from '../uuid-compat'
 import type { 
   Tag, 
@@ -12,27 +11,40 @@ export interface TagWithCount extends Tag {
 }
 
 export class TagService {
-  private supabase
   private userId: string
+  private headers: Record<string, string>
+  private baseUrl: string
 
   constructor(userId: string) {
     // Normalize the user ID to UUID format for database operations
     this.userId = normalizeUserId(userId)
-    this.supabase = createSupabaseClient(this.userId)
+    
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+    
+    this.baseUrl = `${supabaseUrl}/rest/v1`
+    this.headers = {
+      'apikey': supabaseKey,
+      'Authorization': `Bearer ${supabaseKey}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation'
+    }
   }
 
   // Get all tags for the current user
   async getTags(): Promise<Tag[]> {
-    const { data, error } = await this.supabase
-      .from('tags')
-      .select('*')
-      .eq('user_id', this.userId)
-      .order('name')
-
-    if (error) {
-      throw new Error(`Failed to fetch tags: ${error.message}`)
+    const url = `${this.baseUrl}/tags?user_id=eq.${this.userId}&order=name.asc`
+    
+    const response = await fetch(url, {
+      headers: this.headers
+    })
+    
+    if (!response.ok) {
+      const error = await response.text()
+      throw new Error(`Failed to fetch tags: ${error}`)
     }
-
+    
+    const data = await response.json()
     return data || []
   }
 
@@ -76,19 +88,19 @@ export class TagService {
 
   // Get tag by name (case insensitive)
   async getTagByName(name: string): Promise<Tag | null> {
-    const { data, error } = await this.supabase
-      .from('tags')
-      .select('*')
-      .eq('user_id', this.userId)
-      .ilike('name', name)
-      .single()
+    const url = `${this.baseUrl}/tags?user_id=eq.${this.userId}&name=ilike.${encodeURIComponent(name)}`
+    
+    const response = await fetch(url, {
+      headers: this.headers
+    })
 
-    if (error) {
-      if (error.code === 'PGRST116') return null // Not found
-      throw new Error(`Failed to fetch tag by name: ${error.message}`)
+    if (!response.ok) {
+      const error = await response.text()
+      throw new Error(`Failed to fetch tag by name: ${error}`)
     }
 
-    return data
+    const data = await response.json()
+    return data.length > 0 ? data[0] : null
   }
 
   // Create a new tag
@@ -99,19 +111,22 @@ export class TagService {
       throw new Error(`Tag with name "${tag.name}" already exists`)
     }
 
-    const { data, error } = await this.supabase
-      .from('tags')
-      .insert({
+    const url = `${this.baseUrl}/tags`
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: this.headers,
+      body: JSON.stringify({
         ...tag,
         user_id: this.userId
       })
-      .select()
-      .single()
+    })
 
-    if (error) {
-      throw new Error(`Failed to create tag: ${error.message}`)
+    if (!response.ok) {
+      const error = await response.text()
+      throw new Error(`Failed to create tag: ${error}`)
     }
 
+    const [data] = await response.json()
     return data
   }
 
