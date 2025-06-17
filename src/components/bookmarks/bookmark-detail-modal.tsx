@@ -442,7 +442,7 @@ export function BookmarkDetailModal({
       visitCount: newBookmark.visit_count ?? 0,
     };
     setManualLinks(prev => [...prev, transformed]);
-    toast.success('Do you understand me?');
+    toast.success('Bookmark added');
     setIsAddBookmarkOpen(false);
     if (onBookmarkCreated) {
       onBookmarkCreated(newBookmark);
@@ -460,7 +460,7 @@ export function BookmarkDetailModal({
       visitCount: b.visit_count ?? 0,
     };
     setManualLinks(prev => [...prev, transformed]);
-    toast.success('Do you understand me?');
+    toast.success('Linked existing bookmark');
     setIsAddBookmarkOpen(false);
   };
 
