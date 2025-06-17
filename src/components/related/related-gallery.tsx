@@ -38,6 +38,7 @@ interface RelatedGalleryProps {
   onEdit(id: string): void;
   onDelete(id: string): void;
   onReorder(newOrder: BookmarkCardData[]): void;
+  onOpenDetail(id: string): void;
 }
 
 export function RelatedBookmarksSection({
@@ -46,6 +47,7 @@ export function RelatedBookmarksSection({
   onEdit,
   onDelete,
   onReorder,
+  onOpenDetail,
 }: RelatedGalleryProps) {
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
@@ -117,6 +119,7 @@ export function RelatedBookmarksSection({
               onEdit={onEdit}
               onDelete={onDelete}
               onAdd={onAdd}
+              onOpenDetail={onOpenDetail}
             />
           </SortableContext>
         </DndContext>
@@ -204,9 +207,10 @@ interface GridProps {
   onEdit(id: string): void;
   onDelete(id: string): void;
   onAdd(): void;
+  onOpenDetail(id: string): void;
 }
 
-function BookmarkMasonryGrid({ items, onEdit, onDelete, onAdd }: GridProps) {
+function BookmarkMasonryGrid({ items, onEdit, onDelete, onAdd, onOpenDetail }: GridProps) {
   return (
     <div
       className="grid gap-4 px-4"
@@ -221,6 +225,7 @@ function BookmarkMasonryGrid({ items, onEdit, onDelete, onAdd }: GridProps) {
             item={item}
             onEdit={onEdit}
             onDelete={onDelete}
+            onOpenDetail={onOpenDetail}
           />
         ))}
       </AnimatePresence>
@@ -237,7 +242,7 @@ function BookmarkMasonryGrid({ items, onEdit, onDelete, onAdd }: GridProps) {
 }
 
 /* ---------------- CARD ------------------ */
-function SortableCard({ item, onEdit, onDelete }: { item: BookmarkCardData; onEdit: (id: string) => void; onDelete: (id: string) => void }) {
+function SortableCard({ item, onEdit, onDelete, onOpenDetail }: { item: BookmarkCardData; onEdit: (id: string) => void; onDelete: (id: string) => void; onOpenDetail: (id: string) => void }) {
   const {
     attributes,
     listeners,
@@ -251,6 +256,12 @@ function SortableCard({ item, onEdit, onDelete }: { item: BookmarkCardData; onEd
     transform: CSS.Transform.toString(transform),
     transition,
   } as React.CSSProperties;
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('button')) return;
+    onOpenDetail(item.id);
+  };
 
   return (
     <motion.div
@@ -266,6 +277,7 @@ function SortableCard({ item, onEdit, onDelete }: { item: BookmarkCardData; onEd
       )}
       {...attributes}
       {...listeners}
+      onClick={handleCardClick}
     >
       {/* Hover actions */}
       <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
@@ -284,14 +296,9 @@ function SortableCard({ item, onEdit, onDelete }: { item: BookmarkCardData; onEd
         ) : (
           <Tag className="h-4 w-4 text-muted-foreground" />
         )}
-        <a
-          href={item.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="truncate text-sm font-medium hover:underline"
-        >
+        <span className="truncate text-sm font-medium">
           {item.title}
-        </a>
+        </span>
       </div>
       {/* Tags */}
       <div className="flex flex-wrap gap-1 mb-2">
@@ -306,7 +313,7 @@ function SortableCard({ item, onEdit, onDelete }: { item: BookmarkCardData; onEd
         <span>👁 {item.visitCount ?? 0}</span>
         {item.lastVisited && (
           <span>
-            �� {item.lastVisited.toLocaleDateString(undefined, {
+             {item.lastVisited.toLocaleDateString(undefined, {
               day: "2-digit",
               month: "short",
             })}

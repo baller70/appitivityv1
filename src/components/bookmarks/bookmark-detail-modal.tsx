@@ -46,6 +46,8 @@ import { useUser } from '@clerk/nextjs';
 import { toast } from 'sonner';
 import { BookmarkComments } from '../comments/bookmark-comments';
 import { BookmarkForm } from './bookmark-form';
+import { Input } from '../ui/input';
+import { type BookmarkCardData } from '@/components/related/related-gallery';
 
 interface BookmarkDetailModalProps {
   bookmark: BookmarkWithRelations | null;
@@ -55,6 +57,7 @@ interface BookmarkDetailModalProps {
   onClose: () => void;
   onUpdated: (bookmark: BookmarkWithRelations) => void;
   onBookmarkCreated?: (bookmark: BookmarkWithRelations) => void;
+  onOpenDetail?: (bookmark: BookmarkWithRelations) => void;
 }
 
 type TabType = 'overview' | 'timer' | 'notifications' | 'media' | 'comments';
@@ -66,7 +69,8 @@ export function BookmarkDetailModal({
   isOpen,
   onClose,
   onUpdated,
-  onBookmarkCreated
+  onBookmarkCreated,
+  onOpenDetail
 }: BookmarkDetailModalProps) {
   // We will use folders for Add Bookmark dialog
   void _folders;
@@ -92,8 +96,10 @@ export function BookmarkDetailModal({
   const [allBookmarks, setAllBookmarks] = useState<BookmarkWithRelations[]>([]);
 
   const [isAddBookmarkOpen, setIsAddBookmarkOpen] = useState(false);
+  const [showCreateNew, setShowCreateNew] = useState(false);
+  const [manualLinks, setManualLinks] = useState<BookmarkCardData[]>([]);
+  const [searchExisting, setSearchExisting] = useState('');
 
-  // Build simple related list (same folder or overlapping tags)
   const relatedItems = useMemo(() => {
     if (!bookmark) return [] as any[];
     return allBookmarks
@@ -116,6 +122,22 @@ export function BookmarkDetailModal({
         visitCount: b.visit_count ?? 0,
       }));
   }, [bookmark, allBookmarks]);
+
+  const combinedRelated = useMemo(() => {
+    return [...relatedItems, ...manualLinks.filter(m => !relatedItems.find(r => r.id === m.id))];
+  }, [relatedItems, manualLinks]);
+
+  const filteredExisting = useMemo(()=>{
+    if(!bookmark) return [] as BookmarkWithRelations[];
+    const q = searchExisting.toLowerCase();
+    return allBookmarks.filter(b=>{
+      if(b.id===bookmark.id) return false;
+      const already = relatedItems.find(r=>r.id===b.id) || manualLinks.find(m=>m.id===b.id);
+      if(already) return false;
+      if(q && !b.title.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [searchExisting, allBookmarks, relatedItems, manualLinks]);
 
   // Update edited description when bookmark changes
   useEffect(() => {
@@ -409,10 +431,51 @@ export function BookmarkDetailModal({
   const handleAddBookmarkSubmit = (newBookmark: BookmarkWithRelations) => {
     // Optimistically add new bookmark to local list
     setAllBookmarks(prev => [...prev, newBookmark]);
+    // Also add to manual links so it appears immediately in related section
+    const transformed: BookmarkCardData = {
+      id: newBookmark.id,
+      title: newBookmark.title,
+      url: newBookmark.url,
+      faviconUrl: newBookmark.favicon_url ?? undefined,
+      tags: newBookmark.tags?.map(t => t.name) || [],
+      lastVisited: newBookmark.last_visited_at ? new Date(newBookmark.last_visited_at) : undefined,
+      visitCount: newBookmark.visit_count ?? 0,
+    };
+    setManualLinks(prev => [...prev, transformed]);
     toast.success('Bookmark added');
     setIsAddBookmarkOpen(false);
     if (onBookmarkCreated) {
       onBookmarkCreated(newBookmark);
+    }
+  };
+
+  const handleSelectExisting = (b: BookmarkWithRelations) => {
+    const transformed: BookmarkCardData = {
+      id: b.id,
+      title: b.title,
+      url: b.url,
+      faviconUrl: b.favicon_url ?? undefined,
+      tags: b.tags?.map((t) => t.name) || [],
+      lastVisited: b.last_visited_at ? new Date(b.last_visited_at) : undefined,
+      visitCount: b.visit_count ?? 0,
+    };
+    setManualLinks(prev => [...prev, transformed]);
+    toast.success('Linked existing bookmark');
+    setIsAddBookmarkOpen(false);
+  };
+
+  const handleOpenRelatedBookmark = (id: string) => {
+    // find bookmark in allBookmarks (fetched earlier)
+    const b = allBookmarks.find((bk) => bk.id === id);
+    if (b) {
+      // close current modal
+      onClose();
+      // open new detail if parent provided handler
+      if (onOpenDetail) {
+        onOpenDetail(b);
+      }
+    } else {
+      toast.error('Bookmark not found');
     }
   };
 
@@ -764,7 +827,7 @@ export function BookmarkDetailModal({
                 <div className="space-y-4 pt-6 border-t border-gray-200 dark:border-gray-700">
                   <h3 className="text-lg font-semibold uppercase">RELATED BOOKMARKS</h3>
                   <RelatedBookmarksSection
-                    items={relatedItems}
+                    items={combinedRelated}
                     onAdd={() => setIsAddBookmarkOpen(true)}
                     onEdit={(id) => toast.info(`Edit ${id}`)}
                     onDelete={(id) => toast.success(`Deleted ${id}`)}
@@ -772,6 +835,7 @@ export function BookmarkDetailModal({
                       // TODO: persist reorder later
                       console.log('reorder', newOrder.map((i) => i.id));
                     }}
+                    onOpenDetail={handleOpenRelatedBookmark}
                   />
                 </div>
               )}
@@ -1167,6 +1231,7 @@ export function BookmarkDetailModal({
                         )}
                       </div>
                     )}
+                    {/* Hidden file input */}
                     <input
                       id="preview-upload"
                       type="file"
@@ -1211,16 +1276,38 @@ export function BookmarkDetailModal({
       </DialogContent>
     </Dialog>
     {/* Add / New Links Dialog */}
-    <Dialog open={isAddBookmarkOpen} onOpenChange={setIsAddBookmarkOpen}>
-      <DialogContent className="max-w-lg">
+    <Dialog open={isAddBookmarkOpen} onOpenChange={(open)=>{setIsAddBookmarkOpen(open); if(!open) setShowCreateNew(false);}}>
+      <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>ADD BOOKMARK</DialogTitle>
+          <DialogTitle>{showCreateNew ? 'ADD NEW BOOKMARK' : 'LINK EXISTING BOOKMARK'}</DialogTitle>
         </DialogHeader>
-        <BookmarkForm
-          folders={_folders}
-          onSubmit={handleAddBookmarkSubmit}
-          onCancel={() => setIsAddBookmarkOpen(false)}
-        />
+        {showCreateNew ? (
+          <BookmarkForm
+            folders={_folders}
+            onSubmit={handleAddBookmarkSubmit}
+            onCancel={() => setIsAddBookmarkOpen(false)}
+          />
+        ) : (
+          <div className="space-y-4">
+            <Input
+              placeholder="Search bookmarks..."
+              value={searchExisting}
+              onChange={(e)=>setSearchExisting(e.target.value)}
+            />
+            <div className="max-h-80 overflow-y-auto divide-y divide-border rounded-md border">
+              {filteredExisting.map(b=> (
+                <button key={b.id} className="w-full text-left px-4 py-2 hover:bg-muted flex flex-col" onClick={()=>handleSelectExisting(b)}>
+                  <span className="font-medium text-sm">{b.title}</span>
+                  <span className="text-xs text-muted-foreground truncate">{b.url}</span>
+                </button>
+              ))}
+              {filteredExisting.length===0 && <p className="p-4 text-sm text-muted-foreground">No bookmarks found</p>}
+            </div>
+            <div className="text-center">
+              <Button variant="link" onClick={()=>setShowCreateNew(true)}>+ ADD NEW BOOKMARK INSTEAD</Button>
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
     </>

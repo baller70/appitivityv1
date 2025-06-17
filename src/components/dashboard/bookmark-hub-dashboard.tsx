@@ -1015,6 +1015,7 @@ function BookmarkHubDashboardContent({ userId, userData, onNavigate }: BookmarkH
           setSelectedBookmark(null);
         }}
         onUpdated={handleBookmarkUpdated}
+        onOpenDetail={handleOpenDetail}
       />
 
       <BookmarkImportModal
