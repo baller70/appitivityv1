@@ -464,13 +464,26 @@ export function BookmarkDetailModal({
     setIsAddBookmarkOpen(false);
   };
 
-  const handleOpenRelatedBookmark = (id: string) => {
-    // find bookmark in allBookmarks (fetched earlier)
-    const b = allBookmarks.find((bk) => bk.id === id);
-    if (b) {
-      // Tell parent to swap to the selected related bookmark.
-      // No need to close and reopen; parent modal will re-render with new data.
-      onOpenDetail?.(b);
+  const handleOpenRelatedBookmark = async (id: string) => {
+    // Try local cache first
+    let target = allBookmarks.find((bk) => bk.id === id);
+
+    // If not found, fetch it via API (lightweight)
+    if (!target) {
+      try {
+        const res = await fetch(`/api/bookmarks/${id}`);
+        if (res.ok) {
+          target = await res.json();
+          // add to cache for next time
+          setAllBookmarks((prev) => [...prev, target!]);
+        }
+      } catch (err) {
+        console.error('Failed to fetch related bookmark', err);
+      }
+    }
+
+    if (target) {
+      onOpenDetail?.(target);
     } else {
       toast.error('Bookmark not found');
     }
