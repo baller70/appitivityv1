@@ -416,7 +416,7 @@ export function BookmarkDetailModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader className="sr-only">
-          <DialogTitle>{bookmark.title}</DialogTitle>
+          <DialogTitle>{bookmark.title?.toUpperCase()}</DialogTitle>
         </DialogHeader>
         {/* Custom Header with Favicon, Title, URL and Action Buttons */}
         <div className="flex items-center justify-between p-6 pb-4 border-b border-gray-200 dark:border-gray-700">
@@ -488,7 +488,7 @@ export function BookmarkDetailModal({
               className="px-4 py-2"
             >
               <ExternalLink className="h-4 w-4 mr-2" />
-              Visit Site
+              VISIT SITE
             </Button>
           </div>
         </div>
@@ -520,7 +520,7 @@ export function BookmarkDetailModal({
             <div className="space-y-6">
               {/* Performance Analytics */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Analytics & Performance</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white uppercase">ANALYTICS AND PERFORMANCE</h3>
                 
                 {/* Performance Metrics */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -591,7 +591,7 @@ export function BookmarkDetailModal({
                     className="flex items-center gap-2"
                   >
                     <BarChart3 className="h-4 w-4" />
-                    View Full Analytics
+                    VIEW FULL ANALYTICS
                   </Button>
                 </div>
               </div>
@@ -747,7 +747,7 @@ export function BookmarkDetailModal({
               {/* Related Section */}
               {bookmark && (
                 <div className="space-y-4 pt-6 border-t border-gray-200 dark:border-gray-700">
-                  <h3 className="text-lg font-semibold">Related Bookmarks</h3>
+                  <h3 className="text-lg font-semibold uppercase">RELATED BOOKMARKS</h3>
                   <RelatedBookmarksSection
                     items={relatedItems}
                     onAdd={() => toast.info('Add bookmark')}

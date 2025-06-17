@@ -129,11 +129,11 @@ export function RelatedBookmarksSection({
 function SectionHeader({ count, onAdd }: { count: number; onAdd: () => void }) {
   return (
     <div className="sticky top-0 z-10 flex items-center justify-between bg-card/90 backdrop-blur rounded-t-2xl px-4 py-2 border-b border-border">
-      <h2 className="text-sm font-semibold">
-        Related Bookmarks (<span>{count}</span>)
+      <h2 className="text-sm font-semibold uppercase">
+        RELATED BOOKMARKS (<span>{count}</span>)
       </h2>
-      <Button size="sm" onClick={onAdd} className="bg-primary text-primary-foreground">
-        <Plus className="h-4 w-4 mr-1" /> New Link
+      <Button size="sm" onClick={onAdd} className="bg-primary text-primary-foreground uppercase">
+        <Plus className="h-4 w-4 mr-1" /> NEW LINKS
       </Button>
     </div>
   );
@@ -230,7 +230,7 @@ function BookmarkMasonryGrid({ items, onEdit, onDelete, onAdd }: GridProps) {
         className="flex flex-col items-center justify-center border-2 border-dashed border-muted rounded-2xl text-muted-foreground hover:bg-muted/30 h-40 transition-colors"
       >
         <Plus className="h-6 w-6" />
-        <span className="text-sm">Add bookmark</span>
+        <span className="text-sm uppercase">ADD BOOKMARK</span>
       </button>
     </div>
   );
@@ -329,8 +329,8 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
       <p className="text-sm max-w-xs">
         No related bookmarks yet. Link sites or tools that support your workflow.
       </p>
-      <Button onClick={onAdd} className="bg-primary text-primary-foreground">
-        <Plus className="h-4 w-4 mr-1" /> Add Bookmark
+      <Button onClick={onAdd} className="bg-primary text-primary-foreground uppercase">
+        <Plus className="h-4 w-4 mr-1" /> ADD BOOKMARK
       </Button>
     </div>
   );
