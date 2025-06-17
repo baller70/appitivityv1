@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, RefreshCw, Search, X, Tag } from "lucide-react";
+import { Plus, RefreshCw, Search, X, Tag, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -27,6 +27,7 @@ export interface BookmarkCardData {
   title: string;
   url: string;
   faviconUrl?: string;
+  screenshotUrl?: string;
   tags: string[];
   lastVisited?: Date;
   visitCount?: number;
@@ -39,6 +40,7 @@ interface RelatedGalleryProps {
   onDelete(id: string): void;
   onReorder(newOrder: BookmarkCardData[]): void;
   onOpenDetail(id: string): void;
+  onVisit?: (item: BookmarkCardData) => void;
 }
 
 export function RelatedBookmarksSection({
@@ -48,6 +50,7 @@ export function RelatedBookmarksSection({
   onDelete,
   onReorder,
   onOpenDetail,
+  onVisit,
 }: RelatedGalleryProps) {
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
@@ -120,6 +123,7 @@ export function RelatedBookmarksSection({
               onDelete={onDelete}
               onAdd={onAdd}
               onOpenDetail={onOpenDetail}
+              onVisit={onVisit}
             />
           </SortableContext>
         </DndContext>
@@ -208,9 +212,10 @@ interface GridProps {
   onDelete(id: string): void;
   onAdd(): void;
   onOpenDetail(id: string): void;
+  onVisit?: (item: BookmarkCardData) => void;
 }
 
-function BookmarkMasonryGrid({ items, onEdit, onDelete, onAdd, onOpenDetail }: GridProps) {
+function BookmarkMasonryGrid({ items, onEdit, onDelete, onAdd, onOpenDetail, onVisit }: GridProps) {
   return (
     <div
       className="grid gap-4 px-4"
@@ -226,6 +231,7 @@ function BookmarkMasonryGrid({ items, onEdit, onDelete, onAdd, onOpenDetail }: G
             onEdit={onEdit}
             onDelete={onDelete}
             onOpenDetail={onOpenDetail}
+            onVisit={onVisit}
           />
         ))}
       </AnimatePresence>
@@ -242,7 +248,7 @@ function BookmarkMasonryGrid({ items, onEdit, onDelete, onAdd, onOpenDetail }: G
 }
 
 /* ---------------- CARD ------------------ */
-function SortableCard({ item, onEdit, onDelete, onOpenDetail }: { item: BookmarkCardData; onEdit: (id: string) => void; onDelete: (id: string) => void; onOpenDetail: (id: string) => void }) {
+function SortableCard({ item, onEdit, onDelete, onOpenDetail, onVisit }: { item: BookmarkCardData; onEdit: (id: string) => void; onDelete: (id: string) => void; onOpenDetail: (id: string) => void; onVisit?: (item: BookmarkCardData) => void }) {
   const {
     attributes,
     listeners,
@@ -260,6 +266,10 @@ function SortableCard({ item, onEdit, onDelete, onOpenDetail }: { item: Bookmark
   const handleCardClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
     if (target.closest('button')) return;
+    
+    console.log('🖱️ Related bookmark card clicked:', item.id, item.title);
+    
+    // Always open detail modal on card click (consistent with regular bookmarks)
     onOpenDetail(item.id);
   };
 
@@ -272,53 +282,88 @@ function SortableCard({ item, onEdit, onDelete, onOpenDetail }: { item: Bookmark
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
       className={cn(
-        "relative group bg-card border border-border rounded-2xl p-4 shadow-md hover:shadow-lg transition-transform",
+        "relative group border border-border rounded-xl shadow-sm hover:shadow-md transition-transform bg-background overflow-hidden cursor-pointer",
         isDragging && "opacity-70"
       )}
       {...attributes}
-      {...listeners}
       onClick={handleCardClick}
     >
+      {/* Image / Screenshot */}
+      {item.screenshotUrl ? (
+        <img src={item.screenshotUrl} alt={item.title} className="w-full h-28 object-cover" />
+      ) : (
+        <div className="w-full h-28 bg-muted flex items-center justify-center">
+          {item.faviconUrl ? (
+            <img src={item.faviconUrl} alt="favicon" className="h-8 w-8" />
+          ) : (
+            <Tag className="h-6 w-6 text-muted-foreground" />
+          )}
+        </div>
+      )}
+
+      {/* Drag Handle */}
+      <div 
+        className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 cursor-move"
+        {...listeners}
+        title="Drag to reorder"
+      >
+        <div className="w-6 h-6 bg-black/20 dark:bg-white/20 rounded flex items-center justify-center">
+          <div className="w-3 h-3 grid grid-cols-2 gap-0.5">
+            <div className="w-1 h-1 bg-white rounded-full"></div>
+            <div className="w-1 h-1 bg-white rounded-full"></div>
+            <div className="w-1 h-1 bg-white rounded-full"></div>
+            <div className="w-1 h-1 bg-white rounded-full"></div>
+          </div>
+        </div>
+      </div>
+
       {/* Hover actions */}
-      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-        <Button size="icon" variant="ghost" onClick={() => onEdit(item.id)}>
+      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-10">
+        {/* External Link - Opens website */}
+        {onVisit && (
+          <Button 
+            size="icon" 
+            variant="ghost" 
+            onClick={(e) => {
+              e.stopPropagation(); 
+              onVisit(item);
+            }}
+            title="Visit website"
+          >
+            <ExternalLink className="h-4 w-4" />
+          </Button>
+        )}
+        <Button size="icon" variant="ghost" onClick={(e)=>{e.stopPropagation(); onEdit(item.id);}}>
           ✎
         </Button>
-        <Button size="icon" variant="ghost" onClick={() => onDelete(item.id)}>
+        <Button size="icon" variant="ghost" onClick={(e)=>{e.stopPropagation(); onDelete(item.id);}}>
           <X className="h-4 w-4" />
         </Button>
       </div>
 
-      {/* Content */}
-      <div className="flex items-center gap-2 mb-2">
-        {item.faviconUrl ? (
-          <img src={item.faviconUrl} alt="favicon" className="h-4 w-4" />
-        ) : (
-          <Tag className="h-4 w-4 text-muted-foreground" />
+      {/* Info */}
+      <div className="p-3 space-y-2">
+        <h4 className="text-sm font-semibold line-clamp-2">{item.title}</h4>
+        {item.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {item.tags.slice(0, 3).map((t) => (
+              <Badge key={t} variant="outline" className="text-[10px] leading-none">
+                {t}
+              </Badge>
+            ))}
+          </div>
         )}
-        <span className="truncate text-sm font-medium">
-          {item.title}
-        </span>
-      </div>
-      {/* Tags */}
-      <div className="flex flex-wrap gap-1 mb-2">
-        {item.tags.slice(0, 3).map((t) => (
-          <Badge key={t} variant="outline" className="text-xs">
-            {t}
-          </Badge>
-        ))}
-      </div>
-      {/* Stats */}
-      <div className="text-xs text-muted-foreground flex justify-between">
-        <span>👁 {item.visitCount ?? 0}</span>
-        {item.lastVisited && (
-          <span>
-             {item.lastVisited.toLocaleDateString(undefined, {
-              day: "2-digit",
-              month: "short",
-            })}
-          </span>
-        )}
+        <div className="text-xs text-muted-foreground flex justify-between">
+          <span>👁 {item.visitCount ?? 0}</span>
+          {item.lastVisited && (
+            <span>
+              {item.lastVisited.toLocaleDateString(undefined, {
+                day: "2-digit",
+                month: "short",
+              })}
+            </span>
+          )}
+        </div>
       </div>
     </motion.div>
   );

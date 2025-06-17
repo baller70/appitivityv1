@@ -116,29 +116,49 @@ export function EnhancedBookmarkForm({ bookmark, folders, tags, onSubmit, onCanc
         };
         onSubmit(updatedBookmark);
       } else {
-        const newBookmark = {
-          id: Date.now().toString(),
-          ...bookmarkData,
-          user_id: '',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          last_visited_at: null,
-          visit_count: 0,
-          is_favorite: false,
-          is_archived: false,
-          screenshot_url: null,
-          folder: null,
-          tags: formData.selectedTags.map(tagName => ({ 
-            id: `tag-${tagName}`, 
-            name: tagName, 
-            color: null,
-            user_id: '',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })),
-          reminder_at: null
-        } as BookmarkWithRelations;
-        onSubmit(newBookmark);
+        // Create new bookmark via API - this will generate a proper UUID
+        try {
+          console.log('📝 Creating bookmark via API:', bookmarkData);
+          
+          const response = await fetch('/api/bookmarks', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(bookmarkData)
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ Bookmark creation failed:', {
+              status: response.status,
+              statusText: response.statusText,
+              body: errorText
+            });
+            throw new Error(`Failed to create bookmark: ${response.status} ${errorText}`);
+          }
+
+          const createdBookmark = await response.json();
+          console.log('✅ Bookmark created successfully:', createdBookmark);
+          
+          // Add the selected tags to the created bookmark for display purposes
+          const bookmarkWithTags = {
+            ...createdBookmark,
+            tags: formData.selectedTags.map(tagName => ({ 
+              id: `tag-${tagName}`, 
+              name: tagName, 
+              color: null,
+              user_id: createdBookmark.user_id,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }))
+          };
+          
+          onSubmit(bookmarkWithTags);
+        } catch (apiError) {
+          console.error('❌ Error creating bookmark via API:', apiError);
+          throw apiError;
+        }
       }
 
       toast.success(bookmark ? 'Bookmark updated' : 'Bookmark created');

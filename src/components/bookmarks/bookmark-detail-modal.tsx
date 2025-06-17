@@ -41,12 +41,14 @@ import { NotificationIframe } from '../notifications/notification-iframe';
 import { ReminderManager } from '@/components/reminders';
 import { RelatedBookmarksSection } from '@/components/related/related-gallery';
 import { BookmarkService, type BookmarkWithRelations } from '../../lib/services/bookmarks';
+import { TagService } from '../../lib/services/tags';
 import type { Folder, Tag } from '../../types/supabase';
 import { useUser } from '@clerk/nextjs';
 import { toast } from 'sonner';
 import { BookmarkComments } from '../comments/bookmark-comments';
 import { BookmarkForm } from './bookmark-form';
 import { Input } from '../ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { type BookmarkCardData } from '@/components/related/related-gallery';
 
 interface BookmarkDetailModalProps {
@@ -99,6 +101,12 @@ export function BookmarkDetailModal({
   const [showCreateNew, setShowCreateNew] = useState(false);
   const [manualLinks, setManualLinks] = useState<BookmarkCardData[]>([]);
   const [searchExisting, setSearchExisting] = useState('');
+  
+  // Tag management state
+  const [availableTags, setAvailableTags] = useState<Tag[]>([]);
+  const [isAddingTag, setIsAddingTag] = useState(false);
+  const [newTagName, setNewTagName] = useState('');
+  const [isTagLoading, setIsTagLoading] = useState(false);
 
   const relatedItems = useMemo(() => {
     if (!bookmark) return [] as any[];
@@ -207,6 +215,54 @@ export function BookmarkDetailModal({
 
     fetchAllBookmarks();
   }, [user, isOpen]);
+
+  // Load available tags when modal opens
+  useEffect(() => {
+    if (isOpen && user) {
+      loadAvailableTags();
+    }
+  }, [isOpen, user]);
+
+  // Load existing related bookmarks from database
+  useEffect(() => {
+    const loadRelatedBookmarks = async () => {
+      if (!bookmark?.id || !isOpen) return;
+      
+      try {
+        console.log('🔍 Loading existing related bookmarks for:', bookmark.id);
+        const response = await fetch(`/api/bookmarks/${bookmark.id}/related`);
+        
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.data) {
+            const transformedRelated: BookmarkCardData[] = result.data.map((b: any) => ({
+              id: b.id,
+              title: b.title,
+              url: b.url,
+              faviconUrl: b.favicon_url ?? undefined,
+              tags: b.tags?.map((t: any) => t.name) || [],
+              lastVisited: b.last_visited_at ? new Date(b.last_visited_at) : undefined,
+              visitCount: b.visit_count ?? 0,
+            }));
+            
+            setManualLinks(transformedRelated);
+            console.log('✅ Loaded', transformedRelated.length, 'existing related bookmarks');
+          }
+        } else {
+          console.warn('Failed to load related bookmarks:', response.status, response.statusText);
+        }
+      } catch (err) {
+        console.error('❌ Error loading related bookmarks:', err);
+      }
+    };
+
+    if (isOpen) {
+      loadRelatedBookmarks();
+    } else {
+      // Clear manual links when modal closes to ensure fresh data on next open
+      setManualLinks([]);
+    }
+  }, [bookmark?.id, isOpen]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -428,7 +484,7 @@ export function BookmarkDetailModal({
     setPreviewImage(null);
   };
 
-  const handleAddBookmarkSubmit = (newBookmark: BookmarkWithRelations) => {
+  const handleAddBookmarkSubmit = async (newBookmark: BookmarkWithRelations) => {
     // Optimistically add new bookmark to local list
     setAllBookmarks(prev => [...prev, newBookmark]);
     // Also add to manual links so it appears immediately in related section
@@ -442,14 +498,41 @@ export function BookmarkDetailModal({
       visitCount: newBookmark.visit_count ?? 0,
     };
     setManualLinks(prev => [...prev, transformed]);
+    
+    // Persist relationship in backend
+    if (bookmark?.id) {
+      try {
+        console.log('▶️ Creating related bookmark:', { parentId: bookmark.id, childId: newBookmark.id })
+        const res = await fetch('/api/bookmark-relationships', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            bookmarkId: bookmark.id,
+            relatedBookmarkId: newBookmark.id,
+          })
+        })
+        const result = await res.json()
+        console.log('✅ Created related bookmark response:', result)
+        
+        if (result.success) {
+          toast.success('✅ Bookmark relationship saved!')
+        } else {
+          toast.error('❌ Failed to save relationship: ' + (result.error || 'Unknown error'))
+        }
+      } catch (err) {
+        console.error('❌ Failed to create related bookmark', err)
+        toast.error('❌ Failed to save bookmark relationship')
+      }
+    }
     toast.success('Bookmark added');
+    
     setIsAddBookmarkOpen(false);
     if (onBookmarkCreated) {
       onBookmarkCreated(newBookmark);
     }
   };
 
-  const handleSelectExisting = (b: BookmarkWithRelations) => {
+  const handleSelectExisting = async (b: BookmarkWithRelations) => {
     const transformed: BookmarkCardData = {
       id: b.id,
       title: b.title,
@@ -460,32 +543,201 @@ export function BookmarkDetailModal({
       visitCount: b.visit_count ?? 0,
     };
     setManualLinks(prev => [...prev, transformed]);
-    toast.success('Linked existing bookmark');
+    
+    // Persist relationship in backend
+    if (bookmark?.id) {
+      try {
+        console.log('▶️ Creating related bookmark:', { parentId: bookmark.id, childId: b.id })
+        const res = await fetch('/api/bookmark-relationships', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            bookmarkId: bookmark.id,
+            relatedBookmarkId: b.id,
+          })
+        })
+        
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${res.statusText}`)
+        }
+        
+        const json = await res.json()
+        console.log('✅ Created related bookmark response:', json)
+        toast.success('✅ Relationship saved! Bookmark linked.')
+      } catch (err) {
+        console.error('❌ Failed to create related bookmark', err)
+        toast.error('❌ Bookmark linked locally but failed to save relationship')
+      }
+    } else {
+      toast.success('Linked existing bookmark')
+    }
+    
     setIsAddBookmarkOpen(false);
   };
 
   const handleOpenRelatedBookmark = async (id: string) => {
+    console.log('🔍 Opening related bookmark:', id);
+    
     // Try local cache first
     let target = allBookmarks.find((bk) => bk.id === id);
+    console.log('📦 Found in cache:', !!target);
 
     // If not found, fetch it via API (lightweight)
     if (!target) {
       try {
+        console.log('🌐 Fetching bookmark from API:', id);
         const res = await fetch(`/api/bookmarks/${id}`);
         if (res.ok) {
-          target = await res.json();
+          const bookmarkData = await res.json();
+          console.log('✅ API response:', bookmarkData);
+          
+          // Check if we got a success response with data
+          if (bookmarkData.success && bookmarkData.data) {
+            target = bookmarkData.data;
+          } else if (bookmarkData.id) {
+            // Direct bookmark object
+            target = bookmarkData;
+          } else {
+            console.error('❌ Invalid bookmark data structure:', bookmarkData);
+            toast.error('Invalid bookmark data received');
+            return;
+          }
+          
           // add to cache for next time
           setAllBookmarks((prev) => [...prev, target!]);
+          console.log('💾 Added to cache');
+        } else {
+          console.error('❌ API request failed:', res.status, res.statusText);
+          toast.error(`Failed to fetch bookmark: ${res.status}`);
+          return;
         }
       } catch (err) {
-        console.error('Failed to fetch related bookmark', err);
+        console.error('❌ Failed to fetch related bookmark:', err);
+        toast.error('Failed to fetch bookmark details');
+        return;
       }
     }
 
-    if (target) {
-      onOpenDetail?.(target);
+    if (target && onOpenDetail) {
+      console.log('🚀 Opening bookmark detail modal for:', target.title);
+      onOpenDetail(target);
     } else {
+      console.error('❌ Bookmark not found or onOpenDetail not available');
       toast.error('Bookmark not found');
+    }
+  };
+
+  const handleVisitRelatedBookmark = async (item: BookmarkCardData) => {
+    try {
+      // Track the visit
+      await fetch(`/api/bookmarks/visit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookmarkId: item.id })
+      });
+
+      // Open the URL in a new tab
+      window.open(item.url, '_blank');
+      
+      toast.success(`Opened ${item.title}`);
+    } catch (error) {
+      console.error('Failed to track visit:', error);
+      // Still open the URL even if tracking fails
+      window.open(item.url, '_blank');
+    }
+  };
+
+  // Tag management functions
+  const loadAvailableTags = async () => {
+    if (!user) return;
+    
+    try {
+      const tagService = new TagService(user.id);
+      const tags = await tagService.getTags();
+      setAvailableTags(tags);
+    } catch (error) {
+      console.error('Failed to load tags:', error);
+    }
+  };
+
+  const handleAddTag = async () => {
+    if (!user || !bookmark || !newTagName.trim()) return;
+    
+    setIsTagLoading(true);
+    try {
+      const tagService = new TagService(user.id);
+      const bookmarkService = new BookmarkService(user.id);
+      
+      // Create or get existing tag
+      const tag = await tagService.createOrGetTag(newTagName.trim());
+      
+      // Add tag to bookmark
+      await bookmarkService.addTagsToBookmark(bookmark.id, [tag.id]);
+      
+      // Refresh bookmark data
+      const updatedBookmark = await bookmarkService.getBookmark(bookmark.id);
+      if (updatedBookmark) {
+        onUpdated(updatedBookmark);
+      }
+      
+      // Reset state
+      setNewTagName('');
+      setIsAddingTag(false);
+      await loadAvailableTags();
+      
+      toast.success(`Tag "${tag.name}" added to bookmark`);
+    } catch (error) {
+      console.error('Failed to add tag:', error);
+      toast.error('Failed to add tag');
+    } finally {
+      setIsTagLoading(false);
+    }
+  };
+
+  const handleRemoveTag = async (tagId: string, tagName: string) => {
+    if (!user || !bookmark) return;
+    
+    setIsTagLoading(true);
+    try {
+      const bookmarkService = new BookmarkService(user.id);
+      
+      // Remove tag from bookmark
+      await bookmarkService.removeTagsFromBookmark(bookmark.id, [tagId]);
+      
+      // Refresh bookmark data
+      const updatedBookmark = await bookmarkService.getBookmark(bookmark.id);
+      if (updatedBookmark) {
+        onUpdated(updatedBookmark);
+      }
+      
+      toast.success(`Tag "${tagName}" removed from bookmark`);
+    } catch (error) {
+      console.error('Failed to remove tag:', error);
+      toast.error('Failed to remove tag');
+    } finally {
+      setIsTagLoading(false);
+    }
+  };
+
+  const handleFolderChange = async (folderId: string | null) => {
+    if (!user || !bookmark) return;
+    
+    setIsTagLoading(true);
+    try {
+      const bookmarkService = new BookmarkService(user.id);
+      
+      // Update bookmark folder
+      const updatedBookmark = await bookmarkService.updateBookmark(bookmark.id, {
+        folder_id: folderId
+      });
+      
+      onUpdated(updatedBookmark);
+      toast.success('Bookmark category updated');
+    } catch (error) {
+      console.error('Failed to update folder:', error);
+      toast.error('Failed to update category');
+    } finally {
+      setIsTagLoading(false);
     }
   };
 
@@ -798,36 +1050,110 @@ export function BookmarkDetailModal({
                   {/* Tags Section */}
                   <div>
                     <Label className="text-sm font-medium mb-2 block">Tags</Label>
-                    <div className="flex flex-wrap gap-2">
-                      {/* Default tags matching your screenshot */}
-                      <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-                        code
-                      </Badge>
-                      <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
-                        git
-                      </Badge>
-                      <Badge variant="secondary" className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300">
-                        collaboration
-                      </Badge>
-                      <Badge variant="secondary" className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300">
-                        open-source
-                      </Badge>
-                      {/* User's actual tags */}
+                    
+                    {/* Current Tags */}
+                    <div className="flex flex-wrap gap-2 mb-3">
                       {bookmark.tags?.map(tag => (
-                        <Badge key={tag.id} variant="secondary" style={{ backgroundColor: (tag.color || '#6366f1') + '20', color: tag.color || '#6366f1' }}>
+                        <Badge 
+                          key={tag.id} 
+                          variant="secondary" 
+                          style={{ backgroundColor: (tag.color || '#6366f1') + '20', color: tag.color || '#6366f1' }}
+                          className="flex items-center gap-1"
+                        >
                           {tag.name}
+                          <button
+                            onClick={() => handleRemoveTag(tag.id, tag.name)}
+                            disabled={isTagLoading}
+                            className="ml-1 hover:bg-black/10 rounded-full p-0.5"
+                            title="Remove tag"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
                         </Badge>
                       ))}
+                    </div>
+
+                    {/* Add New Tag */}
+                    {isAddingTag ? (
+                      <div className="flex gap-2 items-center">
+                        <Input
+                          value={newTagName}
+                          onChange={(e) => setNewTagName(e.target.value)}
+                          placeholder="Enter tag name"
+                          className="flex-1"
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              handleAddTag();
+                            } else if (e.key === 'Escape') {
+                              setIsAddingTag(false);
+                              setNewTagName('');
+                            }
+                          }}
+                          autoFocus
+                        />
+                        <Button 
+                          onClick={handleAddTag}
+                          disabled={!newTagName.trim() || isTagLoading}
+                          size="sm"
+                        >
+                          Add
+                        </Button>
+                        <Button 
+                          onClick={() => {
+                            setIsAddingTag(false);
+                            setNewTagName('');
+                          }}
+                          variant="outline"
+                          size="sm"
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    ) : (
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        className="h-6 px-2" 
-                        onClick={() => toast.info('Tag management coming soon!')}
+                        className="h-8 px-3" 
+                        onClick={() => setIsAddingTag(true)}
+                        disabled={isTagLoading}
                         title="Add new tag"
                       >
-                        <Plus className="h-3 w-3" />
+                        <Plus className="h-3 w-3 mr-1" />
+                        Add Tag
                       </Button>
-                    </div>
+                    )}
+                  </div>
+
+                  {/* Category/Folder Section */}
+                  <div>
+                    <Label className="text-sm font-medium mb-2 block">Category</Label>
+                    <Select
+                      value={bookmark.folder_id || 'no-folder'}
+                      onValueChange={(value) => handleFolderChange(value === 'no-folder' ? null : value)}
+                      disabled={isTagLoading}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="no-folder">
+                          <span className="text-gray-500">No category</span>
+                        </SelectItem>
+                        {_folders.map((folder) => (
+                          <SelectItem key={folder.id} value={folder.id}>
+                            <div className="flex items-center gap-2">
+                              {folder.color && (
+                                <div 
+                                  className="w-3 h-3 rounded-full" 
+                                  style={{ backgroundColor: folder.color }}
+                                />
+                              )}
+                              <span>{folder.name}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                 </div>
@@ -846,6 +1172,7 @@ export function BookmarkDetailModal({
                       console.log('reorder', newOrder.map((i) => i.id));
                     }}
                     onOpenDetail={handleOpenRelatedBookmark}
+                    onVisit={handleVisitRelatedBookmark}
                   />
                 </div>
               )}

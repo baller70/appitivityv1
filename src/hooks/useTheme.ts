@@ -10,7 +10,20 @@ interface UserPreferences {
 }
 
 export function useTheme() {
-  const { user, isLoaded } = useUser()
+  // Safely use Clerk hooks with error handling
+  let user = null
+  let isLoaded = false
+  
+  try {
+    const clerkData = useUser()
+    user = clerkData.user
+    isLoaded = clerkData.isLoaded
+  } catch (error) {
+    // If Clerk is not available, continue with guest mode
+    console.warn('Clerk not available, using guest mode for theme:', error)
+    isLoaded = true // Treat as loaded in guest mode
+  }
+
   const [theme, setTheme] = useState<Theme>('system')
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light')

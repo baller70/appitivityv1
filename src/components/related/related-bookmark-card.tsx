@@ -98,7 +98,7 @@ export function RelatedBookmarkCard({
 
   if (compact) {
     return (
-      <Card className="hover:shadow-md transition-shadow cursor-pointer">
+      <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => onVisit(bookmark)}>
         <CardContent className="p-3">
           <div className="flex items-center space-x-3">
             {/* Favicon */}
@@ -153,7 +153,7 @@ export function RelatedBookmarkCard({
   }
 
   return (
-    <Card className="hover:shadow-md transition-shadow">
+    <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => onVisit(bookmark)}>
       <CardContent className="p-4">
         <div className="space-y-3">
           {/* Header with favicon, title, and actions */}
@@ -197,31 +197,34 @@ export function RelatedBookmarkCard({
                 variant="ghost"
                 size="sm"
                 className="p-2"
-                onClick={() => onVisit(bookmark)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onVisit(bookmark);
+                }}
               >
                 <ExternalLink className="h-4 w-4" />
               </Button>
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="p-2">
+                  <Button variant="ghost" size="sm" className="p-2" onClick={(e) => e.stopPropagation()}>
                     <MoreHorizontal className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   {onViewDetails && (
-                    <DropdownMenuItem onClick={() => onViewDetails(bookmark)}>
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onViewDetails(bookmark); }}>
                       <Eye className="h-4 w-4 mr-2" />
                       View Details
                     </DropdownMenuItem>
                   )}
                   {onToggleFavorite && (
-                    <DropdownMenuItem onClick={() => onToggleFavorite(bookmark)}>
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onToggleFavorite(bookmark); }}>
                       <Heart className="h-4 w-4 mr-2" />
                       {bookmark.is_favorite ? 'Remove from Favorites' : 'Add to Favorites'}
                     </DropdownMenuItem>
                   )}
-                  <DropdownMenuItem onClick={() => navigator.clipboard.writeText(bookmark.url)}>
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(bookmark.url); }}>
                     <ExternalLink className="h-4 w-4 mr-2" />
                     Copy URL
                   </DropdownMenuItem>

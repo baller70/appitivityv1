@@ -3,20 +3,31 @@
  * Converts Clerk user IDs to UUID format for database compatibility
  */
 
-import { v5 as uuidv5 } from 'uuid'
+import { createHash } from 'crypto'
 
 // Namespace for generating consistent UUIDs from Clerk user IDs
 const CLERK_UUID_NAMESPACE = '6ba7b810-9dad-11d1-80b4-00c04fd430c8'
 
 /**
- * Convert Clerk user ID to a consistent UUID using uuid v5
+ * Convert Clerk user ID to a consistent UUID using crypto hash
  * This creates a deterministic UUID from the Clerk user ID
  */
 export function clerkIdToUuid(clerkId: string): string {
   if (!clerkId || typeof clerkId !== 'string' || clerkId.length === 0) {
     throw new Error(`Invalid clerkId provided: ${clerkId}`)
   }
-  return uuidv5(clerkId, CLERK_UUID_NAMESPACE)
+  
+  // Create a deterministic hash from the clerk ID
+  const hash = createHash('sha256').update(clerkId + CLERK_UUID_NAMESPACE).digest('hex')
+  
+  // Format as UUID v4 (8-4-4-4-12)
+  return [
+    hash.substring(0, 8),
+    hash.substring(8, 12),
+    '4' + hash.substring(13, 16), // Version 4
+    hash.substring(16, 20),
+    hash.substring(20, 32)
+  ].join('-')
 }
 
 /**
@@ -28,11 +39,20 @@ export function isValidUuid(str: string): boolean {
 }
 
 /**
- * Normalize user ID - convert Clerk format to UUID if needed
+ * Normalize user ID - if it starts with 'user_', convert to UUID, otherwise return as-is
+ * Special handling for demo-user to convert to a consistent UUID
  */
-export function normalizeUserId(userId: string | null | undefined): string {
-  if (!userId || typeof userId !== 'string' || userId.length === 0) {
-    throw new Error(`Invalid userId provided to normalizeUserId: ${userId}`)
+export function normalizeUserId(userId: string): string {
+  if (!userId) return userId
+  
+  // Handle Clerk user IDs
+  if (userId.startsWith('user_')) {
+    return clerkIdToUuid(userId)
+  }
+  
+  // Handle demo-user case - convert to a consistent UUID
+  if (userId === 'demo-user') {
+    return clerkIdToUuid('demo-user')
   }
   
   // If it's already a valid UUID, return as-is
@@ -40,7 +60,7 @@ export function normalizeUserId(userId: string | null | undefined): string {
     return userId
   }
   
-  // Convert Clerk user ID to UUID format
+  // For any other string, convert to a consistent UUID
   return clerkIdToUuid(userId)
 }
 

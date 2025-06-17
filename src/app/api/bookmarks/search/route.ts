@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth, currentUser } from '@clerk/nextjs/server'
-import { BookmarkService } from '../../../../lib/services/bookmarks'
+import { BookmarkServiceLite } from '../../../../lib/services/bookmarks-lite'
 import { AISearchService, AISearchQuery } from '../../../../lib/services/ai-search'
 import { ensureUserProfile } from '../../../../lib/fix-database'
 
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
     const useAI = searchParams.get('ai') === 'true'
 
     console.log('GET search - using actualUserId:', actualUserId)
-    const bookmarkService = new BookmarkService(actualUserId)
+    const bookmarkService = new BookmarkServiceLite(actualUserId)
     
     if (useAI && query) {
       // Use AI-enhanced search

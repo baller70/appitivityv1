@@ -9,6 +9,7 @@ import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { toast } from 'sonner';
+import * as Sentry from '@sentry/nextjs';
 
 interface BookmarkFormProps {
   bookmark?: BookmarkWithRelations;
@@ -42,6 +43,107 @@ export function BookmarkForm({ bookmark, folders, onSubmit, onCancel }: Bookmark
     }
   };
 
+  const createBookmarkViaAPI = async (bookmarkData: any): Promise<BookmarkWithRelations> => {
+    console.log('📝 Creating bookmark via API:', bookmarkData);
+    console.log('🔍 Request details:', {
+      url: '/api/bookmarks',
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(bookmarkData, null, 2)
+    });
+    
+    try {
+      const response = await fetch('/api/bookmarks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(bookmarkData)
+      });
+
+      console.log('📡 Response received:', {
+        ok: response.ok,
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries())
+      });
+
+      if (!response.ok) {
+        let errorDetails;
+        try {
+          errorDetails = await response.json();
+        } catch {
+          errorDetails = await response.text();
+        }
+        
+        console.error('❌ Bookmark creation failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorDetails,
+          url: response.url
+        });
+        
+        Sentry.captureMessage('Bookmark creation failed', {
+          level: 'error',
+          tags: { operation: 'bookmark_creation' },
+          extra: { bookmarkData, error: errorDetails, status: response.status }
+        });
+        
+        throw new Error(`Failed to create bookmark: ${response.status} - ${JSON.stringify(errorDetails)}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ Bookmark created successfully:', result);
+      
+      return result;
+    } catch (error) {
+      console.error('❌ Error creating bookmark:', {
+        error,
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        bookmarkData
+      });
+      Sentry.captureException(error, {
+        tags: { operation: 'bookmark_creation' },
+        extra: { bookmarkData }
+      });
+      throw error;
+    }
+  };
+
+  const updateBookmarkViaAPI = async (bookmarkId: string, bookmarkData: any): Promise<BookmarkWithRelations> => {
+    console.log('📝 Updating bookmark via API:', { bookmarkId, bookmarkData });
+    
+    try {
+      const response = await fetch(`/api/bookmarks/${bookmarkId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(bookmarkData)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Bookmark update failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText
+        });
+        
+        throw new Error(`Failed to update bookmark: ${response.status} ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ Bookmark updated successfully:', result);
+      
+      return result;
+    } catch (error) {
+      console.error('❌ Error updating bookmark:', error);
+      throw error;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
@@ -66,30 +168,21 @@ export function BookmarkForm({ bookmark, folders, onSubmit, onCancel }: Bookmark
         reminder_at: formData.reminder_at ? new Date(formData.reminder_at).toISOString() : null
       };
 
+      let resultBookmark: BookmarkWithRelations;
+
       if (bookmark) {
-        // Update existing bookmark
-        const updatedBookmark = { ...bookmark, ...bookmarkData };
-        onSubmit(updatedBookmark);
+        // Update existing bookmark via API
+        resultBookmark = await updateBookmarkViaAPI(bookmark.id, bookmarkData);
+        toast.success('Bookmark updated');
       } else {
-        // Create new bookmark
-        const newBookmark = {
-          id: Date.now().toString(), // Temporary ID
-          ...bookmarkData,
-          user_id: 'temp', // Placeholder, will be set by server
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          last_visited_at: null,
-          visit_count: 0,
-          is_favorite: false,
-          is_archived: false,
-          screenshot_url: null,
-          folder: null,
-          tags: []
-        } as BookmarkWithRelations;
-        onSubmit(newBookmark);
+        // Create new bookmark via API - this will generate a proper UUID
+        resultBookmark = await createBookmarkViaAPI(bookmarkData);
+        toast.success('Bookmark created');
       }
 
-      toast.success(bookmark ? 'Bookmark updated' : 'Bookmark created');
+      // Call the parent's onSubmit with the actual bookmark from the API
+      onSubmit(resultBookmark);
+
     } catch (error) {
       console.error('Error saving bookmark:', error);
       toast.error('Failed to save bookmark');

@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { BookmarkWithRelations } from '../../lib/services/bookmarks';
 import { toast } from 'sonner';
+import * as Sentry from '@sentry/nextjs';
 
 interface AddBookmarkModalProps {
   isOpen: boolean;
@@ -120,22 +121,57 @@ export function AddBookmarkModal({
     setIsLoading(true);
 
     try {
-      // Here you would typically call your bookmark creation API
+      console.log('🔗 Creating new bookmark via API:', formData);
+      
+      // Call the actual bookmark creation API
+      const response = await fetch('/api/bookmarks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: formData.title.trim(),
+          url: formData.url.trim(),
+          description: formData.description.trim(),
+          folder_id: formData.folder_id || null,
+          tags: formData.tags,
+          is_favorite: formData.is_favorite
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ Bookmark created successfully:', result);
+      
+      if (!result.success || !result.data) {
+        throw new Error(result.error || 'Failed to create bookmark');
+      }
+
+      // Use the real bookmark with proper UUID from the database
       const newBookmark = {
-        id: Date.now().toString(), // Temporary ID - replace with actual API response
-        ...formData,
-        favicon_url: `https://www.google.com/s2/favicons?domain=${new URL(formData.url).hostname}&sz=32`,
-        visit_count: 0,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        is_archived: false
+        ...result.data,
+        // Ensure it has the proper structure for the UI
+        favicon_url: result.data.favicon_url || `https://www.google.com/s2/favicons?domain=${new URL(formData.url).hostname}&sz=32`,
+        tags: result.data.tags || [],
+        folder: result.data.folder || null
       };
 
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Track successful bookmark creation
+      Sentry.addBreadcrumb({
+        message: 'Bookmark created successfully',
+        level: 'info',
+        data: {
+          bookmarkId: newBookmark.id,
+          title: newBookmark.title,
+          url: newBookmark.url
+        }
+      });
 
       onBookmarkAdded(newBookmark);
-      toast.success('Bookmark added successfully!');
+      toast.success('✅ Bookmark created with proper UUID!');
       
       // Reset form
       setFormData({
@@ -149,8 +185,21 @@ export function AddBookmarkModal({
       
       onClose();
     } catch (error) {
-      console.error('Error adding bookmark:', error);
-      toast.error('Failed to add bookmark');
+      console.error('❌ Error creating bookmark:', error);
+      
+      // Report to Sentry with context
+      Sentry.captureException(error, {
+        tags: {
+          component: 'AddBookmarkModal',
+          operation: 'bookmark_creation'
+        },
+        extra: {
+          formData,
+          targetBookmark: targetBookmark?.id
+        }
+      });
+      
+      toast.error('❌ Failed to create bookmark: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setIsLoading(false);
     }
