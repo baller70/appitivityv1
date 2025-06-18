@@ -7,11 +7,15 @@ import { apiClient } from '../../lib/api/client';
 import type { BookmarkWithRelations } from '../../lib/services/bookmarks';
 import { Button } from '../ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
+import { CardDescription } from '@/components/ui/card';
 import { Badge } from '../ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Separator } from '@/components/ui/separator';
 import { 
   ArrowLeft, 
   BarChart3, 
   TrendingUp, 
+  TrendingDown, 
   Eye,
   PieChart,
   ArrowUpRight,
@@ -26,25 +30,24 @@ import {
   Clock,
   RefreshCw,
   Download,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   Filter,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   Search,
   ChevronDown,
   ChevronUp,
   Target,
   Zap,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   Users,
   Hash,
   CheckCircle,
-  XCircle
+  XCircle,
+  Bookmark
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { DnaPageHeader } from '../dna-profile/dna-page-header';
 import { TimeTrackingAnalytics } from './time-tracking-analytics';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ResponsiveContainer, AreaChart, CartesianGrid, XAxis, YAxis, Tooltip, Area } from '../ui/area-chart'
 
 interface AnalyticsPageProps {
   userId: string;
@@ -150,7 +153,7 @@ export function AnalyticsPage({ userId: _userId }: AnalyticsPageProps) {
   const [bookmarks, setBookmarks] = useState<BookmarkWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [timeRange, setTimeRange] = useState('30d');
+  const [timeRange, setTimeRange] = useState<'7days' | '30days' | '3months' | 'all'>('3months');
   const [focusedBookmark, setFocusedBookmark] = useState<BookmarkWithRelations | null>(null);
   const [expandedSections, setExpandedSections] = useState({
     overview: true,
@@ -500,6 +503,25 @@ export function AnalyticsPage({ userId: _userId }: AnalyticsPageProps) {
     }
   };
 
+  // Sample visitor data for the chart
+  const visitorData = [
+    { date: 'Apr 1', visitors: 120 },
+    { date: 'Apr 7', visitors: 145 },
+    { date: 'Apr 13', visitors: 180 },
+    { date: 'Apr 19', visitors: 165 },
+    { date: 'Apr 26', visitors: 200 },
+    { date: 'May 2', visitors: 220 },
+    { date: 'May 8', visitors: 195 },
+    { date: 'May 14', visitors: 240 },
+    { date: 'May 21', visitors: 210 },
+    { date: 'May 28', visitors: 180 },
+    { date: 'Jun 3', visitors: 220 },
+    { date: 'Jun 9', visitors: 260 },
+    { date: 'Jun 15', visitors: 280 },
+    { date: 'Jun 21', visitors: 300 },
+    { date: 'Jun 29', visitors: 320 }
+  ];
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -565,7 +587,7 @@ export function AnalyticsPage({ userId: _userId }: AnalyticsPageProps) {
           {['7d', '30d', '90d', 'all'].map((range) => (
             <button
               key={range}
-              onClick={() => setTimeRange(range)}
+              onClick={() => setTimeRange(range as '7days' | '30days' | '3months' | 'all')}
               className={`px-3 py-1 text-sm rounded-md transition-colors ${
                 timeRange === range
                   ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
@@ -599,7 +621,7 @@ export function AnalyticsPage({ userId: _userId }: AnalyticsPageProps) {
           </div>
           
           {expandedSections.overview && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <MetricCard
                 title="Total Bookmarks"
                 value={analyticsData.totalBookmarks.toLocaleString()}
@@ -647,13 +669,107 @@ export function AnalyticsPage({ userId: _userId }: AnalyticsPageProps) {
           )}
         </div>
 
+        {/* Total Visitors Chart Component */}
+        <Card className="w-full">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <div className="space-y-1">
+              <CardTitle className="text-2xl font-bold">Total Visitors</CardTitle>
+              <CardDescription className="text-sm text-muted-foreground">
+                Total for the last 3 months
+              </CardDescription>
+            </div>
+            <Tabs value={timeRange} onValueChange={(value) => setTimeRange(value as '7days' | '30days' | '3months' | 'all')} className="w-auto">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="3months">Last 3 months</TabsTrigger>
+                <TabsTrigger value="30days">Last 30 days</TabsTrigger>
+                <TabsTrigger value="7days">Last 7 days</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[300px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart
+                  data={visitorData}
+                  margin={{
+                    top: 10,
+                    right: 30,
+                    left: 0,
+                    bottom: 0,
+                  }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis 
+                    dataKey="date" 
+                    className="text-xs fill-muted-foreground"
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis 
+                    className="text-xs fill-muted-foreground"
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip 
+                    content={({ active, payload, label }: {
+                      active?: boolean
+                      payload?: any[]
+                      label?: string
+                    }) => {
+                      if (active && payload && payload.length) {
+                        return (
+                          <div className="rounded-lg border bg-background p-2 shadow-sm">
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="flex flex-col">
+                                <span className="text-[0.70rem] uppercase text-muted-foreground">
+                                  Date
+                                </span>
+                                <span className="font-bold text-muted-foreground">
+                                  {label}
+                                </span>
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-[0.70rem] uppercase text-muted-foreground">
+                                  Visitors
+                                </span>
+                                <span className="font-bold">
+                                  {payload[0].value}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      }
+                      return null
+                    }}
+                  />
+                  <defs>
+                    <linearGradient id="colorVisitors" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0.1}/>
+                    </linearGradient>
+                  </defs>
+                  <Area
+                    type="monotone"
+                    dataKey="visitors"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={2}
+                    fill="url(#colorVisitors)"
+                    fillOpacity={0.6}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Time Period Selector */}
         <div className="flex justify-center">
-          <Tabs value={timeRange} onValueChange={setTimeRange} className="w-auto">
-            <TabsList className="grid grid-cols-3">
-              <TabsTrigger value="90d">Last 3 months</TabsTrigger>
-              <TabsTrigger value="30d">Last 30 days</TabsTrigger>
-              <TabsTrigger value="7d">Last 7 days</TabsTrigger>
+          <Tabs value={timeRange} onValueChange={(value) => setTimeRange(value as '7days' | '30days' | '3months' | 'all')} className="w-auto">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="3months">Last 3 months</TabsTrigger>
+              <TabsTrigger value="30days">Last 30 days</TabsTrigger>
+              <TabsTrigger value="7days">Last 7 days</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
