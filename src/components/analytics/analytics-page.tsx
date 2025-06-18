@@ -47,7 +47,7 @@ import { toast } from 'sonner';
 import { DnaPageHeader } from '../dna-profile/dna-page-header';
 import { TimeTrackingAnalytics } from './time-tracking-analytics';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ResponsiveContainer, AreaChart, CartesianGrid, XAxis, YAxis, Tooltip, Area } from '../ui/area-chart'
+import { ResponsiveContainer, AreaChart, CartesianGrid, XAxis, YAxis, Tooltip, Area } from 'recharts'
 
 interface AnalyticsPageProps {
   userId: string;
@@ -698,57 +698,23 @@ export function AnalyticsPage({ userId: _userId }: AnalyticsPageProps) {
                     bottom: 0,
                   }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis 
-                    dataKey="date" 
-                    className="text-xs fill-muted-foreground"
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis 
-                    className="text-xs fill-muted-foreground"
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <Tooltip 
-                    content={({ active, payload, label }: {
-                      active?: boolean
-                      payload?: any[]
-                      label?: string
-                    }) => {
-                      if (active && payload && payload.length) {
-                        return (
-                          <div className="rounded-lg border bg-background p-2 shadow-sm">
-                            <div className="grid grid-cols-2 gap-2">
-                              <div className="flex flex-col">
-                                <span className="text-[0.70rem] uppercase text-muted-foreground">
-                                  Date
-                                </span>
-                                <span className="font-bold text-muted-foreground">
-                                  {label}
-                                </span>
-                              </div>
-                              <div className="flex flex-col">
-                                <span className="text-[0.70rem] uppercase text-muted-foreground">
-                                  Visitors
-                                </span>
-                                <span className="font-bold">
-                                  {payload[0].value}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        )
-                      }
-                      return null
-                    }}
-                  />
                   <defs>
                     <linearGradient id="colorVisitors" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.8}/>
                       <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0.1}/>
                     </linearGradient>
                   </defs>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="date" 
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis 
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip />
                   <Area
                     type="monotone"
                     dataKey="visitors"

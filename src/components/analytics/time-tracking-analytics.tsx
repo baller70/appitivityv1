@@ -37,8 +37,8 @@ export function TimeTrackingAnalytics() {
     try {
       // Use hardcoded user ID that we know works
       const userId = '085b8f63-7a51-5b8a-8e7f-4c6da6ab0121';
-      const timeTrackingService = new TimeTrackingService(userId);
-      const activeSessions = await timeTrackingService.getAllActiveSessions();
+      const timeTrackingService = new TimeTrackingService();
+      const activeSessions = await timeTrackingService.getAllActiveSessions(userId);
       setHasActiveSession(activeSessions.length > 0);
       
       // Calculate current session time if there's an active session
@@ -62,8 +62,8 @@ export function TimeTrackingAnalytics() {
     try {
       // Use hardcoded user ID that we know works
       const userId = '085b8f63-7a51-5b8a-8e7f-4c6da6ab0121';
-      const timeTrackingService = new TimeTrackingService(userId);
-      const userStats = await timeTrackingService.getUserTimeStats();
+      const timeTrackingService = new TimeTrackingService();
+      const userStats = await timeTrackingService.getUserTimeStats(userId);
       setTimeStats(userStats);
       setLoading(false);
     } catch (error) {

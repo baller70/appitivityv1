@@ -1,0 +1,35 @@
+{
+  "timestamp": "2025-06-18T14:38:32.871Z",
+  "phases": {
+    "configParsing": {
+      "start": 1750257511674,
+      "end": 0,
+      "duration": 0
+    },
+    "fileWatching": {
+      "start": 0,
+      "end": 0,
+      "duration": 0
+    },
+    "moduleCompilation": {
+      "start": 0,
+      "end": 0,
+      "duration": 0
+    },
+    "hotReloadSetup": {
+      "start": 0,
+      "end": 1750257512870,
+      "duration": 1750257512870
+    },
+    "total": {
+      "start": 1750257511673,
+      "end": 1750257512870,
+      "duration": 1197
+    }
+  },
+  "slowComponents": [],
+  "errors": [],
+  "warnings": [],
+  "totalDuration": 1197,
+  "performanceGrade": "A+"
+}

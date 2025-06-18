@@ -60,8 +60,8 @@ export default function TestAutoTrackingPage() {
                 <p><strong>Active Session ID:</strong> {activeSession?.id || 'None'}</p>
               </div>
               <div>
-                <p><strong>Total Sessions:</strong> {timeStats?.totalSessions || 0}</p>
-                <p><strong>Total Time:</strong> {timeStats?.totalTimeSpent || 0}s</p>
+                <p><strong>Total Sessions:</strong> {timeStats?.session_count || 0}</p>
+                <p><strong>Total Time:</strong> {timeStats?.total_time_spent || 0}s</p>
                 <p><strong>Error:</strong> {error || 'None'}</p>
               </div>
             </div>

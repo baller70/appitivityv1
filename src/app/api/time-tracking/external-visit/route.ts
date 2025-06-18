@@ -17,10 +17,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'bookmarkId is required' }, { status: 400 })
     }
 
-    const timeTrackingService = new TimeTrackingService(userId)
+    const timeTrackingService = new TimeTrackingService()
     
     // Start automatic external visit tracking
-    await timeTrackingService.trackExternalVisit(bookmarkId, {
+    await timeTrackingService.trackExternalVisit(bookmarkId, userId, {
       ...metadata,
       timestamp: new Date().toISOString(),
       userAgent: request.headers.get('user-agent') || 'unknown'

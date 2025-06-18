@@ -1,4 +1,5 @@
 import { normalizeUserId } from '../uuid-compat'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import type { 
   Tag, 
   TagInsert, 
@@ -14,6 +15,7 @@ export class TagService {
   private userId: string
   private headers: Record<string, string>
   private baseUrl: string
+  private supabase: SupabaseClient
 
   constructor(userId: string) {
     // Normalize the user ID to UUID format for database operations
@@ -29,6 +31,8 @@ export class TagService {
       'Content-Type': 'application/json',
       'Prefer': 'return=representation'
     }
+    
+    this.supabase = createClient(supabaseUrl, supabaseKey)
   }
 
   // Get all tags for the current user
@@ -63,7 +67,7 @@ export class TagService {
       throw new Error(`Failed to fetch tags with counts: ${error.message}`)
     }
 
-    return data?.map(tag => ({
+    return data?.map((tag: any) => ({
       ...tag,
       bookmarkCount: tag.bookmark_tags?.[0]?.count || 0
     })) || []
@@ -207,7 +211,7 @@ export class TagService {
       throw new Error(`Failed to fetch popular tags: ${error.message}`)
     }
 
-    return data?.map(tag => ({
+    return data?.map((tag: any) => ({
       ...tag,
       bookmarkCount: tag.bookmark_tags?.[0]?.count || 0
     })) || []

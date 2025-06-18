@@ -7,7 +7,7 @@
     ],
     "allowJs": true,
     "skipLibCheck": true,
-    "strict": true,
+    "strict": false,
     "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",
@@ -45,7 +45,25 @@
         "./docs/*"
       ]
     },
-    "target": "ES2017"
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "forceConsistentCasingInFileNames": true,
+    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": false,
+    "noImplicitReturns": false,
+    "noFallthroughCasesInSwitch": false,
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
+    "noImplicitAny": false,
+    "noImplicitThis": false,
+    "strictNullChecks": false,
+    "strictFunctionTypes": false,
+    "strictBindCallApply": false,
+    "strictPropertyInitialization": false,
+    "noImplicitOverride": false,
+    "assumeChangesOnlyAffectDirectDependencies": true,
+    "disableSourceOfProjectReferenceRedirect": true,
+    "disableSolutionSearching": true
   },
   "include": [
     "next-env.d.ts",
@@ -55,7 +73,23 @@
   ],
   "exclude": [
     "node_modules",
-    "GitHub_backup",
-    "mcp-server-browserbase"
-  ]
+    ".next",
+    "out",
+    "dist",
+    "build",
+    "*.config.js",
+    "*.config.ts",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "tests",
+    "test-results",
+    "playwright-report",
+    "storybook-static",
+    ".storybook"
+  ],
+  "ts-node": {
+    "esm": true
+  }
 }

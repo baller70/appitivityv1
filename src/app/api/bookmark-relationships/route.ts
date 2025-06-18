@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
 
     console.log('🚀 Creating relationship service...')
     const service = new BookmarkRelationshipServiceLite(actualUserId)
-    const result = await service.createRelationship(bookmarkId, relatedBookmarkId, type)
+    const result = await service.createRelationship(bookmarkId, relatedBookmarkId)
 
     console.log('📊 Relationship creation result:', {
       success: result.success,
