@@ -49,6 +49,8 @@ import { BookmarkForm } from './bookmark-form';
 import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { type BookmarkCardData } from '@/components/related/related-gallery';
+import { useTimeTracking } from '@/hooks/use-time-tracking';
+import { TimeTrackingService } from '@/lib/services/time-tracking';
 
 interface BookmarkDetailModalProps {
   bookmark: BookmarkWithRelations | null;
@@ -106,6 +108,14 @@ export function BookmarkDetailModal({
   const [isAddingTag, setIsAddingTag] = useState(false);
   const [newTagName, setNewTagName] = useState('');
   const [isTagLoading, setIsTagLoading] = useState(false);
+
+  // Time tracking integration
+  const timeTracking = useTimeTracking({
+    bookmarkId: bookmark?.id || '',
+    sessionType: 'view',
+    autoStart: false,
+    metadata: { source: 'bookmark_modal' }
+  });
 
   const relatedItems = useMemo(() => {
     if (!bookmark) return [] as any[];
@@ -686,7 +696,45 @@ export function BookmarkDetailModal({
         const errorData = await tagResponse.json();
         console.error('Tag creation error data:', errorData);
         
-        // Send error to Sentry API endpoint
+        // Handle specific error cases
+        if (tagResponse.status === 409 && errorData.code === 'TAG_ALREADY_EXISTS') {
+          // Tag already exists, try to use the existing tag
+          if (errorData.existingTag) {
+            const tag = errorData.existingTag;
+            
+            // Add existing tag to bookmark via API
+            const addTagResponse = await fetch(`/api/bookmarks/${bookmark.id}/tags`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                tagIds: [tag.id]
+              }),
+            });
+
+            if (!addTagResponse.ok) {
+              const addErrorData = await addTagResponse.json();
+              throw new Error(addErrorData.error || 'Failed to add existing tag to bookmark');
+            }
+
+            const updatedBookmark = await addTagResponse.json();
+            onUpdated(updatedBookmark);
+            
+            // Reset state
+            setNewTagName('');
+            setIsAddingTag(false);
+            await loadAvailableTags();
+            
+            toast.success(`Existing tag "${tag.name}" added to bookmark`);
+            return; // Exit early since we handled it
+          } else {
+            toast.error(`Tag "${newTagName.trim()}" already exists. Please choose a different name.`);
+            return;
+          }
+        }
+        
+        // Send error to Sentry API endpoint for other errors
         try {
           await fetch('/api/sentry-example-api', {
             method: 'POST',
@@ -706,7 +754,7 @@ export function BookmarkDetailModal({
           console.error('Failed to send error to Sentry:', sentryError);
         }
         
-        throw new Error(errorData.error || 'Failed to create tag');
+        throw new Error(errorData.error || errorData.details || 'Failed to create tag');
       }
 
       const tag = await tagResponse.json();
@@ -969,14 +1017,20 @@ export function BookmarkDetailModal({
                   <Card>
                     <CardContent className="p-4 text-center">
                       <div className="text-2xl font-bold text-green-600 dark:text-green-400 mb-2">
-                        {(bookmark.visit_count || 0) > 0 ? '0m' : '0m'}
+                        {timeTracking.timeStats?.total_time_spent 
+                          ? timeTracking.formatElapsedTime(timeTracking.timeStats.total_time_spent)
+                          : '0m'
+                        }
                       </div>
                       <div className="flex items-center justify-center gap-1 mb-1">
                         <Clock className="h-4 w-4 text-green-500" />
                         <span className="text-sm font-medium">Time Spent</span>
                       </div>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {(bookmark.visit_count || 0) > 0 ? 'Average 0m per visit' : 'No time tracked yet'}
+                        {timeTracking.timeStats?.session_count 
+                          ? `${timeTracking.timeStats.session_count} sessions • Avg ${timeTracking.formatElapsedTime(timeTracking.timeStats.average_session_time || 0)}`
+                          : 'No time tracked yet'
+                        }
                       </p>
                     </CardContent>
                   </Card>
@@ -1020,6 +1074,94 @@ export function BookmarkDetailModal({
                     <BarChart3 className="h-4 w-4" />
                     VIEW FULL ANALYTICS
                   </Button>
+                </div>
+
+                {/* Time Tracking Controls */}
+                <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h4 className="font-semibold text-gray-900 dark:text-white">Time Tracking</h4>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Track how much time you spend on this bookmark
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      {timeTracking.isTracking && (
+                        <div className="text-lg font-mono font-bold text-green-600 dark:text-green-400">
+                          {timeTracking.formattedElapsedTime}
+                        </div>
+                      )}
+                      {timeTracking.timeStats?.last_session_time && !timeTracking.isTracking && (
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          Last session: {timeTracking.formatElapsedTime(timeTracking.timeStats.last_session_time)}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3">
+                    <Button
+                      onClick={timeTracking.toggleTracking}
+                      disabled={!bookmark?.id}
+                      variant={timeTracking.isTracking ? "destructive" : "default"}
+                      size="sm"
+                      className="flex items-center gap-2"
+                    >
+                      {timeTracking.isTracking ? (
+                        <>
+                          <Square className="h-4 w-4" />
+                          Stop Tracking
+                        </>
+                      ) : (
+                        <>
+                          <Play className="h-4 w-4" />
+                          Start Tracking
+                        </>
+                      )}
+                    </Button>
+                    
+                    {timeTracking.isTracking && (
+                      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        Session active
+                      </div>
+                    )}
+                    
+                    {timeTracking.error && (
+                      <div className="text-sm text-red-600 dark:text-red-400">
+                        {timeTracking.error}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {timeTracking.timeStats && (
+                    <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                      <div>
+                        <div className="text-lg font-semibold text-gray-900 dark:text-white">
+                          {timeTracking.timeStats.session_count}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">Sessions</div>
+                      </div>
+                      <div>
+                        <div className="text-lg font-semibold text-gray-900 dark:text-white">
+                          {timeTracking.formatElapsedTime(timeTracking.timeStats.average_session_time || 0)}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">Avg Session</div>
+                      </div>
+                      <div>
+                        <div className="text-lg font-semibold text-gray-900 dark:text-white">
+                          {timeTracking.formatElapsedTime(timeTracking.timeStats.longest_session_time || 0)}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">Longest</div>
+                      </div>
+                      <div>
+                        <div className="text-lg font-semibold text-gray-900 dark:text-white">
+                          {timeTracking.formatElapsedTime(timeTracking.timeStats.total_time_spent || 0)}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">Total</div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

@@ -1,75 +1,83 @@
+/* eslint-disable */
+const { withSentryConfig } = require('@sentry/nextjs');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
-  typescript: {
-    // !! WARN !!
-    // Dangerously allow production builds to successfully complete even if
-    // your project has type errors.
-    // !! WARN !!
-    ignoreBuildErrors: true,
+  // Disable React Strict Mode for better performance
+  reactStrictMode: false,
+  
+  // Disable dev indicators
+  devIndicators: {
+    buildActivity: false,
+    buildActivityPosition: 'bottom-right',
   },
-  eslint: {
-    ignoreDuringBuilds: true,
+  
+  // Optimize images
+  images: {
+    unoptimized: true,
   },
+  
+  // Disable source maps in development
+  productionBrowserSourceMaps: false,
+  
+  // Experimental features for performance
   experimental: {
     typedRoutes: true,
+    // Remove clientTraceMetadata to fix Sentry conflicts
   },
-  images: {
-    remotePatterns: [
-      {
-        protocol: 'http',
-        hostname: 'localhost',
-      },
-      {
-        protocol: 'https',
-        hostname: 'www.google.com',
-        pathname: '/s2/favicons**',
-      },
-    ],
-    unoptimized: false,
-    dangerouslyAllowSVG: true,
-    contentDispositionType: 'attachment',
-    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+  
+  // Optimize webpack for development
+  webpack: (config, { dev, isServer }) => {
+    if (dev) {
+      // Disable optimization in development
+      config.optimization.minimize = false
+      config.optimization.removeAvailableModules = false
+      config.optimization.removeEmptyChunks = false
+      config.optimization.splitChunks = false
+      
+      // Disable source maps for faster builds
+      config.devtool = false
+      
+      // Reduce memory usage
+      config.cache = {
+        type: 'memory',
+      }
+    }
+    
+    return config
+  },
+  
+  // Optimize on-demand entries
+  onDemandEntries: {
+    maxInactiveAge: 25000, // 25 seconds
+    pagesBufferLength: 2,
+  },
+  
+  // Build ID for cache busting
+  generateBuildId: async () => {
+    return 'build-' + Date.now()
   },
 }
 
-module.exports = nextConfig 
+// Sentry configuration
+const sentryWebpackPluginOptions = {
+  // Additional config options for the Sentry webpack plugin. Keep in mind that
+  // the following options are set automatically, and overriding them is not
+  // recommended:
+  //   release, url, configFile, stripPrefix, urlPrefix, include, ignore
 
-// Injected content via Sentry wizard below
+  org: "tbf-skillz",
+  project: "javascript-nextjs",
+  
+  // Only print logs for uploading source maps in CI
+  silent: !process.env.CI,
+  
+  // Disable automatic client config injection since we use instrumentation-client.ts
+  disableClientWebpackPlugin: true,
 
-const { withSentryConfig } = require("@sentry/nextjs");
+  // For all available options, see:
+  // https://github.com/getsentry/sentry-webpack-plugin#options.
+};
 
-module.exports = withSentryConfig(
-  module.exports,
-  {
-    // For all available options, see:
-    // https://www.npmjs.com/package/@sentry/webpack-plugin#options
-
-    org: "tbf-skillz",
-    project: "javascript-nextjs",
-
-    // Only print logs for uploading source maps in CI
-    silent: !process.env.CI,
-
-    // For all available options, see:
-    // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
-
-    // Upload a larger set of source maps for prettier stack traces (increases build time)
-    widenClientFileUpload: true,
-
-    // Route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
-    // This can increase your server load as well as your hosting bill.
-    // Note: Check that the configured route will not match with your Next.js middleware, otherwise reporting of client-
-    // side errors will fail.
-    tunnelRoute: "/monitoring",
-
-    // Automatically tree-shake Sentry logger statements to reduce bundle size
-    disableLogger: true,
-
-    // Enables automatic instrumentation of Vercel Cron Monitors. (Does not yet work with App Router route handlers.)
-    // See the following for more information:
-    // https://docs.sentry.io/product/crons/
-    // https://vercel.com/docs/cron-jobs
-    automaticVercelMonitors: true,
-  }
-);
+// Make sure adding Sentry options is the last code to run before exporting
+module.exports = withSentryConfig(nextConfig, sentryWebpackPluginOptions);

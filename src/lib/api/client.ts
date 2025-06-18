@@ -144,32 +144,25 @@ class ApiClient {
     }
 
     const response = await this.request<{
-      success: boolean
-      profile?: { id: string; email: string }
-      userId?: string
+      id: string
+      email: string
+      full_name?: string
       error?: string
     }>('/api/profile', {
       method: 'POST',
       body: JSON.stringify({ 
-        userId, 
         email, 
         fullName 
       })
     })
 
-    if (!response.success) {
+    if (response.error) {
       throw new Error(response.error || 'Failed to ensure user profile')
     }
 
-    // Use the actual user ID returned from the database
-    const actualUserId = response.userId || response.profile?.id
-    if (!actualUserId) {
-      throw new Error('No user ID returned from profile creation')
-    }
-
     return {
-      id: actualUserId,
-      email: response.profile?.email || email
+      id: response.id,
+      email: response.email
     }
   }
 }

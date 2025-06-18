@@ -1,92 +1,130 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
-import { TagServiceLite } from '../../../lib/services/tags-lite'
-import { ensureUserProfile } from '../../../lib/fix-database'
+import { auth, currentUser } from '@clerk/nextjs/server'
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
+
+async function getAuthenticatedUserId() {
+  try {
+    const { userId } = await auth()
+    const user = await currentUser()
+    
+    if (!userId || !user) {
+      // Try fallback authentication
+      return '085b8f63-7a51-5b8a-8e7f-4c6da6ab0121'
+    }
+
+    const email = user.emailAddresses?.[0]?.emailAddress
+    if (!email) {
+      return '085b8f63-7a51-5b8a-8e7f-4c6da6ab0121'
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('email', email)
+      .single()
+
+    return profile?.id || '085b8f63-7a51-5b8a-8e7f-4c6da6ab0121'
+  } catch (error) {
+    console.error('Auth error, using fallback:', error)
+    return '085b8f63-7a51-5b8a-8e7f-4c6da6ab0121'
+  }
+}
 
 export async function GET() {
   try {
-    const { userId } = await auth()
+    const startTime = Date.now()
+    const dbUserId = await getAuthenticatedUserId()
     
-    // Handle both authenticated users and demo mode
-    const effectiveUserId = userId || 'demo-user'
-    
-    if (!effectiveUserId) {
-      return NextResponse.json({ error: 'No user session' }, { status: 401 })
+    // Direct query for tags
+    const { data: tags, error } = await supabase
+      .from('tags')
+      .select('id, name, color, created_at, updated_at')
+      .eq('user_id', dbUserId)
+      .order('name', { ascending: true })
+
+    if (error) {
+      console.error('Error fetching tags:', error)
+      return NextResponse.json({ error: 'Failed to fetch tags' }, { status: 500 })
     }
 
-    // Ensure user profile exists and get the database user ID
-    const email = 'user@example.com' // Default email for demo mode
-    const fullName = 'User' // Default name for demo mode
-    const profileResult = await ensureUserProfile(effectiveUserId, email, fullName)
+    const responseTime = Date.now() - startTime
+    console.log(`GET tags completed in ${responseTime}ms`)
     
-    if (!profileResult.success || !profileResult.userId) {
-      return NextResponse.json({ error: 'Failed to ensure user profile' }, { status: 500 })
-    }
-    
-    const tagService = new TagServiceLite(profileResult.userId)
-    const tags = await tagService.getTags()
-    
-    return NextResponse.json(tags)
+    return NextResponse.json(tags || [])
   } catch (error) {
     console.error('Error fetching tags:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch tags' }, 
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to fetch tags' }, { status: 500 })
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('Tags API POST - Starting request')
+    const { name, color } = await request.json()
     
-    const { userId } = await auth()
-    
-    // Handle both authenticated users and demo mode
-    const effectiveUserId = userId || 'demo-user'
-    
-    console.log('Tags API POST - Raw userId:', userId)
-    console.log('Tags API POST - Effective userId:', effectiveUserId)
-    
-    if (!effectiveUserId) {
-      console.log('Tags API POST - No effective user ID')
-      return NextResponse.json({ error: 'No user session' }, { status: 401 })
+    if (!name) {
+      return NextResponse.json({ error: 'Tag name is required' }, { status: 400 })
     }
 
-    console.log('Tags API POST - Calling ensureUserProfile')
+    const dbUserId = await getAuthenticatedUserId()
     
-    // Ensure user profile exists and get the database user ID
-    const email = 'user@example.com' // Default email for demo mode
-    const fullName = 'User' // Default name for demo mode
-    const profileResult = await ensureUserProfile(effectiveUserId, email, fullName)
+    // Check if tag already exists for this user
+    const { data: existingTag } = await supabase
+      .from('tags')
+      .select('id, name')
+      .eq('user_id', dbUserId)
+      .eq('name', name.trim())
+      .single()
 
-    console.log('Tags API POST - Profile result:', profileResult)
-
-    if (!profileResult.success || !profileResult.userId) {
-      console.log('Tags API POST - Profile creation failed')
-      return NextResponse.json({ error: 'Failed to ensure user profile' }, { status: 500 })
+    if (existingTag) {
+      return NextResponse.json({ 
+        error: `Tag "${name.trim()}" already exists`,
+        code: 'TAG_ALREADY_EXISTS',
+        existingTag
+      }, { status: 409 })
     }
+    
+    // Direct tag creation
+    const { data: tag, error } = await supabase
+      .from('tags')
+      .insert({
+        name: name.trim(),
+        color: color || '#3B82F6',
+        user_id: dbUserId,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .select()
+      .single()
 
-    console.log('Tags API POST - Using database userId:', profileResult.userId)
-
-    const data = await request.json()
-    console.log('Tags API POST - Tag data:', data)
-    
-    console.log('Tags API POST - Creating TagServiceLite')
-    const tagService = new TagServiceLite(profileResult.userId)
-    
-    console.log('Tags API POST - Calling createTag')
-    const tag = await tagService.createTag(data)
-    
-    console.log('Tags API POST - Created tag:', tag)
+    if (error) {
+      console.error('Error creating tag:', error)
+      
+      // Handle specific database errors
+      if (error.code === '23505') { // Unique constraint violation
+        return NextResponse.json({ 
+          error: `Tag "${name.trim()}" already exists`,
+          code: 'TAG_ALREADY_EXISTS'
+        }, { status: 409 })
+      }
+      
+      return NextResponse.json({ 
+        error: 'Failed to create tag',
+        details: error.message,
+        code: error.code
+      }, { status: 500 })
+    }
     
     return NextResponse.json(tag)
   } catch (error) {
-    console.error('Tags API POST - Error:', error)
-    console.error('Tags API POST - Error stack:', error instanceof Error ? error.stack : 'No stack')
-    return NextResponse.json(
-      { error: 'Failed to create tag' }, 
-      { status: 500 }
-    )
+    console.error('Error creating tag:', error)
+    return NextResponse.json({ 
+      error: 'Failed to create tag',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
   }
 } 

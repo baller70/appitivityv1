@@ -100,7 +100,7 @@ export class BookmarkService {
     // Transform the data to include tags properly
     return data?.map(bookmark => ({
       ...bookmark,
-      tags: (bookmark.tags as any[] ?? []).map(t => 'name' in t ? t : (t as any)).filter(Boolean),
+      tags: (bookmark.tags as any[] ?? []).map(t => t.tag || t).filter(Boolean),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       reminder_at: (bookmark as any).reminder_at || null
     })) || []
@@ -133,7 +133,7 @@ export class BookmarkService {
     console.log('Successfully fetched bookmark:', id)
     return {
       ...data,
-      tags: (data.tags as any[] ?? []).map(t => 'name' in t ? t : (t as any)).filter(Boolean),
+      tags: (data.tags as any[] ?? []).map(t => t.tag || t).filter(Boolean),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       reminder_at: (data as any).reminder_at || null
     }
@@ -233,20 +233,37 @@ export class BookmarkService {
 
   // Remove tags from a bookmark
   async removeTagsFromBookmark(bookmarkId: string, tagIds?: string[]): Promise<void> {
+    console.log('Removing tags from bookmark:', bookmarkId, 'tagIds:', tagIds)
+    
     let query = this.supabase
       .from('bookmark_tags')
       .delete()
       .eq('bookmark_id', bookmarkId)
 
-    if (tagIds) {
-      query = query.in('tag_id', tagIds)
+    // If specific tag IDs are provided, only remove those
+    if (tagIds && tagIds.length > 0) {
+      // Filter out any null, undefined, or empty string values
+      const validTagIds = tagIds.filter(id => id != null && id !== '')
+      
+      if (validTagIds.length === 0) {
+        console.log('No valid tag IDs provided, skipping removal')
+        return
+      }
+      
+      console.log('Removing specific tags:', validTagIds)
+      query = query.in('tag_id', validTagIds)
+    } else {
+      console.log('Removing all tags from bookmark')
     }
 
     const { error } = await query
 
     if (error) {
+      console.error('Error removing tags from bookmark:', error)
       throw new Error(`Failed to remove tags from bookmark: ${error.message}`)
     }
+    
+    console.log('Successfully removed tags from bookmark:', bookmarkId)
   }
 
   // Search bookmarks

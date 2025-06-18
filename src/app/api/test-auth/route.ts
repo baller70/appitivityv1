@@ -7,17 +7,17 @@ export async function GET() {
     const user = await currentUser()
     
     return NextResponse.json({
-      success: true,
+      authenticated: !!userId,
       userId,
-      userEmail: user?.emailAddresses?.[0]?.emailAddress,
-      userName: user?.firstName,
+      userEmail: user?.emailAddresses?.[0]?.emailAddress || null,
+      userName: user?.firstName || null,
       timestamp: new Date().toISOString()
     })
   } catch (error) {
+    console.error('Auth test error:', error)
     return NextResponse.json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-      timestamp: new Date().toISOString()
+      error: 'Auth test failed',
+      message: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 })
   }
 } 

@@ -1,41 +1,66 @@
 // @ts-nocheck
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '../../../lib/supabase'
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 export async function GET() {
   try {
-    // Get all bookmarks with user info
-    const { data: bookmarks, error: bookmarksError } = await supabaseAdmin
+    const startTime = Date.now()
+    console.log('Debug: Starting simple bookmark query')
+    
+    // Minimal query - just count bookmarks
+    const { count, error } = await supabase
       .from('bookmarks')
-      .select('id, user_id, title, url, created_at')
-      .order('created_at', { ascending: false })
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', '085b8f63-7a51-5b8a-8e7f-4c6da6ab0121')
+
+    const queryTime = Date.now() - startTime
+    console.log(`Debug: Count query took ${queryTime}ms`)
+
+    if (error) {
+      console.error('Debug: Count query error:', error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    // Simple select query
+    const selectStart = Date.now()
+    const { data: bookmarks, error: selectError } = await supabase
+      .from('bookmarks')
+      .select('id, title, url, created_at')
+      .eq('user_id', '085b8f63-7a51-5b8a-8e7f-4c6da6ab0121')
       .limit(10)
 
-    if (bookmarksError) {
-      throw bookmarksError
+    const selectTime = Date.now() - selectStart
+    console.log(`Debug: Select query took ${selectTime}ms`)
+
+    if (selectError) {
+      console.error('Debug: Select query error:', selectError)
+      return NextResponse.json({ error: selectError.message }, { status: 500 })
     }
 
-    // Get all profiles
-    const { data: profiles, error: profilesError } = await supabaseAdmin
-      .from('profiles')
-      .select('id, email, full_name, clerk_user_id')
-
-    if (profilesError) {
-      throw profilesError
-    }
+    const totalTime = Date.now() - startTime
+    console.log(`Debug: Total time ${totalTime}ms`)
 
     return NextResponse.json({
       success: true,
-      bookmarks: bookmarks || [],
-      profiles: profiles || [],
-      bookmarkCount: bookmarks?.length || 0,
-      profileCount: profiles?.length || 0
+      count,
+      bookmarks: bookmarks?.length || 0,
+      performance: {
+        countQuery: queryTime,
+        selectQuery: selectTime,
+        total: totalTime
+      }
     })
+
   } catch (error) {
-    console.error('Debug bookmarks error:', error)
-    return NextResponse.json(
-      { error: 'Failed to debug bookmarks' },
-      { status: 500 }
-    )
+    console.error('Debug: Critical error:', error)
+    return NextResponse.json({
+      error: 'Debug query failed',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
   }
 } 

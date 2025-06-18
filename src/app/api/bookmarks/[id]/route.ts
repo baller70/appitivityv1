@@ -28,15 +28,16 @@ async function resolveActualUserId(): Promise<{ success: boolean; userId?: strin
   }
 }
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { success, userId, error } = await resolveActualUserId()
   if (!success || !userId) {
     return NextResponse.json({ error: error || 'Unauthorized' }, { status: 401 })
   }
 
   try {
+    const resolvedParams = await params
     const bookmarkService = new BookmarkService(userId)
-    const bookmark = await bookmarkService.getBookmark(params.id)
+    const bookmark = await bookmarkService.getBookmark(resolvedParams.id)
     if (!bookmark) {
       return NextResponse.json({ error: 'Bookmark not found' }, { status: 404 })
     }
@@ -47,16 +48,17 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   }
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { success, userId, error } = await resolveActualUserId()
   if (!success || !userId) {
     return NextResponse.json({ error: error || 'Unauthorized' }, { status: 401 })
   }
 
   try {
+    const resolvedParams = await params
     const updates = await request.json()
     const bookmarkService = new BookmarkService(userId)
-    const bookmark = await bookmarkService.updateBookmark(params.id, updates)
+    const bookmark = await bookmarkService.updateBookmark(resolvedParams.id, updates)
     return NextResponse.json(bookmark)
   } catch (err) {
     console.error('Error updating bookmark:', err)
@@ -64,15 +66,16 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   }
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { success, userId, error } = await resolveActualUserId()
   if (!success || !userId) {
     return NextResponse.json({ error: error || 'Unauthorized' }, { status: 401 })
   }
 
   try {
+    const resolvedParams = await params
     const bookmarkService = new BookmarkService(userId)
-    await bookmarkService.deleteBookmark(params.id)
+    await bookmarkService.deleteBookmark(resolvedParams.id)
     return NextResponse.json({ success: true })
   } catch (err) {
     console.error('Error deleting bookmark:', err)

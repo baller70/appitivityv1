@@ -53,18 +53,26 @@ export function FolderSidebar({
     if (!newFolderName.trim()) return;
     
     try {
-      // This would call the folder service to create a new folder
-      // For now, we'll just simulate it
-      const newFolder: Folder = {
-        id: `folder-${Date.now()}`,
-        name: newFolderName.trim(),
-        description: null,
-        color: null,
-        parent_id: null,
-        user_id: 'user-id',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
+      // Call the API to create a new folder
+      const response = await fetch('/api/folders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: newFolderName.trim(),
+          description: null,
+          color: null,
+          parent_id: null
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create folder');
+      }
+
+      const newFolder = await response.json();
       
       onFolderCreated(newFolder);
       setNewFolderName('');
@@ -78,16 +86,24 @@ export function FolderSidebar({
     if (!newTagName.trim()) return;
     
     try {
-      // This would call the tag service to create a new tag
-      // For now, we'll just simulate it
-      const newTag: Tag = {
-        id: `tag-${Date.now()}`,
-        name: newTagName.trim(),
-        color: null,
-        user_id: 'user-id',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
+      // Call the API to create a new tag
+      const response = await fetch('/api/tags', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: newTagName.trim(),
+          color: '#3B82F6' // Default blue color
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create tag');
+      }
+
+      const newTag = await response.json();
       
       onTagCreated(newTag);
       setNewTagName('');

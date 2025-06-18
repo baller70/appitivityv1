@@ -272,6 +272,8 @@ function BookmarkHubDashboardContent({ userId, userData, onNavigate }: BookmarkH
     setBookmarks(prev => prev.map(b => 
       b.id === updatedBookmark.id ? updatedBookmark : b
     ));
+    // Update the selected bookmark to reflect changes in the modal
+    setSelectedBookmark(updatedBookmark);
     toast.success('Bookmark updated successfully');
   };
 
