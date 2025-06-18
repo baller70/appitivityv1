@@ -1,0 +1,72 @@
+{
+  "mcpServers": {
+    "composio": {
+      "command": "npx",
+      "args": ["@composio/mcp"],
+      "env": {
+        "COMPOSIO_API_KEY": "cf74d0ea-543c-4122-8b1c-510219d7c53c"
+      }
+    },
+    "A.D.": {
+      "command": "python3",
+      "args": ["/Volumes/Softwaare Program/apptivity final v1/ai-integrations/web-eval-agent/webEvalAgent/mcp_server.py"],
+      "env": {
+        "PYTHONPATH": "/Volumes/Softwaare Program/apptivity final v1/ai-integrations/web-eval-agent"
+      }
+    },
+    "ACI MCP": {
+      "command": "node",
+      "args": ["/Volumes/Softwaare Program/apptivity final v1/ai-integrations/mcp-server-browserbase/browserbase/src/index.ts"],
+      "env": {
+        "BROWSERBASE_API_KEY": "bb-your-api-key",
+        "BROWSERBASE_PROJECT_ID": "your-project-id"
+      }
+    },
+    "time": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm", "--init",
+        "mcp/time"
+      ]
+    },
+    "fetch": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm", "--init",
+        "mcp/fetch"
+      ]
+    },
+    "github": {
+      "command": "npx",
+      "args": [
+        "@modelcontextprotocol/server-github"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "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"
+      }
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "@modelcontextprotocol/server-filesystem",
+        "/Volumes/Softwaare Program/apptivity final v1"
+      ]
+    },
+    "brave-search": {
+      "command": "npx",
+      "args": [
+        "@modelcontextprotocol/server-brave-search"
+      ],
+      "env": {
+        "BRAVE_API_KEY": "your-brave-api-key"
+      }
+    },
+    "postgres": {
+      "command": "npx",
+      "args": [
+        "@modelcontextprotocol/server-postgres",
+        "postgresql://username:password@localhost:5432/database"
+      ]
+    }
+  }
+} 

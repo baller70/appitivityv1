@@ -1,13 +1,13 @@
 {
   "mcpServers": {
-    "firecrawl-mcp": {
+    "Firecrawl-MCP": {
       "command": "npx",
       "args": ["-y", "firecrawl-mcp"],
       "env": {
         "FIRECRAWL_API_KEY": "fc-4400edeafe75408caad65b62e3e1110f"
       }
     },
-    "firebase": {
+    "Firebase-MCP": {
       "command": "npx",
       "args": [
         "-y", 
@@ -17,7 +17,7 @@
         "--only", "firestore,auth,storage"
       ]
     },
-    "desktop-commander": {
+    "Desktop-Commander": {
       "command": "npx",
       "args": ["-y", "@wonderwhy-er/desktop-commander"]
     },
@@ -28,7 +28,7 @@
         "ACI_API_KEY": "3ebedfd9f25037de84688c55303eaa99117068b251da24d556f72cfa51b5ef5e"
       }
     },
-    "cloudinary": {
+    "Cloudinary": {
       "command": "npx",
       "args": ["@felores/cloudinary-mcp-server@latest"],
       "env": {
@@ -43,12 +43,115 @@
         "mcp-server-docker"
       ]
     },
-    "mcp-postman": {
+    "MCP-Postman": {
       "command": "npx",
       "args": [
         "-y",
         "mcp-postman"
       ]
+    },
+    "Web-Eval-Agent": {
+      "command": "uvx",
+      "args": [
+        "--refresh-package",
+        "webEvalAgent",
+        "--from",
+        "git+https://github.com/Operative-Sh/web-eval-agent.git",
+        "webEvalAgent"
+      ],
+      "env": {
+        "OPERATIVE_API_KEY": "op-QNRFgStnQebW-LMvvdcs65HQhmgU382ujWbI5mOFYsA"
+      }
+    },
+    "@21st-dev/magic": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@21st-dev/magic@latest"
+      ],
+      "env": {
+        "API_KEY": "201831200abb0dde2bc4e87953530061198cadf2545ffee000f5d7c8c22dd062"
+      }
+    },
+    "Stagehand": {
+      "command": "node",
+      "args": [
+        "/Users/kevinhouston/stagehand-mcp/dist/index.js"
+      ],
+      "env": {
+        "BROWSERBASE_API_KEY": "bb_live_audK__wfBIXmt1LU1PAy-O4QVEk",
+        "BROWSERBASE_PROJECT_ID": "770de61f-ca88-4e5a-8ba9-b888338f08f7"
+      }
+    },
+    "MCP-Knowledge-Graph": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-knowledge-graph"
+      ],
+      "env": {
+        "NEO4J_URI": "bolt://localhost:7687",
+        "NEO4J_USERNAME": "neo4j",
+        "NEO4J_PASSWORD": "hunterrr777!!!",
+        "NEO4J_DATABASE": "bookhubdata"
+      }
+    },
+    "Supabase MCP": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@supabase/mcp-server"
+      ],
+      "env": {
+        "SUPABASE_URL": "https://ixqjqjqjqjqjqjqjqjqj.supabase.co",
+        "SUPABASE_ANON_KEY": "YOUR_SUPABASE_ANON_KEY"
+      }
+    },
+    "Appitivityv1.git MCP": {
+      "url": "https://gitmcp.io/baller70/appitivityv1.git"
+    },
+    "MCP_DOCKER": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-l",
+        "mcp.client=cursor",
+        "--rm",
+        "-i",
+        "alpine/socat",
+        "STDIO",
+        "TCP:host.docker.internal:8811"
+      ]
+    },
+    "composio": {
+      "command": "python3",
+      "args": ["/Volumes/Softwaare Program/apptivity final v1/composio-mcp-fixed.py"],
+      "env": {
+        "COMPOSIO_API_KEY": "cf74d0ea-543c-4122-8b1c-510219d7c53c"
+      }
+    },
+    "time": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm", "--init",
+        "mcp/time"
+      ]
+    },
+    "fetch": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm", "--init",
+        "mcp/fetch"
+      ]
+    },
+    "github": {
+      "command": "npx",
+      "args": [
+        "@modelcontextprotocol/server-github"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "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"
+      }
     }
   }
 } 
