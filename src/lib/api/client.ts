@@ -6,18 +6,22 @@ class ApiClient {
   private baseUrl: string
 
   constructor() {
-    // Use current window location in browser, fallback to localhost:3000 in server
+    // Use current window location in browser, fallback to localhost:3004 in server
     if (typeof window !== 'undefined') {
       this.baseUrl = window.location.origin
     } else {
       this.baseUrl = process.env.NODE_ENV === 'production' 
         ? 'https://your-domain.com' 
-        : 'http://localhost:3000'
+        : 'http://localhost:3004'
     }
   }
 
   private async request<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`
+    
+    // Create an AbortController for timeout
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
     
     try {
       const response = await fetch(url, {
@@ -26,8 +30,11 @@ class ApiClient {
           ...options.headers,
         },
         credentials: 'include', // Include cookies for Clerk authentication
+        signal: controller.signal,
         ...options,
       })
+
+      clearTimeout(timeoutId)
 
       if (!response.ok) {
         const errorText = await response.text()
@@ -44,6 +51,10 @@ class ApiClient {
 
       return response.json()
     } catch (error) {
+      clearTimeout(timeoutId)
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('Request timeout - please try again')
+      }
       console.error(`API request failed for ${url}:`, error)
       throw error
     }

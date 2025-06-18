@@ -75,6 +75,7 @@ import { AdvancedAnalyticsDashboard } from '../analytics/advanced-analytics-dash
 import { BackupRestoreSystem } from '../backup/backup-restore-system';
 import { CollaborationSystem } from '../sharing/collaboration-system';
 
+import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
 
 interface BookmarkHubDashboardProps {
   userId: string;
@@ -725,6 +726,18 @@ function BookmarkHubDashboardContent({ userId, userData, onNavigate }: BookmarkH
           <main className="flex-1 p-6 overflow-auto">
                 {/* Bookmarks Display */}
                 <div className="space-y-6">
+                  
+                  {/* Time Period Selector Tabs */}
+                  <div className="flex justify-center">
+                    <Tabs value="3months" className="w-auto">
+                      <TabsList className="grid w-full grid-cols-3">
+                        <TabsTrigger value="3months">Last 3 months</TabsTrigger>
+                        <TabsTrigger value="30days">Last 30 days</TabsTrigger>
+                        <TabsTrigger value="7days">Last 7 days</TabsTrigger>
+                      </TabsList>
+                    </Tabs>
+                  </div>
+                  
                   {/* Professional View Mode Selector - Large Size */}
                   <div className="bg-white dark:bg-gray-800 rounded-3xl p-14 border border-slate-200 dark:border-slate-700 shadow-xl mb-4">
                     <div className="flex items-center justify-center">

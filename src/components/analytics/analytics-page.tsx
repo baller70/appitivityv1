@@ -44,6 +44,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { DnaPageHeader } from '../dna-profile/dna-page-header';
 import { TimeTrackingAnalytics } from './time-tracking-analytics';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 interface AnalyticsPageProps {
   userId: string;
@@ -644,6 +645,17 @@ export function AnalyticsPage({ userId: _userId }: AnalyticsPageProps) {
               />
             </div>
           )}
+        </div>
+
+        {/* Time Period Selector */}
+        <div className="flex justify-center">
+          <Tabs value={timeRange} onValueChange={setTimeRange} className="w-auto">
+            <TabsList className="grid grid-cols-3">
+              <TabsTrigger value="90d">Last 3 months</TabsTrigger>
+              <TabsTrigger value="30d">Last 30 days</TabsTrigger>
+              <TabsTrigger value="7d">Last 7 days</TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
 
         {/* Enhanced Secondary Metrics */}
