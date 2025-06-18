@@ -1,0 +1,1 @@
+module.exports = require('../build-scripts/next.config.js'); 
