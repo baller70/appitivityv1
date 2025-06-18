@@ -96,16 +96,32 @@
         "NEO4J_DATABASE": "bookhubdata"
       }
     },
+    "Neo4j MCP": {
+      "command": "uvx",
+      "args": [
+        "mcp-neo4j-cypher",
+        "--db-url",
+        "bolt://localhost:7687",
+        "--user",
+        "neo4j",
+        "--password",
+        "hunterrr777!!!",
+        "--database",
+        "bookhubdata"
+      ]
+    },
     "Supabase MCP": {
       "command": "npx",
       "args": [
         "-y",
-        "@supabase/mcp-server"
-      ],
-      "env": {
-        "SUPABASE_URL": "https://ixqjqjqjqjqjqjqjqjqj.supabase.co",
-        "SUPABASE_ANON_KEY": "YOUR_SUPABASE_ANON_KEY"
-      }
+        "@supabase/mcp-server-supabase@latest",
+        "--access-token",
+        "sbp_c1c5d0b7260460b6106a299711e1d897e0370b5a"
+      ]
+    },
+    "Playwright MCP": {
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"]
     },
     "Appitivityv1.git MCP": {
       "url": "https://gitmcp.io/baller70/appitivityv1.git"
@@ -122,6 +138,42 @@
         "STDIO",
         "TCP:host.docker.internal:8811"
       ]
+    },
+    "Github MCP": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "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",
+        "GITHUB_TOOLSETS": "all"
+      }
+    },
+    "Browserbase MCP": {
+      "command": "npx",
+      "args": ["-y", "@browserbasehq/mcp"],
+      "env": {
+        "BROWSERBASE_API_KEY": "bb_live_audK__wfBIXmt1LU1PAy-O4QVEk",
+        "BROWSERBASE_PROJECT_ID": "770de61f-ca88-4e5a-8ba9-b888338f08f7"
+      }
+    },
+    "Peekaboo MCP": {
+      "command": "npx",
+      "args": ["-y", "@steipete/peekaboo-mcp"],
+      "env": {
+        "PEEKABOO_AI_PROVIDERS": "openai/gpt-4o"
+      }
+    },
+    "ByteRover MCP": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "byterover-mcp",
+        "--user-id",
+        "khouston721@gmail.com"
+      ],
+      "env": {
+        "BYTEROVER_PUBLIC_API_KEY": "pk-br-4c5a8f17-558c-4576-8b2f-9e19a7609409",
+        "BYTEROVER_MEMORY_WORKSPACE_KEY": "cmbyj6vpu00efm6076lx2r0i5"
+      }
     },
     "composio": {
       "command": "python3",
@@ -143,15 +195,6 @@
         "run", "-i", "--rm", "--init",
         "mcp/fetch"
       ]
-    },
-    "github": {
-      "command": "npx",
-      "args": [
-        "@modelcontextprotocol/server-github"
-      ],
-      "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "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"
-      }
     }
   }
 } 
