@@ -109,11 +109,11 @@ export function BookmarkDetailModal({
   const [newTagName, setNewTagName] = useState('');
   const [isTagLoading, setIsTagLoading] = useState(false);
 
-  // Time tracking integration
+  // Time tracking integration - automatically start when modal opens (only if user is authenticated)
   const timeTracking = useTimeTracking({
-    bookmarkId: bookmark?.id || '',
+    bookmarkId: bookmark?.id || '', // Always provide a string, even if empty
     sessionType: 'view',
-    autoStart: false,
+    autoStart: !!user && !!bookmark?.id, // Only auto-start if user is authenticated AND bookmark exists
     metadata: { source: 'bookmark_modal' }
   });
 
@@ -171,6 +171,13 @@ export function BookmarkDetailModal({
       setPreviewImage(null);
     }
   }, [bookmark?.preview_image]);
+
+  // Automatic time tracking: stop when modal closes
+  useEffect(() => {
+    if (!isOpen && timeTracking.isTracking) {
+      timeTracking.stopTracking();
+    }
+  }, [isOpen, timeTracking.isTracking, timeTracking.stopTracking]);
 
   // Timer functionality
   useEffect(() => {
@@ -258,10 +265,16 @@ export function BookmarkDetailModal({
             console.log('✅ Loaded', transformedRelated.length, 'existing related bookmarks');
           }
         } else {
+          // Check if it's an authentication error
+          const authStatus = response.headers.get('x-clerk-auth-status');
+          if (authStatus === 'signed-out') {
+            console.warn('User not authenticated, skipping related bookmarks load');
+            return;
+          }
           console.warn('Failed to load related bookmarks:', response.status, response.statusText);
         }
       } catch (err) {
-        console.error('❌ Error loading related bookmarks:', err);
+        console.warn('❌ Error loading related bookmarks (this is normal if not signed in):', err);
       }
     };
 
@@ -645,6 +658,26 @@ export function BookmarkDetailModal({
         body: JSON.stringify({ bookmarkId: item.id })
       });
 
+      // Automatically start time tracking for external visit
+      fetch('/api/time-tracking/external-visit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bookmarkId: item.id,
+          metadata: {
+            action: 'related_bookmark_visit',
+            url: item.url,
+            title: item.title,
+            source: 'related_bookmarks'
+          }
+        }),
+      }).catch(error => {
+        console.error('Failed to track external visit time:', error);
+        // Don't show error to user as this is background tracking
+      });
+
       // Open the URL in a new tab
       window.open(item.url, '_blank');
       
@@ -661,12 +694,18 @@ export function BookmarkDetailModal({
     try {
       const response = await fetch('/api/tags');
       if (!response.ok) {
+        // Check if it's an authentication error
+        const authStatus = response.headers.get('x-clerk-auth-status');
+        if (authStatus === 'signed-out') {
+          console.warn('User not authenticated, skipping tags load');
+          return;
+        }
         throw new Error('Failed to load tags');
       }
       const tags = await response.json();
       setAvailableTags(tags);
     } catch (error) {
-      console.error('Failed to load tags:', error);
+      console.warn('Failed to load tags (this is normal if not signed in):', error);
     }
   };
 
@@ -876,7 +915,10 @@ export function BookmarkDetailModal({
     }
   };
 
-  if (!bookmark) return null;
+  // Handle null bookmark case
+  if (!bookmark) {
+    return null;
+  }
 
   const tabs = [
     { id: 'overview' as const, label: 'Overview', icon: BarChart3 },
@@ -1074,94 +1116,6 @@ export function BookmarkDetailModal({
                     <BarChart3 className="h-4 w-4" />
                     VIEW FULL ANALYTICS
                   </Button>
-                </div>
-
-                {/* Time Tracking Controls */}
-                <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h4 className="font-semibold text-gray-900 dark:text-white">Time Tracking</h4>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Track how much time you spend on this bookmark
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      {timeTracking.isTracking && (
-                        <div className="text-lg font-mono font-bold text-green-600 dark:text-green-400">
-                          {timeTracking.formattedElapsedTime}
-                        </div>
-                      )}
-                      {timeTracking.timeStats?.last_session_time && !timeTracking.isTracking && (
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                          Last session: {timeTracking.formatElapsedTime(timeTracking.timeStats.last_session_time)}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-3">
-                    <Button
-                      onClick={timeTracking.toggleTracking}
-                      disabled={!bookmark?.id}
-                      variant={timeTracking.isTracking ? "destructive" : "default"}
-                      size="sm"
-                      className="flex items-center gap-2"
-                    >
-                      {timeTracking.isTracking ? (
-                        <>
-                          <Square className="h-4 w-4" />
-                          Stop Tracking
-                        </>
-                      ) : (
-                        <>
-                          <Play className="h-4 w-4" />
-                          Start Tracking
-                        </>
-                      )}
-                    </Button>
-                    
-                    {timeTracking.isTracking && (
-                      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                        Session active
-                      </div>
-                    )}
-                    
-                    {timeTracking.error && (
-                      <div className="text-sm text-red-600 dark:text-red-400">
-                        {timeTracking.error}
-                      </div>
-                    )}
-                  </div>
-                  
-                  {timeTracking.timeStats && (
-                    <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                      <div>
-                        <div className="text-lg font-semibold text-gray-900 dark:text-white">
-                          {timeTracking.timeStats.session_count}
-                        </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">Sessions</div>
-                      </div>
-                      <div>
-                        <div className="text-lg font-semibold text-gray-900 dark:text-white">
-                          {timeTracking.formatElapsedTime(timeTracking.timeStats.average_session_time || 0)}
-                        </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">Avg Session</div>
-                      </div>
-                      <div>
-                        <div className="text-lg font-semibold text-gray-900 dark:text-white">
-                          {timeTracking.formatElapsedTime(timeTracking.timeStats.longest_session_time || 0)}
-                        </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">Longest</div>
-                      </div>
-                      <div>
-                        <div className="text-lg font-semibold text-gray-900 dark:text-white">
-                          {timeTracking.formatElapsedTime(timeTracking.timeStats.total_time_spent || 0)}
-                        </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">Total</div>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
 

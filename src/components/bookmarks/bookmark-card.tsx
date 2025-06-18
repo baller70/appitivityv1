@@ -365,7 +365,7 @@ export function BookmarkCard({ bookmark, folders, onUpdated, onDeleted, onOpenDe
                 e.stopPropagation();
                 try {
                   // Track the visit
-                  const response = await fetch('/api/bookmarks/visit', {
+                  const visitResponse = await fetch('/api/bookmarks/visit', {
                     method: 'POST',
                     headers: {
                       'Content-Type': 'application/json',
@@ -375,8 +375,8 @@ export function BookmarkCard({ bookmark, folders, onUpdated, onDeleted, onOpenDe
                     }),
                   });
 
-                  if (response.ok) {
-                    const result = await response.json();
+                  if (visitResponse.ok) {
+                    const result = await visitResponse.json();
                     // Update the local bookmark state with new visit count
                     onUpdated({
                       ...bookmark,
@@ -384,6 +384,25 @@ export function BookmarkCard({ bookmark, folders, onUpdated, onDeleted, onOpenDe
                       last_visited_at: result.bookmark.last_visited_at,
                     });
                   }
+
+                  // Automatically start time tracking for external visit
+                  fetch('/api/time-tracking/external-visit', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      bookmarkId: bookmark.id,
+                      metadata: {
+                        action: 'external_link_click',
+                        url: bookmark.url,
+                        title: bookmark.title
+                      }
+                    }),
+                  }).catch(error => {
+                    console.error('Failed to track external visit time:', error);
+                    // Don't show error to user as this is background tracking
+                  });
 
                   window.open(bookmark.url, '_blank');
                   toast.success('Opening website in new tab');

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { BookmarkSession, TimeStats } from '@/lib/services/time-tracking'
 
 interface UseTimeTrackingProps {
@@ -22,10 +22,21 @@ export function useTimeTracking({
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const startTimeRef = useRef<Date | null>(null)
+  const isTrackingRef = useRef(false)
 
-    // Start tracking session
+  // Keep ref in sync with state
+  useEffect(() => {
+    isTrackingRef.current = isTracking
+  }, [isTracking])
+
+  // Start tracking session
   const startTracking = useCallback(async () => {
-    if (!bookmarkId) return
+    if (!bookmarkId) {
+      console.log('🕒 Cannot start tracking - no bookmarkId')
+      return
+    }
+    
+    console.log('🕒 Starting tracking session for bookmark:', bookmarkId)
     
     try {
       setError(null)
@@ -42,13 +53,24 @@ export function useTimeTracking({
         })
       })
 
+      console.log('🕒 Session start response status:', response.status)
+
       if (!response.ok) {
+        // Check if it's an authentication error
+        const authStatus = response.headers.get('x-clerk-auth-status')
+        console.log('🕒 Auth status:', authStatus)
+        if (authStatus === 'signed-out') {
+          console.warn('User not authenticated, skipping time tracking')
+          return // Silently skip time tracking if user is not authenticated
+        }
         throw new Error('Failed to start tracking session')
       }
 
       const session = await response.json()
+      console.log('🕒 Session started successfully:', session.id)
       setActiveSession(session)
       setIsTracking(true)
+      isTrackingRef.current = true
       startTimeRef.current = new Date()
 
       // Start elapsed time counter
@@ -60,10 +82,15 @@ export function useTimeTracking({
       }, 1000)
 
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to start tracking')
-      console.error('Error starting time tracking:', err)
+      // For automatic tracking, don't show errors to user, just log them
+      if (autoStart) {
+        console.warn('Automatic time tracking failed (this is normal if not signed in):', err)
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to start tracking')
+        console.error('Error starting time tracking:', err)
+      }
     }
-  }, [bookmarkId, sessionType, metadata])
+  }, [bookmarkId, sessionType, metadata, autoStart])
 
   // Stop tracking session
   const stopTracking = useCallback(async () => {
@@ -93,6 +120,7 @@ export function useTimeTracking({
 
       setActiveSession(null)
       setIsTracking(false)
+      isTrackingRef.current = false
       setElapsedTime(0)
       startTimeRef.current = null
 
@@ -113,31 +141,54 @@ export function useTimeTracking({
       const response = await fetch(`/api/time-tracking/stats?bookmarkId=${bookmarkId}`)
       
       if (!response.ok) {
+        // Check if it's an authentication error
+        const authStatus = response.headers.get('x-clerk-auth-status')
+        if (authStatus === 'signed-out') {
+          console.warn('User not authenticated, skipping time stats refresh')
+          return // Silently skip if user is not authenticated
+        }
         throw new Error('Failed to fetch time stats')
       }
 
       const stats = await response.json()
       setTimeStats(stats)
     } catch (err) {
-      console.error('Error fetching time stats:', err)
+      console.warn('Error fetching time stats (this is normal if not signed in):', err)
     }
   }, [bookmarkId])
 
   // Check for active session on mount
   const checkActiveSession = useCallback(async () => {
-    if (!bookmarkId) return
+    if (!bookmarkId) {
+      console.log('🕒 Cannot check active session - no bookmarkId')
+      return
+    }
+    
+    console.log('🕒 Checking for active session for bookmark:', bookmarkId)
     
     try {
       const response = await fetch(`/api/time-tracking/session?bookmarkId=${bookmarkId}`)
       
+      console.log('🕒 Active session check response status:', response.status)
+      
       if (!response.ok) {
+        // Check if it's an authentication error
+        const authStatus = response.headers.get('x-clerk-auth-status')
+        console.log('🕒 Auth status for active session check:', authStatus)
+        if (authStatus === 'signed-out') {
+          console.warn('User not authenticated, skipping active session check')
+        }
         return
       }
 
       const session = await response.json()
+      console.log('🕒 Active session response:', session)
+      
       if (session && session.is_active) {
+        console.log('🕒 Found existing active session:', session.id)
         setActiveSession(session)
         setIsTracking(true)
+        isTrackingRef.current = true
         startTimeRef.current = new Date(session.session_start)
 
         // Calculate elapsed time since session start
@@ -151,9 +202,11 @@ export function useTimeTracking({
             setElapsedTime(elapsed)
           }
         }, 1000)
+      } else {
+        console.log('🕒 No active session found')
       }
     } catch (err) {
-      console.error('Error checking active session:', err)
+      console.warn('Error checking active session (this is normal if not signed in):', err)
     }
   }, [bookmarkId])
 
@@ -186,24 +239,34 @@ export function useTimeTracking({
   useEffect(() => {
     if (!bookmarkId) return
     
-    checkActiveSession()
-    refreshTimeStats()
-
-    // Auto-start if specified
-    if (autoStart && !isTracking) {
-      const timer = setTimeout(() => {
-        startTracking()
-      }, 1000) // Delay to avoid conflicts with existing session check
-
-      return () => clearTimeout(timer)
+    const initializeTracking = async () => {
+      console.log('🕒 Initializing time tracking for bookmark:', bookmarkId)
+      
+      // First, check for existing active sessions
+      await checkActiveSession()
+      
+      // Wait a bit, then check if we need to auto-start
+      setTimeout(async () => {
+        console.log('🕒 Auto-start check - autoStart:', autoStart, 'isTracking:', isTrackingRef.current)
+        // Only auto-start if there's no active session and autoStart is enabled
+        if (autoStart && !isTrackingRef.current) {
+          console.log('🕒 Starting automatic time tracking...')
+          await startTracking()
+        } else {
+          console.log('🕒 Skipping auto-start - already tracking or auto-start disabled')
+        }
+      }, 1000) // Increase delay to ensure state is properly updated
     }
+
+    initializeTracking()
+    refreshTimeStats()
 
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current)
       }
     }
-  }, [bookmarkId, autoStart])
+  }, [bookmarkId]) // Remove autoStart and isTracking from dependencies to avoid loops
 
   // Cleanup on unmount
   useEffect(() => {

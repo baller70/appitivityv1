@@ -43,6 +43,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { DnaPageHeader } from '../dna-profile/dna-page-header';
+import { TimeTrackingAnalytics } from './time-tracking-analytics';
 
 interface AnalyticsPageProps {
   userId: string;
@@ -152,6 +153,7 @@ export function AnalyticsPage({ userId: _userId }: AnalyticsPageProps) {
   const [focusedBookmark, setFocusedBookmark] = useState<BookmarkWithRelations | null>(null);
   const [expandedSections, setExpandedSections] = useState({
     overview: true,
+    timeTracking: true,
     categories: true,
     topBookmarks: true,
     recentActivity: true,
@@ -732,6 +734,28 @@ export function AnalyticsPage({ userId: _userId }: AnalyticsPageProps) {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Time Tracking Analytics Section */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+              <Clock className="h-5 w-5 mr-2" />
+              Time Tracking Analytics
+            </h2>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => toggleSection('timeTracking')}
+              className="flex items-center space-x-1"
+            >
+              {expandedSections.timeTracking ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+          </div>
+          
+          {expandedSections.timeTracking && (
+            <TimeTrackingAnalytics />
+          )}
         </div>
 
         {/* Enhanced Category Breakdown */}

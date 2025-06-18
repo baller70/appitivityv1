@@ -1,6 +1,6 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
-const supabase = createClient(
+const defaultSupabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
@@ -28,10 +28,10 @@ export interface TimeStats {
 }
 
 export class TimeTrackingService {
-  private userId: string
+  private supabase: SupabaseClient
 
-  constructor(userId: string) {
-    this.userId = userId
+  constructor(supabaseClient?: SupabaseClient) {
+    this.supabase = supabaseClient || defaultSupabase
   }
 
   /**
@@ -39,17 +39,18 @@ export class TimeTrackingService {
    */
   async startSession(
     bookmarkId: string,
+    userId: string,
     sessionType: BookmarkSession['session_type'] = 'view',
     metadata: Record<string, any> = {}
   ): Promise<BookmarkSession> {
     // First, end any active sessions for this bookmark
-    await this.endActiveSessionsForBookmark(bookmarkId)
+    await this.endActiveSessionsForBookmark(bookmarkId, userId)
 
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .from('bookmark_sessions')
       .insert({
         bookmark_id: bookmarkId,
-        user_id: this.userId,
+        user_id: userId,
         session_type: sessionType,
         metadata,
         is_active: true
@@ -67,12 +68,12 @@ export class TimeTrackingService {
   /**
    * End a specific session
    */
-  async endSession(sessionId: string): Promise<BookmarkSession> {
-    const { data: session, error: fetchError } = await supabase
+  async endSession(sessionId: string, userId: string): Promise<BookmarkSession> {
+    const { data: session, error: fetchError } = await this.supabase
       .from('bookmark_sessions')
       .select('*')
       .eq('id', sessionId)
-      .eq('user_id', this.userId)
+      .eq('user_id', userId)
       .single()
 
     if (fetchError || !session) {
@@ -83,7 +84,7 @@ export class TimeTrackingService {
     const sessionStart = new Date(session.session_start)
     const durationSeconds = Math.round((sessionEnd.getTime() - sessionStart.getTime()) / 1000)
 
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .from('bookmark_sessions')
       .update({
         session_end: sessionEnd.toISOString(),
@@ -92,7 +93,7 @@ export class TimeTrackingService {
         updated_at: new Date().toISOString()
       })
       .eq('id', sessionId)
-      .eq('user_id', this.userId)
+      .eq('user_id', userId)
       .select()
       .single()
 
@@ -106,12 +107,12 @@ export class TimeTrackingService {
   /**
    * End all active sessions for a bookmark
    */
-  async endActiveSessionsForBookmark(bookmarkId: string): Promise<void> {
-    const { data: activeSessions, error: fetchError } = await supabase
+  async endActiveSessionsForBookmark(bookmarkId: string, userId: string): Promise<void> {
+    const { data: activeSessions, error: fetchError } = await this.supabase
       .from('bookmark_sessions')
       .select('*')
       .eq('bookmark_id', bookmarkId)
-      .eq('user_id', this.userId)
+      .eq('user_id', userId)
       .eq('is_active', true)
 
     if (fetchError) {
@@ -124,18 +125,18 @@ export class TimeTrackingService {
 
     // End each active session
     for (const session of activeSessions) {
-      await this.endSession(session.id)
+      await this.endSession(session.id, userId)
     }
   }
 
   /**
    * End all active sessions for the user
    */
-  async endAllActiveSessions(): Promise<void> {
-    const { data: activeSessions, error: fetchError } = await supabase
+  async endAllActiveSessions(userId: string): Promise<void> {
+    const { data: activeSessions, error: fetchError } = await this.supabase
       .from('bookmark_sessions')
       .select('*')
-      .eq('user_id', this.userId)
+      .eq('user_id', userId)
       .eq('is_active', true)
 
     if (fetchError) {
@@ -148,19 +149,19 @@ export class TimeTrackingService {
 
     // End each active session
     for (const session of activeSessions) {
-      await this.endSession(session.id)
+      await this.endSession(session.id, userId)
     }
   }
 
   /**
    * Get active session for a bookmark
    */
-  async getActiveSession(bookmarkId: string): Promise<BookmarkSession | null> {
-    const { data, error } = await supabase
+  async getActiveSession(bookmarkId: string, userId: string): Promise<BookmarkSession | null> {
+    const { data, error } = await this.supabase
       .from('bookmark_sessions')
       .select('*')
       .eq('bookmark_id', bookmarkId)
-      .eq('user_id', this.userId)
+      .eq('user_id', userId)
       .eq('is_active', true)
       .order('session_start', { ascending: false })
       .limit(1)
@@ -174,17 +175,36 @@ export class TimeTrackingService {
   }
 
   /**
+   * Get all active sessions for the user
+   */
+  async getAllActiveSessions(userId: string): Promise<BookmarkSession[]> {
+    const { data, error } = await this.supabase
+      .from('bookmark_sessions')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .order('session_start', { ascending: false })
+
+    if (error) {
+      throw new Error(`Failed to get active sessions: ${error.message}`)
+    }
+
+    return data || []
+  }
+
+  /**
    * Get all sessions for a bookmark
    */
   async getBookmarkSessions(
     bookmarkId: string,
+    userId: string,
     limit: number = 50
   ): Promise<BookmarkSession[]> {
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .from('bookmark_sessions')
       .select('*')
       .eq('bookmark_id', bookmarkId)
-      .eq('user_id', this.userId)
+      .eq('user_id', userId)
       .order('session_start', { ascending: false })
       .limit(limit)
 
@@ -196,14 +216,46 @@ export class TimeTrackingService {
   }
 
   /**
+   * Start a quick external visit session (automatically ends after a short delay)
+   */
+  async trackExternalVisit(
+    bookmarkId: string,
+    userId: string,
+    metadata: Record<string, any> = {}
+  ): Promise<void> {
+    try {
+      // Start a brief session for external visits
+      const session = await this.startSession(bookmarkId, userId, 'view', {
+        ...metadata,
+        source: 'external_visit',
+        auto_track: true
+      })
+
+      // Automatically end the session after 30 seconds
+      // This represents the minimum time for an external visit
+      setTimeout(async () => {
+        try {
+          await this.endSession(session.id, userId)
+        } catch (error) {
+          console.error('Failed to auto-end external visit session:', error)
+        }
+      }, 30000) // 30 seconds
+
+    } catch (error) {
+      console.error('Failed to track external visit:', error)
+      // Don't throw - this shouldn't block the external link opening
+    }
+  }
+
+  /**
    * Get time statistics for a bookmark
    */
-  async getBookmarkTimeStats(bookmarkId: string): Promise<TimeStats> {
-    const { data, error } = await supabase
+  async getBookmarkTimeStats(bookmarkId: string, userId: string): Promise<TimeStats> {
+    const { data, error } = await this.supabase
       .from('bookmarks')
       .select('total_time_spent, session_count, average_session_time, last_session_time, longest_session_time')
       .eq('id', bookmarkId)
-      .eq('user_id', this.userId)
+      .eq('user_id', userId)
       .maybeSingle()
 
     if (error) {
@@ -233,7 +285,7 @@ export class TimeTrackingService {
   /**
    * Get user's overall time statistics
    */
-  async getUserTimeStats(): Promise<{
+  async getUserTimeStats(userId: string): Promise<{
     totalTimeSpent: number
     totalSessions: number
     averageSessionTime: number
@@ -241,10 +293,10 @@ export class TimeTrackingService {
     dailyAverage: number
   }> {
     // Get aggregated bookmark stats
-    const { data: bookmarks, error: bookmarksError } = await supabase
+    const { data: bookmarks, error: bookmarksError } = await this.supabase
       .from('bookmarks')
       .select('id, title, total_time_spent, session_count')
-      .eq('user_id', this.userId)
+      .eq('user_id', userId)
 
     if (bookmarksError) {
       throw new Error(`Failed to get user time stats: ${bookmarksError.message}`)
@@ -263,10 +315,10 @@ export class TimeTrackingService {
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
-    const { data: recentSessions, error: sessionsError } = await supabase
+    const { data: recentSessions, error: sessionsError } = await this.supabase
       .from('bookmark_sessions')
       .select('duration_seconds')
-      .eq('user_id', this.userId)
+      .eq('user_id', userId)
       .gte('session_start', thirtyDaysAgo.toISOString())
       .not('duration_seconds', 'is', null)
 
@@ -310,16 +362,16 @@ export class TimeTrackingService {
   /**
    * Get time tracking analytics for a date range
    */
-  async getTimeAnalytics(startDate: Date, endDate: Date): Promise<{
+  async getTimeAnalytics(userId: string, startDate: Date, endDate: Date): Promise<{
     totalTime: number
     sessions: number
     dailyBreakdown: { date: string; time: number; sessions: number }[]
     sessionTypeBreakdown: { type: string; time: number; sessions: number }[]
   }> {
-    const { data: sessions, error } = await supabase
+    const { data: sessions, error } = await this.supabase
       .from('bookmark_sessions')
       .select('duration_seconds, session_type, session_start')
-      .eq('user_id', this.userId)
+      .eq('user_id', userId)
       .gte('session_start', startDate.toISOString())
       .lte('session_start', endDate.toISOString())
       .not('duration_seconds', 'is', null)
@@ -329,9 +381,9 @@ export class TimeTrackingService {
     }
 
     const totalTime = sessions?.reduce((sum, s) => sum + (s.duration_seconds || 0), 0) || 0
-    const sessionCount = sessions?.length || 0
+    const totalSessions = sessions?.length || 0
 
-    // Daily breakdown
+    // Group by date
     const dailyMap = new Map<string, { time: number; sessions: number }>()
     sessions?.forEach(session => {
       const date = new Date(session.session_start).toISOString().split('T')[0]
@@ -348,10 +400,10 @@ export class TimeTrackingService {
       sessions: data.sessions
     }))
 
-    // Session type breakdown
+    // Group by session type
     const typeMap = new Map<string, { time: number; sessions: number }>()
     sessions?.forEach(session => {
-      const type = session.session_type || 'view'
+      const type = session.session_type
       const existing = typeMap.get(type) || { time: 0, sessions: 0 }
       typeMap.set(type, {
         time: existing.time + (session.duration_seconds || 0),
@@ -367,7 +419,7 @@ export class TimeTrackingService {
 
     return {
       totalTime,
-      sessions: sessionCount,
+      sessions: totalSessions,
       dailyBreakdown,
       sessionTypeBreakdown
     }
