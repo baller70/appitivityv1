@@ -1,0 +1,54 @@
+{
+  "mcpServers": {
+    "firecrawl-mcp": {
+      "command": "npx",
+      "args": ["-y", "firecrawl-mcp"],
+      "env": {
+        "FIRECRAWL_API_KEY": "fc-4400edeafe75408caad65b62e3e1110f"
+      }
+    },
+    "firebase": {
+      "command": "npx",
+      "args": [
+        "-y", 
+        "firebase-tools@latest", 
+        "experimental:mcp",
+        "--dir", "/Volumes/Softwaare Program/apptivity final v1",
+        "--only", "firestore,auth,storage"
+      ]
+    },
+    "desktop-commander": {
+      "command": "npx",
+      "args": ["-y", "@wonderwhy-er/desktop-commander"]
+    },
+    "aci-mcp-unified": {
+      "command": "uvx",
+      "args": ["aci-mcp", "unified-server", "--linked-account-owner-id", "<Cursor>", "--allowed-apps-only"],
+      "env": {
+        "ACI_API_KEY": "3ebedfd9f25037de84688c55303eaa99117068b251da24d556f72cfa51b5ef5e"
+      }
+    },
+    "cloudinary": {
+      "command": "npx",
+      "args": ["@felores/cloudinary-mcp-server@latest"],
+      "env": {
+        "CLOUDINARY_CLOUD_NAME": "makecloudinary",
+        "CLOUDINARY_API_KEY": "248871727152627",
+        "CLOUDINARY_API_SECRET": "GQsDQaJKBzytqrRtpbS1vvdD0n4"
+      }
+    },
+    "mcp-server-docker": {
+      "command": "uvx",
+      "args": [
+        "mcp-server-docker"
+      ]
+    },
+    "mcp-postman": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-postman"
+      ]
+    }
+  }
+} 
