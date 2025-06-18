@@ -6,13 +6,13 @@ class ApiClient {
   private baseUrl: string
 
   constructor() {
-    // Use current window location in browser, fallback to localhost:3004 in server
+    // Use current window location in browser, fallback to localhost:3005 in server
     if (typeof window !== 'undefined') {
       this.baseUrl = window.location.origin
     } else {
       this.baseUrl = process.env.NODE_ENV === 'production' 
         ? 'https://your-domain.com' 
-        : 'http://localhost:3004'
+        : 'http://localhost:3005'
     }
   }
 
