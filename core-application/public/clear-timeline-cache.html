@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Timeline Cache</title>
+</head>
+<body>
+    <h1>Clear Timeline Cache</h1>
+    <button onclick="clearCache()">Clear Cache</button>
+    
+    <script>
+        function clearCache() {
+            localStorage.removeItem('timeline-cache');
+            sessionStorage.removeItem('timeline-cache');
+            alert('Timeline cache cleared!');
+        }
+    </script>
+</body>
+</html> 

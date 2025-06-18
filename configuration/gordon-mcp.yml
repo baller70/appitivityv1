@@ -1,0 +1,46 @@
+# Gordon MCP Configuration
+# This file configures the Gordon MCP (Model Context Protocol) integration
+
+name: gordon-mcp
+version: "1.0.0"
+description: "Gordon MCP integration for enhanced AI capabilities"
+
+# MCP Server Configuration
+server:
+  host: "localhost"
+  port: 3001
+  protocol: "http"
+  
+# Authentication
+auth:
+  type: "bearer"
+  token: "${GORDON_MCP_TOKEN}"
+  
+# Capabilities
+capabilities:
+  - name: "code_analysis"
+    enabled: true
+    config:
+      max_file_size: "10MB"
+      supported_languages: ["javascript", "typescript", "python", "bash"]
+      
+  - name: "project_management"
+    enabled: true
+    config:
+      max_projects: 10
+      auto_sync: true
+      
+  - name: "ai_assistance"
+    enabled: true
+    config:
+      model: "claude-3-sonnet"
+      max_tokens: 4000
+      
+# Logging
+logging:
+  level: "info"
+  file: "gordon-mcp.log"
+  
+# Environment Variables Required:
+# GORDON_MCP_TOKEN - Authentication token for Gordon MCP
+# GORDON_MCP_ENDPOINT - Optional custom endpoint URL 

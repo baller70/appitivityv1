@@ -1,0 +1,210 @@
+{
+  "mcpServers": {
+    "composio": {
+      "command": "python3",
+      "args": ["/Volumes/Softwaare Program/apptivity final v1/composio-mcp-fixed.py"],
+      "env": {
+        "COMPOSIO_API_KEY": "cf74d0ea-543c-4122-8b1c-510219d7c53c"
+      }
+    },
+    "time": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--init", "mcp/time"]
+    },
+    "fetch": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--init", "mcp/fetch"]
+    },
+    "filesystem": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--init", "-v", "/Users:/Users", "mcp/filesystem", "/Users"]
+    },
+    "sqlite": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--init", "mcp/sqlite"]
+    },
+    "puppeteer": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--init", "-e", "DOCKER_CONTAINER=true", "mcp/puppeteer"]
+    },
+    "github": {
+      "command": "npx",
+      "args": [
+        "@modelcontextprotocol/server-github"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "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"
+      }
+    },
+    "github-docker": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--init", "-e", "GITHUB_PERSONAL_ACCESS_TOKEN=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", "mcp/github"]
+    },
+    "git": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--init", "-v", "/Users:/Users", "mcp/git", "/Users"]
+    },
+    "postgres": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--init", "mcp/postgres"]
+    },
+    "memory": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--init", "-v", "/tmp/mcp-memory:/app/data", "mcp/memory"]
+    },
+    "brave-search": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--init", "mcp/brave-search"]
+    },
+    "dart": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--init", "mcp/dart"]
+    },
+    "docker": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--init", "mcp/docker"]
+    },
+    "kubernetes": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--init", "mcp/kubernetes"]
+    },
+    "playwright": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--init", "mcp/playwright"]
+    },
+    "node-code-sandbox": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--init", "mcp/node-code-sandbox"]
+    },
+    "context7": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--init", "mcp/context7"]
+    },
+    "desktop-commander": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--init", "mcp/desktop-commander"]
+    },
+    "tavily": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--init", "mcp/tavily"]
+    },
+    "stripe": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--init", "mcp/stripe"]
+    },
+    "firecrawl": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--init", "mcp/firecrawl"]
+    },
+    "wikipedia": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--init", "mcp/wikipedia-mcp"]
+    },
+    "neo4j-cloud": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--init", "mcp/neo4j-cloud-aura-api"]
+    },
+    "neo4j-cypher-local": {
+      "command": "uvx",
+      "args": [
+        "mcp-neo4j-cypher",
+        "--db-url",
+        "bolt://localhost:7687",
+        "--user",
+        "neo4j",
+        "--password",
+        "hunterrr777!!!",
+        "--database",
+        "bookhubdata"
+      ]
+    },
+    "pulumi": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--init", "mcp/pulumi"]
+    },
+    "perplexity": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--init", "mcp/perplexity-ask"]
+    },
+    "duckduckgo": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--init", "mcp/duckduckgo"]
+    },
+    "databutton": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--init", "mcp/databutton"]
+    },
+    "atlas-docs": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--init", "mcp/atlas-docs"]
+    },
+    "youtube-transcript": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--init", "mcp/youtube-transcript"]
+    },
+    "openapi-schema": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--init", "mcp/openapi-schema"]
+    },
+    "neon": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--init", "mcp/neon"]
+    },
+    "jetbrains": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--init", "mcp/jetbrains"]
+    },
+    "MCP_DOCKER": {
+      "command": "docker",
+      "args": ["run", "-l", "mcp.client=cursor", "--rm", "-i", "alpine/socat", "STDIO", "TCP:host.docker.internal:8811"]
+    },
+    "Playwright MCP": {
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"]
+    },
+    "Github MCP": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "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",
+        "GITHUB_TOOLSETS": "all"
+      }
+    },
+    "supabase-mcp": {
+      "command": "npx",
+      "args": ["-y", "@supabase/mcp-server-supabase@latest", "--access-token", "sbp_c1c5d0b7260460b6106a299711e1d897e0370b5a"]
+    },
+    "Browserbase MCP": {
+      "command": "npx",
+      "args": ["-y", "@browserbasehq/mcp"],
+      "env": {
+        "BROWSERBASE_API_KEY": "bb_live_audK__wfBIXmt1LU1PAy-O4QVEk",
+        "BROWSERBASE_PROJECT_ID": "770de61f-ca88-4e5a-8ba9-b888338f08f7"
+      }
+    },
+    "Peekaboo MCP": {
+      "command": "npx",
+      "args": ["-y", "@steipete/peekaboo-mcp"],
+      "env": {
+        "PEEKABOO_AI_PROVIDERS": "openai/gpt-4o"
+      }
+    },
+    "ByteRover MCP": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "byterover-mcp",
+        "--user-id",
+        "khouston721@gmail.com",
+        "--llm-key-name",
+        "default",
+        "--model",
+        "gpt-4o"
+      ],
+      "env": {
+        "BYTEROVER_PUBLIC_API_KEY": "pk-br-4c5a8f17-558c-4576-8b2f-9e19a7609409",
+        "BYTEROVER_MEMORY_WORKSPACE_KEY": "cmbyj6vpu00efm6076lx2r0i5"
+      }
+    }
+  }
+} 
